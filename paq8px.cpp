@@ -1,4 +1,4 @@
-/* paq8px file compressor/archiver.  Release by Márcio Pais, July 26, 2017
+/* paq8px file compressor/archiver.  Release by MÃ¡rcio Pais, July 28, 2017
 
     Copyright (C) 2008 Matt Mahoney, Serge Osnach, Alexander Ratushnyak,
     Bill Pettis, Przemyslaw Skibinski, Matthew Fite, wowtiger, Andrew Paterson,
@@ -611,10 +611,15 @@ Added gif recompression
 #include <sys/stat.h>
 #include <dirent.h>
 #include <errno.h>
+#else
+#include <windows.h>                         
 #endif
 
-
-
+#if defined(__x86_64) || defined(_M_X64)
+ #define X64
+#else
+ #undef X64
+#endif
 #ifndef DEFAULT_OPTION
 #define DEFAULT_OPTION 5
 #endif
@@ -674,6 +679,39 @@ public:
   }
 } programChecker;
 
+typedef unsigned int uint;
+typedef unsigned long long qword;
+
+const uint g_PageFlag0 = 0x1000;
+const uint g_PageMask0 = 0x1000-1;
+uint g_PageFlag = g_PageFlag0;
+uint g_PageMask = g_PageMask0;
+
+template< class T >
+T* VAlloc( qword size ) {
+  void* r;
+  size *= sizeof(T);
+  qword s = (size+g_PageMask) & (~qword(g_PageMask));
+  Retry:
+//printf( "s=%I64X sizeof(size_t)=%i\n", s, sizeof(size_t) );
+#ifndef X64
+  if( s>=(qword(1)<<32) ) r=0; else
+#endif
+  r = VirtualAlloc(0, s, g_PageFlag, PAGE_READWRITE );
+//printf( "r=%08X\n", r );
+  if( (r==0) && (g_PageMask!=g_PageMask0) ) {
+    g_PageFlag = g_PageFlag0;
+    g_PageMask = g_PageMask0; 
+    s = size;
+    goto Retry;
+  }
+  return (T*)r;
+}
+
+template< class T >
+void VFree( T* p ) {
+  VirtualFree( p, 0, MEM_RELEASE );
+}
 //////////////////////////// Array ////////////////////////////
 
 // Array<T> a(n); creates n elements of T initialized to 0 bits.
@@ -743,14 +781,27 @@ template<class T> void Array<T>::create(int i) {
   }
   const int sz=n*sizeof(T);
   programChecker.alloc(sz);
-  ptr = (char*)calloc(sz, 1);
-  if (!ptr) quit("Out of memory");
-  data = (T*)ptr;
+  char* r;
+  if( sz>(1<<24) ) {
+    r = ptr = VAlloc<char>( sz );
+  } else {
+    int flag = (sz>=16);
+    ptr = (char*)calloc( sz+(flag?15:0), 1 );
+    if( !ptr ) quit("Out of memory");
+    r = ptr;
+    if( flag ) { r = ptr + 15; r -= (r-((char*)0))&15; }
+  }
+  data = (T*)r; //ptr;
 }
 
 template<class T> Array<T>::~Array() {
   programChecker.alloc(-n*sizeof(T));
-  free(ptr);
+  const int sz=n*sizeof(T);
+  if( sz>(1<<24) ) {
+    VFree(ptr);
+  } else {
+    free(ptr);
+  }
 }
 
 template<class T> void Array<T>::push_back(const T& x) {
@@ -3129,7 +3180,7 @@ int jpegModel(Mixer& m) {
   }
 
   // Context model
-  const int N=28; // size of t, number of contexts
+  const int N=30; // size of t, number of contexts
   static BH<9> t(MEM);  // context hash -> bit history
     // As a cache optimization, the context does not include the last 1-2
     // bits of huffcode if the length (huffbits) is not a multiple of 3.
@@ -3186,6 +3237,25 @@ int jpegModel(Mixer& m) {
     cxt[25]=hash(++n, zv, lcp[1], adv_pred[2]/4, run_pred[5]);
     cxt[26]=hash(++n, zu, lcp[0], adv_pred[0]/4, run_pred[3]);
     cxt[27]=hash(++n, lcp[0], lcp[1], adv_pred[3]);
+ 
+    int PrevCompCoef = 0;
+    if ((nBlocks[comp]==1) && (comp>0)){
+      int h = SamplingFactors[comp-1]>>4;
+      int v = SamplingFactors[comp-1]&0xf;
+      int k = 0;
+      for (int j=1; j<=v; j++){
+        for (int i=1; i<=h; i++){
+          k = (v-j+1)*(64*h);
+          k-= (i-1)*64;
+          PrevCompCoef+= cbuf2[cpos-k];
+        }
+      }
+      PrevCompCoef/=(h*v);
+      PrevCompCoef = (1-2*(PrevCompCoef<0))*ilog(abs(PrevCompCoef)+1);
+    }
+    
+    cxt[28]=hash(++n, coef, PrevCompCoef);
+    cxt[29]=hash(++n, coef, ilog( (ssum*(1+log2(1+mcupos&0x3F)))/((mcupos&0x3F)+1) +1), cbuf[cpos-64] );
   }
 
   // Predict next bit
@@ -4092,9 +4162,9 @@ bool IsGrayscalePalette(FILE* in, int n = 256, int isRGBA = 0){
     if (!j)
       res = (res&((b-(res&0xFF)==order)<<8))|b; // load first component of this entry
     else if (j==3)
-      res&=((!b || (b==0xFF))<<9)-1; // alpha/attribute component must be zero or 0xFF
+      res&=((!b || (b==0xFF))*0x1FF); // alpha/attribute component must be zero or 0xFF
     else
-      res&=((b==res&0xFF)<<9)-1;
+      res&=((b==(res&0xFF))<<9)-1;
   }
   fseek(in, offset, SEEK_SET);
   return res>>8;
