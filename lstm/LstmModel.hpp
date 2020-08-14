@@ -14,18 +14,12 @@ public:
   static constexpr int MIXERCONTEXTS = 8 * 256 + 8 * 100;
   static constexpr int MIXERCONTEXTSETS = 2;
   static constexpr std::size_t Size = 1u << Bits;
-  enum Parameters : std::size_t {
-    RetrainWindow = 0x20000u,              // maximum amount of text that will be used for periodic retraining
-    RetrainFromBlockStartWindow = 0x2000u, // amount of text seen in a block before we switch from retraining on the whole block
-    RetrainAllowedOverflow = 32u,          // how many bytes past the threshold will be allowed as we look for an end-point that doesn't occur mid-word
-    RetrainMaxThreshold = 0x4000u
-  };
 protected:  
   const Shared* const shared;
   std::valarray<float> probs;
   APM apm1, apm2, apm3;
   IndirectContext<std::uint32_t> iCtx;
-  std::size_t top, mid, bot, threshold, initial_threshold, txt_pos, count;
+  std::size_t top, mid, bot;
   std::uint8_t expected;
 public:
   LstmModel(
@@ -39,7 +33,7 @@ public:
     probs(1.f / Size, Size),
     apm1{ sh, 0x10000u, 24 }, apm2{ sh, 0x800u, 24 }, apm3{ sh, 0x20000u, 24 },
     iCtx{ 11, 2 },
-    top(Size - 1), mid(0), bot(0), threshold(horizon), initial_threshold(threshold), txt_pos(0), count(0),
+    top(Size - 1), mid(0), bot(0),
     expected(0)
   {}
   virtual ~LstmModel() = default;
