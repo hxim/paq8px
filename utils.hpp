@@ -193,7 +193,7 @@ static inline auto isPNG(BlockType ft) -> bool { return ft == PNG8 || ft == PNG8
 #define OPTION_ADAPTIVE 16U
 #define OPTION_SKIPRGB 32U
 #define OPTION_LSTM 64U
-#define OPTION_LSTM_RETRAINING 128U
+#define OPTION_LSTM_TRAINING 128U
 
 //////////////////// Cross-platform definitions /////////////////////////////////////
 
