@@ -27,7 +27,7 @@ public:
     LstmModel<Bits>(sh, num_cells, num_layers, horizon, learning_rate, gradient_clip),
     lstm(0, this->Size, num_cells, num_layers, horizon, learning_rate, gradient_clip)
   {
-    if ((sh->options & OPTION_TRAINTXT) > 0u)
+    if ((sh->options & OPTION_LSTM_TRAINING) > 0u)
       lstm.template LoadFromDisk<4, 1>("english.rnn");
   }
 
@@ -45,30 +45,6 @@ public:
       memcpy(&this->probs[0], &output[0], (1 << Bits) * sizeof(float));
       this->top = (1 << Bits) - 1;
       this->bot = 0;
-
-      if (((this->shared->options & OPTION_LSTM_RETRAINING) != 0u) && ((this->shared->State.blockType == TEXT) || (this->shared->State.blockType == TEXT_EOL)) && (this->txt_pos < this->RetrainWindow)) {
-        this->count++;
-        if (((this->count >= this->threshold) && ((c1 == SPACE) || (c1 == CARRIAGE_RETURN) || (this->count >= this->threshold + this->RetrainAllowedOverflow)))) {
-          this->lstm.SaveTimeStep();
-          RingBuffer<std::uint8_t> const& buf = this->shared->buf;
-          std::uint32_t const blockPos = this->shared->State.blockPos;
-          if (blockPos < this->RetrainFromBlockStartWindow) {
-            for (std::uint32_t i = blockPos; i > 0u; i--)
-              lstm.Perceive(buf(i));
-            this->count = 0u;
-          }
-          else {
-            for (; this->count > 0u; this->count--)
-              lstm.Perceive(buf(static_cast<std::uint32_t>(this->count)));
-          }
-          this->lstm.RestoreTimeStep();
-          this->threshold = std::min<std::size_t>(this->threshold * 2u, this->RetrainMaxThreshold);
-        }
-      }
-      else {
-        this->count = 0u;
-        this->threshold = this->initial_threshold;
-      }
     }
 
     this->mid = (this->bot + this->top)>>1;
