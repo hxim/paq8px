@@ -1738,3 +1738,7 @@ paq8px_v191
 - Pre-training now available for the LSTM, with a heavily-quantized model trained on english texts
 - LSTM prediction is now promoted to the second layer of the paq mixer
 - Activations functions are now available in AVX2
+
+paq8px_v191a
+2020.08.14
+- Repurposed option switch "r" to handle loading of pre-trained LSTM models, decoupling it from other switches
