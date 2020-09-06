@@ -25,7 +25,7 @@ private:
 public:
     static constexpr int MIXERINPUTS = nSSM * SmallStationaryContextMap::MIXERINPUTS + nSM * StationaryMap::MIXERINPUTS +
                                        nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS);
-    static constexpr int MIXERCONTEXTS = 6 + 256 + 512 + 2048 + 8 * 32 + 6 * 64 + 256 * 2 + 1024 + 8192 + 8192 + 8192 + 8192 + 256; //38022
+    static constexpr int MIXERCONTEXTS = (5 + 256) + 256 + 512 + 2048 + 8 * 32 + 6 * 64 + 256 * 2 + 1024 + 8192 + 8192 + 8192 + 8192 + 256; //38277
     static constexpr int MIXERCONTEXTSETS = 13;
 
     Shared * const shared;

@@ -255,6 +255,7 @@
     <ClCompile Include="file\FileTmp.cpp" />
     <ClCompile Include="file\ListOfFiles.cpp" />
     <ClCompile Include="file\OpenFromMyFolder.cpp" />
+    <ClCompile Include="filter\DecAlpha.cpp" />
     <ClCompile Include="filter\LZWDictionary.cpp" />
     <ClCompile Include="filter\TextParserStateInfo.cpp" />
     <ClCompile Include="Ilog.cpp" />
@@ -336,6 +337,8 @@
     <ClInclude Include="filter\base64.hpp" />
     <ClInclude Include="filter\bmp.hpp" />
     <ClInclude Include="filter\cd.hpp" />
+    <ClInclude Include="filter\DecAlpha.hpp" />
+    <ClInclude Include="filter\DecAlphaFilter.hpp" />
     <ClInclude Include="filter\ecc.hpp" />
     <ClInclude Include="filter\endianness16b.hpp" />
     <ClInclude Include="filter\eol.hpp" />
@@ -378,6 +381,7 @@
     <ClInclude Include="model\AudioModel.hpp" />
     <ClInclude Include="model\CharGroupModel.hpp" />
     <ClInclude Include="model\ContextModel.hpp" />
+    <ClInclude Include="model\DecAlphaModel.hpp" />
     <ClInclude Include="model\DmcForest.hpp" />
     <ClInclude Include="model\DmcModel.hpp" />
     <ClInclude Include="model\DmcNode.hpp" />

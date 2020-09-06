@@ -23,7 +23,7 @@
 void Shared::init(uint8_t level) {
   this->level = level;
   mem = 65536ULL << level;
-  buf.setSize(min(mem * 8, 1ULL << 30)); /**< no reason to go over 1 GB */
+  buf.setSize(static_cast<uint32_t>(min(mem * 8, 1ULL << 30))); /**< no reason to go over 1 GB */
   toScreen = !isOutputDirected();
 }
 

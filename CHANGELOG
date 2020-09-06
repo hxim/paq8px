@@ -1765,3 +1765,17 @@ paq8px_v193 by Márcio Pais
 - New SSE stage for x86/64 executables
 - New SSE stage for JPEG files and an additional context in the model
 - Faster AVX2 float dot product
+
+
+paq8px_v193fix1 by Zoltán Gotthardt
+2020.08.30
+- Cosmetic changes, fixed compiler warnings
+- Fixed OLS predictor (bug since v189)
+
+
+paq8px_v193fix2 by Márcio Pais
+2020.08.31
+- Slightly improved 24/32bpp image model
+- Fixed DEC Alpha transform (failed on non-multiple of 4 block sizes)
+- Fixed zlib transform bug from v142fix2 that caused a huge slowdown
+- Use deterministic AVX2 code path for Adam optimizer

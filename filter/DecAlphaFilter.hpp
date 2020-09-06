@@ -74,6 +74,9 @@ public:
         blk[i + 2u] = instruction >> 16u;
         blk[i + 3u] = instruction >> 24u;
       }
+      std::size_t const l = static_cast<std::size_t>(length - (length & 3u));
+      for (std::size_t i = 0u; i < static_cast<std::size_t>(length & 3u); i++)
+        blk[l + i] = encoder->decompressByte();
 
       if (fMode == FDECOMPRESS) {
         out->blockWrite(&blk[0u], length);

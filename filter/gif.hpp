@@ -75,8 +75,8 @@ static auto encodeGif(File *in, File *out, uint64_t len, int &headerSize) -> int
           if( bsize == 0 ) {
             bsize = blockSize;
           }
-          if( code == (1U << codeSize)) {
-            if( maxcode > (1U << codeSize) + 1 ) {
+          if( code == (1 << codeSize)) {
+            if( maxcode > (1 << codeSize) + 1 ) {
               if((clearPos != 0) && clearPos != 69631 - maxcode ) {
                 return 0;
               }
@@ -91,7 +91,7 @@ static auto encodeGif(File *in, File *out, uint64_t len, int &headerSize) -> int
           } else {
             int j = (code <= maxcode ? code : last);
             int size = 1;
-            while( j >= (1U << codeSize)) {
+            while( j >= (1 << codeSize)) {
               output[4096 - (size++)] = dict[j] & 255U;
               j = dict[j] >> 8U;
             }
@@ -125,7 +125,7 @@ static auto encodeGif(File *in, File *out, uint64_t len, int &headerSize) -> int
                   diffPos = size + static_cast<int>(code == maxcode);
                 }
               }
-              if( maxcode >= ((1U << bits) - 1) && bits < 12 ) {
+              if( maxcode >= ((1 << bits) - 1) && bits < 12 ) {
                 bits++;
               }
             }
@@ -187,7 +187,7 @@ static auto decodeGif(File *in, uint64_t size, File *out, FMode mode, uint64_t &
   int shift = 0;
   int buffer = 0;
   int blockSize = 0;
-  if( diffCount > 4096 || clearPos <= (1U << codesize) + 2 ) {
+  if( diffCount > 4096 || clearPos <= (1 << codesize) + 2 ) {
     return 1;
   }
   int maxcode = (1U << codesize) + 1;
@@ -244,7 +244,7 @@ static auto decodeGif(File *in, uint64_t size, File *out, FMode mode, uint64_t &
           dict[maxcode] = key;
           table[(index < 0) ? -index - 1 : offset] = maxcode;
         }
-        if( maxcode >= (1U << bits) && bits < 12 ) {
+        if( maxcode >= (1 << bits) && bits < 12 ) {
           bits++;
         }
       }

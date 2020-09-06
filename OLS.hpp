@@ -155,7 +155,7 @@ public:
       for( int j = 0; j < n; j++ ) {
         for( i = 0; i < l; i += 4 ) {
           mCovariance[j*n+i] = lambda * mCovariance[j*n+i] + mul * (x[j] * x[i]);
-          mCovariance[j*n+i + 1] = lambda * mCovariance[j+n+i + 1] + mul * (x[j] * x[i + 1]);
+          mCovariance[j*n+i + 1] = lambda * mCovariance[j*n+i + 1] + mul * (x[j] * x[i + 1]);
           mCovariance[j*n+i + 2] = lambda * mCovariance[j*n+i + 2] + mul * (x[j] * x[i + 2]);
           mCovariance[j*n+i + 3] = lambda * mCovariance[j*n+i + 3] + mul * (x[j] * x[i + 3]);
         }

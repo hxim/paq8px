@@ -48,7 +48,7 @@ public:
       uint64_t inLen = 0;
       int i = 0;
       int b = 0;
-      uint32_t lfp = 0;
+      uint64_t lfp = 0;
       int tlf = 0;
       char src[4];
       uint64_t b64Mem = (size >> 2U) * 3 + 10;

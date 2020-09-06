@@ -240,6 +240,9 @@
     <ClCompile Include="ArithmeticEncoder.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="filter\DecAlpha.cpp">
+      <Filter>filter</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -613,6 +616,15 @@
     </ClInclude>
     <ClInclude Include="lstm\SimdLstmModel.hpp">
       <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="model\DecAlphaModel.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="filter\DecAlpha.hpp">
+      <Filter>filter</Filter>
+    </ClInclude>
+    <ClInclude Include="filter\DecAlphaFilter.hpp">
+      <Filter>filter</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

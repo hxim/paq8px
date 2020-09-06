@@ -69,12 +69,12 @@ public:
           continue;
         }
         if( c > 0x7F ) {
-          for( int j = 0; j <= (c & 0x7FU); j++ ) {
+          for( uint32_t j = 0; j <= (c & 0x7FU); j++ ) {
             out->putChar(b);
           }
           c = in->getchar(), i++;
         } else {
-          for( int j = 0; j <= c; j++, i++ ) {
+          for(uint32_t j = 0; j <= c; j++, i++ ) {
             out->putChar(b), b = in->getchar();
           }
           c = b;
@@ -123,7 +123,7 @@ public:
         if( fMode == FDECOMPRESS ) {
           out->blockWrite(&outBuffer[0], length);
         } else if( fMode == FCOMPARE ) {
-          for( int j = 0; j < static_cast<int>(length); ++j ) {
+          for(uint32_t j = 0; j < length; ++j ) {
             if( outBuffer[j] != out->getchar() && (diffFound == 0u)) {
               diffFound = pos + j + 1;
               break;

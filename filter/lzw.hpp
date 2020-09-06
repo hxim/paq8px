@@ -153,7 +153,7 @@ static auto decodeLzw(File *in, File *out, FMode mode, uint64_t &diffFound) -> u
         bitsPerCode = 9;
       } else {
         dic.addEntry(parent, code, index);
-        if( dic.index >= (1U << bitsPerCode)) {
+        if( dic.index >= (1 << bitsPerCode)) {
           bitsPerCode++;
         }
       }

@@ -5,6 +5,9 @@ Makefile
 cmake_install.cmake
 cmake-build-debug
 compile_commands.json
+build/*.o
+build/_error?_*.txt
+paq8px.exe
 paq8px
 paq8px.cbp
 CMakeFiles

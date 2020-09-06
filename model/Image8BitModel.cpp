@@ -415,6 +415,6 @@ void Image8BitModel::mix(Mixer &m) {
     m.set(min(255, (x + line) / 32), 256);
   } else {
     m.add(-2048 + ((filter >> (7 - bpos)) & 1U) * 4096);
-    m.set(min(4, filter), MIXERINPUTS);
+    m.set(min(4, filter), MIXERCONTEXTS);
   }
 }

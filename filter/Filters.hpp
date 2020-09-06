@@ -118,119 +118,151 @@ static auto isGrayscalePalette(File *in, int n = 256, int isRGBA = 0) -> bool {
 static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, TransformOptions *transformOptions) -> BlockType {
   TextParserStateInfo *textParser = &TextParserStateInfo::getInstance();
   // TODO: Large file support
-  int n = static_cast<int>(blockSize);
+  const uint64_t n = blockSize;
+
   // last 16 bytes
   uint32_t buf3 = 0;
   uint32_t buf2 = 0;
   uint32_t buf1 = 0;
   uint32_t buf0 = 0;
-  static uint64_t start = 0ull, prv_start;
-  prv_start = start;
-  start = in->curPos();
+  
+  static uint64_t start = 0ull;
+  static uint64_t prv_start = 0ull;
+
+  prv_start = start;    // for DEC Alpha detection
+  start = in->curPos(); // start of the current block
 
   // For EXE detection
-  Array<int> absPos(256); /**< CALL/JMP abs. address. low byte -> last offset */
-  Array<int> relPos(256); /**< CALL/JMP relative address. low byte -> last offset */
-  int e8e9count = 0; /**< number of consecutive CALL/JMPs */
-  int e8e9pos = 0; /**< offset of first CALL or JMP instruction */
-  int e8e9last = 0; /**< offset of most recent CALL or JMP */
+  Array<uint64_t> absPos(256); // CALL/JMP abs. address. low byte -> last offset
+  Array<uint64_t> relPos(256); // CALL/JMP relative address. low byte -> last offset
+  int e8e9count = 0; // number of consecutive CALL/JMPs
+  uint64_t e8e9pos = 0; // offset of first CALL or JMP instruction
+  uint64_t e8e9last = 0; // offset of most recent CALL or JMP
+  
   // For DEC Alpha detection
   struct {
-    Array<std::uint64_t> absPos{ 256 };
-    Array<std::uint64_t> relPos{ 256 };
-    std::uint32_t opcode = 0u, idx = 0u, count[4] = { 0 }, branches[4] = { 0 };
-    std::uint64_t offset = 0u, last = 0u;
+    Array<uint64_t> absPos{ 256 };
+    Array<uint64_t> relPos{ 256 };
+    uint32_t opcode = 0u, idx = 0u, count[4] = { 0 }, branches[4] = { 0 };
+    uint64_t offset = 0u, last = 0u;
   } DEC;
-  int soi = 0;
-  int sof = 0;
-  int sos = 0;
-  int app = 0; // For JPEG detection - position where found
+  
+  // For JPEG detection
+  uint64_t soi = 0; // Start Of Image 
+  uint64_t sof = 0; // Start Of Frame
+  uint64_t sos = 0; // Start Of Scan
+  uint64_t app = 0; // Application-specific marker
+
 #ifndef DISABLE_AUDIOMODEL
-  int wavi = 0;
-  int wavSize = 0;
-  int wavch = 0;
-  int wavbps = 0;
+  // For WAVE detection
+  uint64_t wavi = 0;
+  int wavSize = 0; // filesize
+  int wavch = 0; // number of channels: 1 or 2
+  int wavbps = 0; // bits per sample: 8 or 16
   int wavm = 0;
-  int wavType = 0;
+  int wavType = 0; // 1 for WAV, 2 for SF2
   int wavLen = 0;
-  int wavlist = 0; // For WAVE detection
-  int aiff = 0;
+  uint64_t wavlist = 0; //position of a LIST info chunk (if present)
+  
+  // For AIFF detection
+  uint64_t aiff = 0;
   int aiffm = 0;
-  int aiffs = 0; // For AIFF detection
-  int s3mi = 0;
+  int aiffs = 0; 
+  
+  // For S3M detection
+  uint64_t s3mi = 0;
   int s3Mno = 0;
-  int s3Mni = 0; // For S3M detection
+  int s3Mni = 0; 
 #endif //  DISABLE_AUDIOMODEL
-  uint32_t bmpi = 0;
-  uint32_t dibi = 0;
-  uint32_t imgbpp = 0;
-  uint32_t bmpx = 0;
-  uint32_t bmpy = 0;
-  uint32_t bmpof = 0;
-  uint32_t bmps = 0;
-  uint32_t nColors = 0; // For BMP detection
-  int rgbi = 0;
+   
+  // For BMP detection
+  uint64_t bmpi = 0;
+  uint64_t dibi = 0;
+  int imgbpp = 0;
+  int bmpx = 0;
+  int bmpy = 0;
+  int bmpof = 0;
+  int bmps = 0;
+  int nColors = 0;
+  
+  // For RGB detection
+  uint64_t rgbi = 0;
   int rgbx = 0;
-  int rgby = 0; // For RGB detection
-  int tga = 0;
+  int rgby = 0; 
+  
+  // For TGA detection
+  uint64_t tga = 0;
   int tgax = 0;
   int tgay = 0;
   int tgaz = 0;
   int tgat = 0;
   int tgaid = 0;
-  int tgamap = 0; // For TGA detection
-  // ascii images are currently not supported
-  int pgm = 0;
-  int pgmComment = 0;
-  int pgmw = 0;
-  int pgmh = 0;
-  int pgmPtr = 0;
-  int pgmc = 0;
-  int pgmn = 0;
-  int pamatr = 0;
-  int pamd = 0;
-  int pgmdata = 0;
-  int pgmDataSize = 0; // For PBM, PGM, PPM, PAM detection
+  int tgamap = 0; 
+  
+  // For PBM (Portable BitMap), PGM (Portable GrayMap), PPM (Portable PixMap), PAM (Portable Arbitrary Map) detection
+  uint64_t pgm = 0;
+  int pgmComment = 0; // flag for presence of a comment line
+  int pgmw = 0; // width
+  int pgmh = 0; // height
+  int pgmc = 0;  // color depth
+  int pgmn = 0; // format: 4: PBM, 5: PGM 6: PPM, 7: PAM
+  int pamatr = 0; // currently processed PAM attribute
+  int pamd = 0; // PAM color depth (number of color channes)
+  uint64_t pgmdata = 0; // image data start
+  uint64_t pgmDataSize = 0; // image data size in bytes
+  int pgmPtr = 0; // index in pgmBuf
   char pgmBuf[32];
-  int cdi = 0;
+  
+  // For CD sectors detection
+  uint64_t cdi = 0;
   int cda = 0;
-  int cdm = 0; // For CD sectors detection
+  int cdm = 0; 
+  
   uint32_t cdf = 0;
   uint8_t zBuf[256 + 32] = {0};
   uint8_t zin[1U << 16] = {0};
   uint8_t zout[1U << 16] = {0}; // For ZLIB stream detection
+
+
   int zBufPos = 0;
-  int zZipPos = -1;
+  uint64_t zZipPos = UINT64_MAX;
   int histogram[256] = {0};
   int pdfIm = 0;
   int pdfImW = 0;
   int pdfImH = 0;
   int pdfImB = 0;
   int pdfGray = 0;
-  int pdfimp = 0;
+  uint64_t pdfimp = 0;
+
+  // For base64 detection
   int b64S = 0;
-  int b64I = 0;
-  int b64Line = 0;
-  int b64Nl = 0; // For base64 detection
+  uint64_t b64I = 0;
+  uint64_t b64Line = 0;
+  uint64_t b64Nl = 0;
+
+  // For GIF detection
+  uint64_t gifi = 0;
+  uint64_t gifa = 0;
   int gif = 0;
-  int gifa = 0;
-  int gifi = 0;
   int gifw = 0;
   int gifc = 0;
   int gifb = 0;
-  int gifplt = 0; // For GIF detection
+  int gifplt = 0;
   static int gifGray = 0;
-  int png = 0;
+  
+  // For PNG detection
+  uint64_t png = 0;
   int pngw = 0;
   int pngh = 0;
   int pngbps = 0;
   int pngType = 0;
   int pnggray = 0;
   int lastChunk = 0;
-  int nextChunk = 0; // For PNG detection
+  uint64_t nextChunk = 0;
+
   // For image detection
-  static int deth = 0;
-  static int detd = 0; // detected header/data size in bytes
+  static uint64_t deth = 0; // detected header size in bytes
+  static uint64_t detd = 0; // detected data size in bytes
   static BlockType dett; // detected block type
   if( deth != 0 ) {
     in->setpos(start + deth);
@@ -244,7 +276,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
   }
 
   textParser->reset(0);
-  for (int i = 0; i < n; ++i) {
+  for (uint64_t i = 0; i < n; ++i) {
     int c = in->getchar();
     if (c == EOF) {
       return static_cast<BlockType>(-1);
@@ -259,7 +291,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
       png = i, pngType = -1, lastChunk = buf3;
     }
     if (png != 0) {
-      const int p = i - png;
+      const uint64_t p = i - png;
       if (p == 12) {
         pngw = buf2;
         pngh = buf1;
@@ -344,8 +376,9 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         strm.avail_in = 0;
         strm.total_in = strm.total_out = 0;
         if (zlibInflateInit(&strm, zh) == Z_OK) {
-          for (int j = i - (brute ? 255 : 31); j < n; j += 1 << 16) {
-            uint32_t blsize = min(n - j, 1 << 16);
+          uint64_t blstart = static_cast<uint64_t>(std::max<int64_t>(i - (brute ? 255 : 31), 0));
+          for (uint64_t j = blstart; j < n; j += 1 << 16) {
+            uint32_t blsize = static_cast<uint32_t>(min(n - j, 1ull << 16));
             in->setpos(start + j);
             if (in->blockRead(zin, blsize) != blsize)
               break;
@@ -509,11 +542,12 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     }
 #ifndef DISABLE_AUDIOMODEL
     // Detect .wav file header
-    if (buf0 == 0x52494646) {
-      wavi = i, wavm = wavLen = 0; //"RIFF"
+    if (buf0 == 0x52494646 /*RIFF*/) { 
+      wavi = i;
+      wavm = wavLen = 0;
     }
     if (wavi != 0) {
-      int p = i - wavi;
+      uint64_t p = i - wavi;
       if (p == 4) {
         wavSize = bswap(buf0); //fileSize
       }
@@ -524,7 +558,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         }
       }
       else if (wavType != 0) {
-        if (wavType == 1) {
+        if (wavType == 1) { // type: WAVE
           if (p == 16 + wavLen && (buf1 != 0x666d7420 /*"fmt "*/ || ((wavm = bswap(buf0) - 16) & 0xFFFFFFFD) != 0)) {
             wavLen = ((bswap(buf0) + 1) & (-2)) + 8, wavi *= static_cast<int>(buf1 == 0x666d7420 /*"fmt "*/ && (wavm & 0xFFFFFFFD) != 0);
           }
@@ -537,7 +571,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
           else if (p == 40 + wavLen + wavm && buf1 != 0x64617461 /*"data"*/) {
             wavm += ((bswap(buf0) + 1) & (-2)) + 8, wavi = (wavm > 0xfffff ? 0 : wavi);
           }
-          else if (p == 40 + wavLen + wavm) {
+          else if (p == 40 + wavLen + wavm) {  // The "data" subchunk contains the actual audio data
             int wavD = bswap(buf0); // size of data section
             wavLen = 0;
             if ((wavch == 1 || wavch == 2) && (wavbps == 8 || wavbps == 16) && wavD > 0 && wavSize >= wavD + 36 &&
@@ -547,25 +581,30 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
             wavi = 0;
           }
         }
-        else {
+        else { // format: SF2
           if ((p == 16 && buf1 != 0x4C495354 /*LIST*/) || (p == 20 && buf0 != 0x494E464F /*INFO*/)) {
             wavi = 0;
           }
-          else if (p > 20 && buf1 == 0x4C495354 /*LIST*/ && ((wavi *= static_cast<int>(buf0 != 0)) != 0)) {
+          else if (p > 20 && buf1 == 0x4C495354 /*LIST*/) {
             wavLen = bswap(buf0);
-            wavlist = i;
+            if (wavLen != 0) {
+              wavlist = i;
+            }
+            else {
+              wavi = 0; // fail; bad format
+            }
           }
           else if (wavlist != 0) {
             p = i - wavlist;
             if (p == 8 && (buf1 != 0x73647461 /*sdta*/ || buf0 != 0x736D706C /*smpl*/)) {
-              wavi = 0;
+              wavi = 0; // fail; bad format
             }
             else if (p == 12) {
-              int wavD = bswap(buf0);
+              int wavD = bswap(buf0); // size of data section
               if ((wavD != 0) && (wavD + 12) == wavLen) {
                 AUD_DET(AUDIO_LE, wavi - 3, (12 + wavlist - (wavi - 3) + 1) & ~1, wavD, 1 + 16 / 4 - 3 /*mono, 16-bit*/);
               }
-              wavi = 0;
+              wavi = 0; // fail; bad format
             }
           }
         }
@@ -573,13 +612,13 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     }
 
     // Detect .aiff file header
-    if (buf0 == 0x464f524d) {
-      aiff = i, aiffs = 0; // FORM
+    if (buf0 == 0x464f524d /*FORM*/) {
+      aiff = i, aiffs = 0;
     }
     if (aiff != 0) {
-      const int p = i - aiff;
-      if (p == 12 && (buf1 != 0x41494646 || buf0 != 0x434f4d4d)) {
-        aiff = 0; // AIFF COMM
+      const uint64_t p = i - aiff;
+      if (p == 12 && (buf1 != 0x41494646 /*AIFF*/ || buf0 != 0x434f4d4d /*COMM*/)) {
+        aiff = 0; // fail
       }
       else if (p == 24) {
         const int bits = buf0 & 0xffff;
@@ -588,13 +627,16 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
           aiffm = chn + bits / 4 - 3 + 4;
         }
         else {
-          aiff = 0;
+          aiff = 0; //fail
         }
       }
-      else if (p == 42 + aiffs && buf1 != 0x53534e44) {
-        aiffs += (buf0 + 8) + (buf0 & 1), aiff = (aiffs > 0x400 ? 0 : aiff);
+      else if (p == 42 + aiffs && buf1 != 0x53534e44 /*SSND*/) {
+        aiffs += (buf0 + 8) + (buf0 & 1);
+        if (aiffs > 0x400) {
+          aiff = 0; //fail
+        }
       }
-      else if (p == 42 + aiffs) {
+      else if (p == 42 + aiffs) { // Sound Data Chunk
         AUD_DET(AUDIO, aiff - 3, 54 + aiffs, buf0 - 8, aiffm);
       }
     }
@@ -626,11 +668,11 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     }
 
     // Detect .s3m file header
-    if (buf0 == 0x1a100000) {
-      s3mi = i, s3Mno = s3Mni = 0; //0x1A: signature byte, 0x10: song type, 0x0000: reserved
+    if (buf0 == 0x1a100000) { //0x1A: signature byte, 0x10: song type, 0x0000: reserved
+      s3mi = i, s3Mno = s3Mni = 0; 
     }
     if (s3mi != 0) {
-      const int p = i - s3mi;
+      const uint64_t p = i - s3mi;
       if (p == 4) {
         s3Mno = bswap(buf0) & 0xffff; //Number of entries in the order table, should be even
         s3Mni = (bswap(buf0) >> 16); //Number of instruments in the song
@@ -687,7 +729,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
       }
     }
     else {
-      const uint32_t p = i - dibi + 1 + 18;
+      const uint64_t p = i - dibi + 1 + 18;
       if (p == 10 + 4) {
         bmpof = bswap(buf0), bmpi = (bmpof < 54 || start + blockSize < bmpi - 1 + bmpof) ? (dibi = 0)
           : bmpi; //offset of pixel data (this field is still located in the BMP Header)
@@ -721,12 +763,12 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         if (nColors == 0 && imgbpp <= 8) {
           nColors = 1 << imgbpp;
         }
-        if (nColors > (1U << imgbpp) || (imgbpp > 8 && nColors > 0)) {
+        if (nColors > (1 << imgbpp) || (imgbpp > 8 && nColors > 0)) {
           bmpi = dibi = 0;
         }
       }
       else if (p == 50 + 4) { //the number of important colors used
-        if (bswap(buf0) <= nColors || bswap(buf0) == 0x10000000) {
+        if (bswap(buf0) <= static_cast<uint32_t>(nColors) || bswap(buf0) == 0x10000000) {
           if (bmpi == 0 /*headerless*/ && (bmpx * 2 == bmpy) && imgbpp > 1 && // possible icon/cursor?
             ((bmps > 0 && bmps == ((bmpx * bmpy * (imgbpp + 1)) >> 4)) || (((bmps == 0u) || bmps < ((bmpx * bmpy * imgbpp) >> 3)) &&
               ((bmpx == 8) || (bmpx == 10) || (bmpx == 14) || (bmpx == 16) ||
@@ -739,7 +781,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
           }
 
           BlockType blockType = DEFAULT;
-          uint32_t widthInBytes = 0;
+          int widthInBytes = 0;
           if (imgbpp == 1) {
             blockType = IMAGE1;
             widthInBytes = (((bmpx - 1) >> 5) + 1) * 4;
@@ -771,9 +813,9 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
             in->setpos(savedPos);
           }
 
-          const uint32_t headerPos = bmpi > 0 ? bmpi - 1 : dibi - 4;
-          const uint32_t minHeaderSize = (bmpi > 0 ? 54 : 54 - 14) + nColors * 4;
-          const uint32_t headerSize = bmpi > 0 ? bmpof : minHeaderSize;
+          const uint64_t headerPos = bmpi > 0 ? bmpi - 1 : dibi - 4;
+          const uint64_t minHeaderSize = (bmpi > 0 ? 54 : 54 - 14) + nColors * 4;
+          const uint64_t headerSize = bmpi > 0 ? bmpof : minHeaderSize;
 
           // some final sanity checks
           if (bmps != 0 &&
@@ -802,16 +844,19 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     if ((buf0 & 0xfff0ff) == 0x50300a) { //"Px" + line feed, where "x" shall be a number
       pgmn = (buf0 & 0xf00) >> 8; // extract "x"
       if ((pgmn >= 4 && pgmn <= 6) || pgmn == 7) {
-        pgm = i, pgmPtr = pgmw = pgmh = pgmc = pgmComment = pamatr = pamd = pgmdata = pgmDataSize = 0; // "P4" (pbm), "P5" (pgm), "P6" (ppm), "P7" (pam)
+        pgm = i, pgmdata = pgmDataSize = 0; // "P4" (pbm), "P5" (pgm), "P6" (ppm), "P7" (pam)
+        pgmw = pgmh = pgmc = pamd = pgmComment = 0;
+        pgmPtr = 0;
+        pamatr = 0;
       }
     }
     if (pgm != 0) {
       if (pgmdata == 0) { // parse header
-        if (i - pgm == 1 && c == 0x23) {
+        if (i - pgm == 1 && c == '#') {
           pgmComment = 1; // # (pgm comment)
         }
         if ((pgmComment == 0) && (pgmPtr != 0)) {
-          int s = 0;
+          uint64_t s = 0;
           if (pgmn == 7) {
             if ((buf1 & 0xdfdf) == 0x5749 && (buf0 & 0xdfdfdfff) == 0x44544820) {
               pgmPtr = 0, pamatr = 1; // WIDTH
@@ -929,7 +974,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
       rgbi = i, rgbx = rgby = 0;
     }
     if (rgbi != 0) {
-      const int p = i - rgbi;
+      const uint64_t p = i - rgbi;
       if (p == 1 && c != 0) {
         rgbi = 0;
       }
@@ -1174,7 +1219,10 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
           gif = 2, gifi = i + 3;
         }
         else {
-          return in->setpos(start + gifa - 1), detd = i - gifa + 2, info = ((gifGray != 0 ? IMAGE8GRAY : IMAGE8) << 24) | gifw, dett = GIF;
+          in->setpos(start + gifa - 1);
+          detd = i - gifa + 2;
+          info = ((gifGray != 0 ? IMAGE8GRAY : IMAGE8) << 24) | gifw;
+          return dett = GIF;
         }
       }
       if (gif == 5 && i == gifi) {
@@ -1194,10 +1242,10 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     // place this happens when it does not happen for 64KB.
 
     if (((buf1 & 0xfe) == 0xe8 || (buf1 & 0xfff0) == 0x0f80) && ((buf0 + 1) & 0xfe) == 0) {
-      int r = buf0 >> 24; // relative address low 8 bits
-      int a = ((buf0 >> 24) + i) & 0xff; // absolute address low 8 bits
-      int rDist = i - relPos[r];
-      int aDist = i - absPos[a];
+      uint64_t r = buf0 >> 24; // relative address low 8 bits
+      uint64_t a = ((buf0 >> 24) + i) & 0xff; // absolute address low 8 bits
+      uint64_t rDist = i - relPos[r];
+      uint64_t aDist = i - absPos[a];
       if (aDist < rDist && aDist < 0x800 && absPos[a] > 5) {
         e8e9last = i;
         ++e8e9count;
@@ -1221,7 +1269,8 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         in->setpos(start + e8e9last);
         return DEFAULT;
       }
-      e8e9count = e8e9pos = 0;
+      e8e9pos = 0;
+      e8e9count = 0;
     }
 
     // detect DEC Alpha

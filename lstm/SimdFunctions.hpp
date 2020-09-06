@@ -66,11 +66,12 @@ float dot256_ps_fma3(float const* x1, float const* x2, std::size_t const len, fl
     sum0 = _mm256_fmadd_ps(_mm256_loadu_ps(x1 + i), _mm256_loadu_ps(x2 + i), sum0);
     sum1 = _mm256_fmadd_ps(_mm256_loadu_ps(x1 + i + SIMDW), _mm256_loadu_ps(x2 + i + SIMDW), sum1);
   }
+  sum0 = _mm256_add_ps(sum0, sum1);
   if (i < limit)
     sum0 = _mm256_fmadd_ps(_mm256_loadu_ps(x1 + i), _mm256_loadu_ps(x2 + i), sum0);
   for (; remainder > 0; remainder--)
     init += x1[len - remainder] * x2[len - remainder];
-  return init + hsum256_ps_avx(_mm256_add_ps(sum0, sum1));
+  return init + hsum256_ps_avx(sum0);
 #endif
 }
 

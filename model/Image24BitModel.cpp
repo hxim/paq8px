@@ -491,7 +491,7 @@ void Image24BitModel::mix(Mixer &m) {
     if( ++col >= stride * 8 ) {
       col = 0;
     }
-    m.set(5, 6);
+    m.set(5 + (((line & 0x7u) << 5u) | col), 5 + 256, 5);
     m.set(min(63, column[0]) + ((ctx[0] >> 3U) & 0xC0U), 256);
     m.set(min(127, column[1]) + ((ctx[0] >> 2U) & 0x180U), 512);
     m.set((ctx[0] & 0x7FCU) | (bpos >> 1), 2048);
@@ -507,6 +507,6 @@ void Image24BitModel::mix(Mixer &m) {
     m.set(min(255, (x + line) / 32), 256);
   } else {
     m.add(-2048 + ((filter >> (7 - bpos)) & 1U) * 4096);
-    m.set(min(4, filter), MIXERCONTEXTSETS);
+    m.set(min(4, filter), MIXERCONTEXTS);
   }
 }

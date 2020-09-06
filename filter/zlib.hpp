@@ -132,7 +132,7 @@ static auto encodeZlib(File *in, File *out, uint64_t len, int &headerSize) -> in
     uint32_t blSize = min(uint32_t(len - i), block);
     nTrials = 0;
     for( int j = 0; j < 81; j++ ) {
-      if( diffCount[j] == limit ) {
+      if( diffCount[j] >= limit ) {
         continue;
       }
       nTrials++;
@@ -159,7 +159,7 @@ static auto encodeZlib(File *in, File *out, uint64_t len, int &headerSize) -> in
 
       // Recompress/deflate block with all possible parameters
       for( int j = mtf.getFirst(); j >= 0; j = mtf.getNext()) {
-        if( diffCount[j] == limit ) {
+        if( diffCount[j] >= limit ) {
           continue;
         }
         nTrials++;

@@ -56,7 +56,7 @@ inline auto BH<B>::operator[](const uint64_t ctx) -> uint8_t * {
   const uint32_t i = finalize64(ctx, hashBits) * searchLimit & mask;
   uint8_t *p = nullptr;
   uint16_t *cp = nullptr;
-  int j = 0;
+  uint32_t j = 0;
   for( j = 0; j < searchLimit; ++j ) {
     p = &t[(i + j) * B];
     cp = reinterpret_cast<uint16_t *>(p);
