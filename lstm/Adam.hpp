@@ -5,7 +5,7 @@
 #include "../utils.hpp"
 #include "../simd.hpp"
 #include <cmath>
-#define USE_RSQRT
+//#define USE_RSQRT
 
 template <SIMD simd, std::uint16_t B1, std::uint8_t E1, std::uint16_t B2, std::uint8_t E2, std::uint16_t C, std::uint8_t E3>
 class Adam :
