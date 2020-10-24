@@ -1,10 +1,16 @@
 #include "JpegModel.hpp"
 
 JpegModel::JpegModel(Shared* const sh, const uint64_t size) : shared(sh), t(size), MJPEGMap(sh, 21, 3, 128, 127), /* BitsOfContext, InputBits, Scale, Limit */
-        sm(sh, N, 256, 1023, StateMap::BitHistory), apm1(sh, 0x8000, 24), apm2(sh, 0x20000, 24) {
+        sm(sh, N, 256, 1023, StateMap::BitHistory), apm1(sh, 0x20000, 20), 
+        apm2(sh, 0x8000, 20), apm3(sh, 0x8000, 21), apm4(sh, 0x8000, 22), 
+        apm5(sh, 0x8000, 23), apm6(sh, 0x8000, 24), apm7(sh, 0x8000, 25), 
+        apm8(sh, 0x8000, 26), apm9(sh, 0x8000, 27), apm10(sh, 0x8000, 28),
+        apm11(sh, 0x8000, 29), apm12(sh, 0x8000, 30), apm13(sh, 0x8000, 31),
+        apm14(sh, 0x8000, 32), apm15(sh, 0x8000, 33)
+{
   auto mf = new MixerFactory();
-  m1 = mf->createMixer(sh, N + 1 /*bias*/+ 2 /*MJPEGMap*/, 2050, 3);
-  m1->setScaleFactor(1024, 128);
+  m1 = mf->createMixer(sh, N + 1 /*bias*/+ IndirectMap::MIXERINPUTS /*MJPEGMap*/, 1024 + 2 + 1024 + 1024, 4);
+  m1->setScaleFactor(1024, 128); // 2048, 256 for small images
 }
 
 JpegModel::~JpegModel() {
@@ -202,7 +208,7 @@ auto JpegModel::mix(Mixer &m) -> int {
         uint32_t end = p + buf[p - 2] * 256 + buf[p - 1] - 2; // end of Huffman table
         uint32_t count = 0; // sanity check
         while( p < end && end < pos && end < p + 2100 && ++count < 10 ) {
-          int tc = buf[p] >> 4U;
+          int tc = buf[p] >> 4;
           int th = buf[p] & 15U;
           if( tc >= 2 || th >= 4 ) {
             break;
@@ -305,10 +311,10 @@ auto JpegModel::mix(Mixer &m) -> int {
           if( buf[images[idx].sos + 2 * i + 5] == buf[images[idx].sof + 3 * j + 10] ) { // Cs == c ?
             int hv = buf[images[idx].sof + 3 * j + 11]; // packed dimensions H x V
             samplingFactors[j] = hv;
-            if( hv >> 4U > hmax ) {
-              hmax = hv >> 4U;
+            if( hv >> 4 > hmax ) {
+              hmax = hv >> 4;
             }
-            hv = (hv & 15U) * (hv >> 4U); // number of blocks in component c
+            hv = (hv & 15U) * (hv >> 4); // number of blocks in component c
             JASSERT(hv >= 1 && hv + mcusize <= 10)
             while( hv != 0 ) {
               JASSERT(mcusize < 10)
@@ -334,7 +340,7 @@ auto JpegModel::mix(Mixer &m) -> int {
             ls[j] = i;
           }
         }
-        ls[j] = (mcusize - ls[j]) << 6U;
+        ls[j] = (mcusize - ls[j]) << 6;
       }
       for( j = 0; j < 64; ++j ) {
         zPos[zzu[j] + 8 * zzv[j]] = j;
@@ -348,9 +354,9 @@ auto JpegModel::mix(Mixer &m) -> int {
       // we can have more blocks than components then we have subsampling
       int x = 0;
       int y = 0;
-      for( j = 0; j < (mcusize >> 6U); j++ ) {
+      for( j = 0; j < (mcusize >> 6); j++ ) {
         int i = color[j];
-        int w = samplingFactors[i] >> 4U;
+        int w = samplingFactors[i] >> 4;
         int h = samplingFactors[i] & 0xfU;
         blockW[j] = x == 0 ? mcusize - 64 * (w - 1) : 64;
         blockN[j] = y == 0 ? mcusize * width - 64 * w * (h - 1) : w * 64;
@@ -378,9 +384,9 @@ auto JpegModel::mix(Mixer &m) -> int {
       if( rs < 0 ) {
         JASSERT(huffBits >= 1 && huffBits <= 16)
         const int ac = static_cast<const int>((mcuPos & 63U) > 0);
-        JASSERT(mcuPos >= 0 && (mcuPos >> 6U) < 10)
+        JASSERT(mcuPos >= 0 && (mcuPos >> 6) < 10)
         JASSERT(ac == 0 || ac == 1)
-        const int sel = hufSel[ac][mcuPos >> 6U];
+        const int sel = hufSel[ac][mcuPos >> 6];
         JASSERT(sel >= 0 && sel < 4)
         const int i = huffBits - 1;
         JASSERT(i >= 0 && i < 16)
@@ -404,16 +410,16 @@ auto JpegModel::mix(Mixer &m) -> int {
               JASSERT(mcuPos >= 0 && mcuPos <= mcusize && mcuPos <= 640)
               while((cPos & 63U) != 0u ) {
                 cBuf2.set(cPos, 0);
-                coefficientBuffer.set(cPos, (rs == 0) ? 0 : (63 - (cPos & 63U)) << 4U);
+                coefficientBuffer.set(cPos, (rs == 0) ? 0 : (63 - (cPos & 63U)) << 4);
                 cPos++;
                 rs++;
               }
             } else { // rs = r zeros + s extra bits for the next nonzero value
               // If first extra bit is 0 then value is negative.
               JASSERT((rs & 15U) <= 10)
-              const int r = rs >> 4U;
+              const int r = rs >> 4;
               const int s = rs & 15U;
-              JASSERT(mcuPos >> 6U == (mcuPos + r) >> 6)
+              JASSERT(mcuPos >> 6 == (mcuPos + r) >> 6)
               mcuPos += r + 1;
               ex = huffcode & ((1U << s) - 1);
               if( s != 0 && (ex >> (s - 1)) == 0 ) {
@@ -421,11 +427,11 @@ auto JpegModel::mix(Mixer &m) -> int {
               }
               for( int i = r; i >= 1; --i ) {
                 cBuf2.set(cPos, 0);
-                coefficientBuffer.set(cPos, (i << 4U) | s);
+                coefficientBuffer.set(cPos, (i << 4) | s);
                 cPos++;
               }
               cBuf2.set(cPos, ex);
-              coefficientBuffer.set(cPos, (s << 4U) | (huffcode << 2U >> s & 3U) | 12);
+              coefficientBuffer.set(cPos, (s << 4) | (huffcode << 2 >> s & 3U) | 12);
               cPos++;
               sSum += s;
             }
@@ -436,19 +442,19 @@ auto JpegModel::mix(Mixer &m) -> int {
             if( rs != 0 && (ex >> (rs - 1)) == 0 ) {
               ex -= (1U << rs) - 1;
             }
-            JASSERT(mcuPos >= 0 && mcuPos >> 6U < 10)
-            const int comp = color[mcuPos >> 6U];
+            JASSERT(mcuPos >= 0 && mcuPos >> 6 < 10)
+            const int comp = color[mcuPos >> 6];
             JASSERT(comp >= 0 && comp < 4)
             dc = pred[comp] += ex;
             JASSERT((cPos & 63U) == 0)
             cBuf2.set(cPos, dc);
-            coefficientBuffer.set(cPos, (dc + 1023) >> 3U);
+            coefficientBuffer.set(cPos, (dc + 1023) >> 3);
             cPos++;
-            if((mcuPos >> 6U) == 0 ) {
+            if((mcuPos >> 6) == 0 ) {
               sSum1 = 0;
               sSum2 = sSum3;
             } else {
-              if( color[(mcuPos >> 6U) - 1] == color[0] ) {
+              if( color[(mcuPos >> 6) - 1] == color[0] ) {
                 sSum1 += (sSum3 = sSum);
               }
               sSum2 = sSum1;
@@ -466,7 +472,7 @@ auto JpegModel::mix(Mixer &m) -> int {
 
           // UPDATE_ADV_PRED !!!!
           {
-            const int aComp = mcuPos >> 6U;
+            const int aComp = mcuPos >> 6;
             const int q = 64 * images[idx].qMap[aComp];
             const int zz = mcuPos & 63U;
             const int cposDc = cPos - zz;
@@ -571,8 +577,8 @@ auto JpegModel::mix(Mixer &m) -> int {
               if( color[i] == color[aComp] - 1 ) {
                 prev1 += ex;
                 cnt1++;
-                r += coefficientBuffer[cPos - (aComp - i) * 64] >> 4U;
-                s += coefficientBuffer[cPos - (aComp - i) * 64] & 0xFU;
+                r += coefficientBuffer[cPos - (aComp - i) * 64] >> 4;
+                s += coefficientBuffer[cPos - (aComp - i) * 64] & 0x0F;
               }
               if( color[aComp] > 1 && color[i] == color[0] ) {
                 prev2 += ex;
@@ -580,12 +586,12 @@ auto JpegModel::mix(Mixer &m) -> int {
               }
             }
             if( cnt1 > 0 ) {
-              prev1 /= cnt1, r /= cnt1, s /= cnt1, prevCoefRs = (r << 4U) | s;
+              prev1 /= cnt1, r /= cnt1, s /= cnt1, prevCoefRs = (r << 4) | s;
             }
             if( cnt2 > 0 ) {
               prev2 /= cnt2;
             }
-            prevCoef = (prev1 < 0 ? -1 : +1) * ilog->log(11 * abs(prev1) + 1) + (cnt1 << 20U);
+            prevCoef = (prev1 < 0 ? -1 : +1) * ilog->log(11 * abs(prev1) + 1) + (cnt1 << 20);
             prevCoef2 = (prev2 < 0 ? -1 : +1) * ilog->log(11 * abs(prev2) + 1);
 
             if( column == 0 && blockW[aComp] > 64 * aComp ) {
@@ -606,16 +612,20 @@ auto JpegModel::mix(Mixer &m) -> int {
   }
   if( buf(1 + static_cast<int>(bpos == 0)) == FF ) {
     m.add(128); //network bias
+    // note: the number and size of these mixer contexts must reflect the ones used at the bottom of this file
     m.set(0, 1 + 8);
     m.set(0, 1 + 1024);
     m.set(buf(1), 1024);
+    m.set(0, 1024);
     return 1;
   }
   if( resetLen > 0 && resetLen == column + row * width - resetPos && mcuPos == 0 && static_cast<int>(huffcode) == (1U << huffBits) - 1 ) {
-    m.add(2047); //network bias
+    m.add(2047); //network bias (for predicting bit=1)
+    // note: the number and size of these mixer contexts must reflect the ones used at the bottom of this file
     m.set(0, 1 + 8);
     m.set(0, 1 + 1024);
     m.set(buf(1), 1024);
+    m.set(0, 1024);
     return 1;
   }
 
@@ -628,11 +638,11 @@ auto JpegModel::mix(Mixer &m) -> int {
   }
 
   // update context
-  const int comp = color[mcuPos >> 6U];
-  const int coef = (mcuPos & 63U) | comp << 6U;
+  const int comp = color[mcuPos >> 6];
+  const int coef = (mcuPos & 63U) | comp << 6;
   const int hc = (huffcode * 4 + static_cast<int>((mcuPos & 63U) == 0) * 2 + static_cast<uint32_t>(comp == 0)) | 1U << (huffBits + 2);
   const int hc2 = (1 << (huffBits - huffSize)) + ((huffcode & ((1 << (huffBits - huffSize)) - 1)) << 1) + static_cast<int>(huffSize > 0);
-  const bool firstCol = column == 0 && blockW[mcuPos >> 6U] > mcuPos;
+  const bool firstCol = column == 0 && blockW[mcuPos >> 6] > mcuPos;
   if( ++hbCount > 2 || huffBits == 0 ) {
     hbCount = 0;
   }
@@ -640,33 +650,33 @@ auto JpegModel::mix(Mixer &m) -> int {
   const int zu = zzu[mcuPos & 63U];
   const int zv = zzv[mcuPos & 63U];
   if( hbCount == 0 ) {
-    uint64_t n = hc * 32;
+    uint64_t n = static_cast<uint64_t>(hc) * 64;
     int i = 0;
-    cxt[i++] = hash(++n, coef, advPred[2] / 12 + (runPred[2] << 8U), sSum2 >> 6U, prevCoef / 72);
-    cxt[i++] = hash(++n, coef, advPred[0] / 12 + (runPred[0] << 8U), sSum2 >> 6U, prevCoef / 72);
-    cxt[i++] = hash(++n, coef, advPred[1] / 11 + (runPred[1] << 8U), sSum2 >> 6U);
+    cxt[i++] = hash(++n, coef, advPred[2] / 12 + (runPred[2] << 8), sSum2 >> 6, prevCoef / 72);
+    cxt[i++] = hash(++n, coef, advPred[0] / 12 + (runPred[0] << 8), sSum2 >> 6, prevCoef / 72);
+    cxt[i++] = hash(++n, coef, advPred[1] / 11 + (runPred[1] << 8), sSum2 >> 6);
     cxt[i++] = hash(++n, rs1, advPred[2] / 7, runPred[5] / 2, prevCoef / 10);
     cxt[i++] = hash(++n, rs1, advPred[0] / 7, runPred[3] / 2, prevCoef / 10);
     cxt[i++] = hash(++n, rs1, advPred[1] / 11, runPred[4]);
     cxt[i++] = hash(++n, advPred[2] / 14, runPred[2], advPred[0] / 14, runPred[0]);
-    cxt[i++] = hash(++n, coefficientBuffer[cPos - blockN[mcuPos >> 6U]] >> 4U, advPred[3] / 17, runPred[1], runPred[5]);
-    cxt[i++] = hash(++n, coefficientBuffer[cPos - blockW[mcuPos >> 6U]] >> 4U, advPred[3] / 17, runPred[1], runPred[3]);
+    cxt[i++] = hash(++n, coefficientBuffer[cPos - blockN[mcuPos >> 6]] >> 4, advPred[3] / 17, runPred[1], runPred[5]);
+    cxt[i++] = hash(++n, coefficientBuffer[cPos - blockW[mcuPos >> 6]] >> 4, advPred[3] / 17, runPred[1], runPred[3]);
     cxt[i++] = hash(++n, lcp[0] / 22, lcp[1] / 22, advPred[1] / 7, runPred[1]);
     cxt[i++] = hash(++n, lcp[0] / 22, lcp[1] / 22, mcuPos & 63U, lcp[4] / 30);
-    cxt[i++] = hash(++n, zu / 2, lcp[0] / 13, lcp[2] / 30, prevCoef / 40 + ((prevCoef2 / 28) << 20U));
-    cxt[i++] = hash(++n, zv / 2, lcp[1] / 13, lcp[3] / 30, prevCoef / 40 + ((prevCoef2 / 28) << 20U));
+    cxt[i++] = hash(++n, zu / 2, lcp[0] / 13, lcp[2] / 30, prevCoef / 40 + ((prevCoef2 / 28) << 20));
+    cxt[i++] = hash(++n, zv / 2, lcp[1] / 13, lcp[3] / 30, prevCoef / 40 + ((prevCoef2 / 28) << 20));
     cxt[i++] = hash(++n, rs1, prevCoef / 42, prevCoef2 / 34, lcp[0] / 60, lcp[2] / 14, lcp[1] / 60, lcp[3] / 14);
-    cxt[i++] = hash(++n, mcuPos & 63U, column >> 1U);
-    cxt[i++] = hash(++n, column >> 3U, min(5 + 2 * static_cast<int>(comp == 0), zu + zv), lcp[0] / 10, lcp[2] / 40, lcp[1] / 10,
+    cxt[i++] = hash(++n, mcuPos & 63U, column >> 1);
+    cxt[i++] = hash(++n, column >> 3, min(5 + 2 * static_cast<int>(comp == 0), zu + zv), lcp[0] / 10, lcp[2] / 40, lcp[1] / 10,
                     lcp[3] / 40);
-    cxt[i++] = hash(++n, sSum >> 3U, mcuPos & 63U);
+    cxt[i++] = hash(++n, sSum >> 3, mcuPos & 63U);
     cxt[i++] = hash(++n, rs1, mcuPos & 63U, runPred[1]);
-    cxt[i++] = hash(++n, coef, sSum2 >> 5U, advPred[3] / 30,
+    cxt[i++] = hash(++n, coef, sSum2 >> 5, advPred[3] / 30,
                     (comp) != 0 ? hash(prevCoef / 22, prevCoef2 / 50) : sSum / ((mcuPos & 0x3F) + 1));
-    cxt[i++] = hash(++n, lcp[0] / 40, lcp[1] / 40, advPred[1] / 28, (comp) != 0 ? prevCoef / 40 + ((prevCoef2 / 40) << 20U) : lcp[4] / 22,
+    cxt[i++] = hash(++n, lcp[0] / 40, lcp[1] / 40, advPred[1] / 28, (comp) != 0 ? prevCoef / 40 + ((prevCoef2 / 40) << 20) : lcp[4] / 22,
                     min(7, zu + zv), sSum / (2 * (zu + zv) + 1));
-    cxt[i++] = hash(++n, zv, coefficientBuffer[cPos - blockN[mcuPos >> 6U]], advPred[2] / 28, runPred[2]);
-    cxt[i++] = hash(++n, zu, coefficientBuffer[cPos - blockW[mcuPos >> 6U]], advPred[0] / 28, runPred[0]);
+    cxt[i++] = hash(++n, zv, coefficientBuffer[cPos - blockN[mcuPos >> 6]], advPred[2] / 28, runPred[2]);
+    cxt[i++] = hash(++n, zu, coefficientBuffer[cPos - blockW[mcuPos >> 6]], advPred[0] / 28, runPred[0]);
     cxt[i++] = hash(++n, advPred[2] / 7, runPred[2]);
     cxt[i++] = hash(n, advPred[0] / 7, runPred[0]);
     cxt[i++] = hash(n, advPred[1] / 7, runPred[1]);
@@ -674,11 +684,31 @@ auto JpegModel::mix(Mixer &m) -> int {
     cxt[i++] = hash(++n, zu, lcp[0] / 14, advPred[0] / 16, runPred[3]);
     cxt[i++] = hash(++n, lcp[0] / 14, lcp[1] / 14, advPred[3] / 16);
     cxt[i++] = hash(++n, coef, prevCoef / 10, prevCoef2 / 20);
-    cxt[i++] = hash(++n, coef, sSum >> 2U, prevCoefRs);
+    cxt[i++] = hash(++n, coef, sSum >> 2, prevCoefRs);
     cxt[i++] = hash(++n, coef, advPred[1] / 17, lcp[static_cast<uint64_t>(zu < zv)] / 24, lcp[2] / 20, lcp[3] / 24);
-    cxt[i++] = hash(++n, coef, advPred[3] / 11, lcp[static_cast<uint64_t>(zu < zv)] / 50, lcp[2 + 3 * static_cast<int>(zu * zv > 1)] / 50,
-                    lcp[3 + 3 * static_cast<int>(zu * zv > 1)] / 50);
-    cxt[i++] = hash(hc, advPred[3] / 13, prevCoef / 11, static_cast<int>(zu + zv < 4));
+    cxt[i++] = hash(++n, coef, advPred[3] / 11, lcp[static_cast<uint64_t>(zu < zv)] / 50, lcp[2 + 3 * static_cast<uint64_t>(zu * zv > 1)] / 50,
+                    lcp[3 + 3 * static_cast<uint64_t>(zu * zv > 1)] / 50);
+    cxt[i++] = hash(++n, hc, advPred[3] / 13, prevCoef / 11, static_cast<int>(zu + zv < 4));
+    cxt[i++] = hash(++n, hc, advPred[2] / 13, prevCoef / 11, static_cast<int>(zu + zv < 4)); 
+    cxt[i++] = hash(++n, hc, advPred[1] / 13, prevCoef / 11, static_cast<int>(zu + zv < 4)); 
+    cxt[i++] = hash(++n, hc, advPred[3] / 13, prevCoef / 11, prevCoef2 / 11);
+    cxt[i++] = hash(++n, hc, advPred[1] / 13, prevCoef2 / 20, prevCoefRs);
+    cxt[i++] = hash(++n, hc, advPred[2] / 13, prevCoef / 40 + ((prevCoef2 / 40) << 20), prevCoefRs);
+
+    cxt[i++] = hash(++n, hc, advPred[0] / 13, prevCoef / 40 + ((prevCoef2 / 40) << 20), static_cast<int>(zu + zv < 4));
+    cxt[i++] = hash(++n, hc, advPred[4] / 13, prevCoef2 / 20, prevCoefRs);
+    cxt[i++] = hash(++n, hc, runPred[0] / 13, prevCoef / 11, static_cast<int>(zu + zv < 4));
+    cxt[i++] = hash(++n, hc, advPred[2] / 7, runPred[2]);
+    cxt[i++] = hash(++n, hc, advPred[2] / 12 + (runPred[2]), sSum2 >> 6, prevCoef / 12);
+    cxt[i++] = hash(++n, hc, advPred[1] / 11 + (runPred[1]), sSum2 >> 6);
+
+    cxt[i++] = hash(++n, hc, rs1, advPred[2] / 7, prevCoef / 10, prevCoef2 / 10, prevCoef / 40 + ((prevCoef2 / 28) << 20) );
+    cxt[i++] = hash(++n, hc, rs1, advPred[0] / 7, prevCoef2 / 10);
+    cxt[i++] = hash(++n, hc, lcp[0] / 12, lcp[1] / 12, mcuPos & 63U, lcp[4] / 10);
+	  cxt[i++] = hash(++n, hc, zu / 2, prevCoef / 40 + ((prevCoef2 / 28) << 20));
+    cxt[i++] = hash(++n, hc, zv / 2, prevCoef / 40 + ((prevCoef2 / 28) << 20));
+    cxt[i++] = hash(++n, hc, column >> 3, min(5 + 2 * static_cast<int>(comp == 0), zu + zv), prevCoef / 40 + ((prevCoef2 / 28) << 20) );
+
     assert(i == N);
   }
 
@@ -692,10 +722,10 @@ auto JpegModel::mix(Mixer &m) -> int {
         cp[i] = t[cxt[i]];
         const uint8_t s = *cp[i];
         const int p = sm.p2(i, s);
-        m.add((p - 2048) >> 3U);
+        m.add((p - 2048) >> 3);
         const int st = stretch(p);
-        m1->add(st);
-        m.add(st >> 1U);
+        m.add(st >> 1);
+        m1->add(st >> 1);
       }
       break;
     }
@@ -705,10 +735,10 @@ auto JpegModel::mix(Mixer &m) -> int {
         cp[i] += hc;
         const uint8_t s = *cp[i];
         const int p = sm.p2(i, s);
-        m.add((p - 2048) >> 3U);
+        m.add((p - 2048) >> 3);
         const int st = stretch(p);
-        m1->add(st);
-        m.add(st >> 1U);
+        m.add(st >> 1);
+        m1->add(st >> 1);
       }
       break;
     }
@@ -718,34 +748,81 @@ auto JpegModel::mix(Mixer &m) -> int {
         cp[i] += hc;
         const uint8_t s = *cp[i];
         const int p = sm.p2(i, s);
-        m.add((p - 2048) >> 3U);
+        m.add((p - 2048) >> 3);
         const int st = stretch(p);
-        m1->add(st);
-        m.add(st >> 1U);
+        m.add(st >> 1);
+        m1->add(st >> 1);
       }
       break;
     }
   }
   if( hbCount == 0 ) {
-    MJPEGMap.set(hash(mcuPos, column, row, hc >> 2U));
+    MJPEGMap.set(hash(mcuPos, column, row, hc >> 2));
   }
   MJPEGMap.mix(*m1);
+  int colCtx = (width > 1024) ? (min(1023, column / max(1, width / 1024))) : column;
+  m1->set(colCtx, 1024);
   m1->set(static_cast<uint32_t>(firstCol), 2);
   m1->set(coef | (min(3, huffBits) << 8), 1024);
   m1->set(((hc & 0x1FEU) << 1) | min(3, ilog2(zu + zv)), 1024);
-  int pr = m1->p();
-  m.add(stretch(pr) >> 1U);
-  m.add((pr >> 2U) - 511);
-  pr = apm1.p(pr, (hc & 511U) | (((advPred[1] / 16) & 63U) << 9U), 1023);
-  m.add(stretch(pr) >> 1U);
-  m.add((pr >> 2U) - 511);
-  pr = apm2.p(pr, (hc & 511U) | (coef << 9U), 1023);
-  m.add(stretch(pr) >> 1U);
-  m.add((pr >> 2U) - 511);
+  
+  int pr0 = m1->p();
+  m.add(stretch(pr0) >> 1);
+  m.add((pr0 - 2048) >> 3);
+  
+  int pr1 = apm1.p(pr0, (hc & 511U) | (coef << 9), 1023);
+  m.add(stretch(pr1) >> 1);
+  m.add((pr1 - 2048) >> 3);
+  
+  int pr2 = apm2.p(pr1, (hc & 511U) | (((advPred[1] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr2) >> 1);
+  m.add((pr2 - 2048) >> 3);
 
+  int pr3 = apm3.p(pr2, (hc & 511U) | (((advPred[0] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr3) >> 1);
+
+  int pr4 = apm4.p(pr3, (hc & 511U) | (((advPred[2] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr4) >> 1);
+
+  int pr5 = apm5.p(pr4, (hc & 511U) | (((advPred[3] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr5) >> 1);
+
+  int pr6 = apm6.p(pr5, (hc & 511U) | (((lcp[0] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr6) >> 1);
+
+  int pr7 = apm7.p(pr6, (hc & 511U) | (((lcp[1] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr7) >> 1);
+
+  int pr8 = apm8.p(pr7, (hc & 511U) | (((lcp[2] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr8) >> 1);
+
+  int pr9 = apm9.p(pr8, (hc & 511U) | (((lcp[3] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr9) >> 1);
+
+  int pr10 = apm10.p(pr9, (hc & 511U) | (((lcp[4] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr10) >> 1);
+    
+  int pr11 = apm11.p(pr10, (hc & 511U) |  (((lcp[0] / 12 + lcp[1] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr11) >> 1);
+
+  int pr12 = apm12.p(pr11, (hc & 511U) |  (((advPred[0] / 12 + advPred[1] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr12) >> 1);
+
+  int pr13 = apm13.p(pr12, (hc & 511U) |  (((advPred[1] / 12 + advPred[2] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr13) >> 1);
+
+  int pr14 = apm14.p(pr13, (hc & 511U) |  (((advPred[2] / 12 + advPred[3] / 12) & 63U) << 9), 1023);
+  m.add(stretch(pr14) >> 1);
+
+  int pr15 = apm15.p(pr14, (hc & 511U) |  ((abs(advPred[0] / 12 + advPred[1] / 12 - advPred[2]) & 63U) << 9), 1023);
+  m.add(stretch(pr15) >> 1);
+
+   
   m.set(1 + (static_cast<int>(zu + zv < 5) | (static_cast<int>(huffBits > 8) << 1U) | (static_cast<int>(firstCol) << 2U)), 1 + 8);
-  m.set(1 + ((hc & 0xFFU) | (min(3, (zu + zv) / 3)) << 8U), 1 + 1024);
+  m.set(1 + ((hc & 0xFFU) | (min(3, (zu + zv) / 3)) << 8), 1 + 1024);
   m.set(coef | (min(3, huffBits / 2) << 8), 1024);
+  m.set(colCtx, 1024);
+
 
   shared->State.JPEG.state = 0x1000u | ((hc2 & 0xFF) << 4) | (static_cast<int>(advPred[1] > 0) << 3) | (static_cast<int>(huffBits > 4) << 2) | (static_cast<int>(comp == 0) << 1) | static_cast<int>(zu + zv < 5);
   return 1;

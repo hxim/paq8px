@@ -76,11 +76,11 @@ struct JPEGImage {
  */
 class JpegModel {
 private:
-    static constexpr int N = 33; // number of contexts
+    static constexpr int N = 50; // number of contexts
 public:
-    static constexpr int MIXERINPUTS = 2 * N + 6;
-    static constexpr int MIXERCONTEXTS = (1 + 8) + (1 + 1024) + 1024;
-    static constexpr int MIXERCONTEXTSETS = 6;
+    static constexpr int MIXERINPUTS = 2 * N + 19;
+    static constexpr int MIXERCONTEXTS = (1 + 8) + (1 + 1024) + 1024 + 1024;
+    static constexpr int MIXERCONTEXTSETS = 4;
 
 private:
     Random rnd;
@@ -154,8 +154,7 @@ private:
     IndirectMap MJPEGMap;
     StateMap sm;
     Mixer *m1;
-    APM apm1;
-    APM apm2;
+    APM apm1, apm2, apm3, apm4, apm5, apm6, apm7, apm8, apm9, apm10, apm11, apm12, apm13, apm14, apm15;
     Ilog *ilog = &Ilog::getInstance();
     Shared * const shared;
 
