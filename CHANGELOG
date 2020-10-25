@@ -1803,4 +1803,15 @@ paq8px_v194 by Zoltán Gotthardt
 
 paq8px_v195 by Surya Kandau
 2020.10.23
-- Improve jpeg recompression
+- Improved jpeg recompression
+
+
+paq8px_v196 by Zoltán Gotthardt
+2020.10.25
+Fixes and improvements in jpeg model
+- fixed indexing (thank you, mpais!)
+- removed 2 contexts and 1 apm, added 1 context
+- hashing instead of direct contexts in apms (thank you, Kaitz!)
+- using abs for advPred[] and lcp[] in apms (thank you, Kaitz!)
+- reduced memory use in apms (-24 MB on level 8)
+- tweaks

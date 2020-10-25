@@ -179,23 +179,12 @@ auto ContextModel::p() -> int {
     case JPEG: {
       JpegModel &jpegModel = models.jpegModel();
       if( jpegModel.mix(*m) != 0 ) {
-        m->setScaleFactor(1024, 256);
+        m->setScaleFactor(1024, 256); //850 for larger files, 1400 for smaller files - very sensitive
         return m->p();
       }
+      break;
     }
-    case DEFAULT:
-    case HDR:
-    case FILECONTAINER:
-    case EXE:
-    case CD:
-    case ZLIB:
-    case BASE64:
-    case GIF:
-    case TEXT:
-    case TEXT_EOL:
-    case RLE:
-    case LZW:
-    case DEC_ALPHA:
+    default:
       break;
   }
 
