@@ -445,7 +445,8 @@ auto JpegModel::mix(Mixer &m) -> int {
             const int comp = color[mcuPos >> 6];
             JASSERT(comp >= 0 && comp < 4)
             dc = pred[comp] += ex;
-            JASSERT((cPos & 63U) == 0)
+            
+            while (cPos & 63) cPos++;  // recover,  mobile phone images (thumbnail)
             cBuf2.set(cPos, dc);
             coefficientBuffer.set(cPos, (dc + 1023) >> 3);
             cPos++;

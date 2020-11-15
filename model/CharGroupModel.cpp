@@ -17,24 +17,24 @@ void CharGroupModel::mix(Mixer &m) {
       g = 128;
     }
 
-    const bool toBeCollapsed = (g == '0' || g == 'A' || g == 'a') && (g == (gAscii1 & 0xffu));
+    const bool toBeCollapsed = (g == '0' || g == 'A' || g == 'a') && (g == (g1 & 0xff));
     if( !toBeCollapsed ) {
-      gAscii3 <<= 8U;
-      gAscii3 |= gAscii2 >> (32U - 8U);
-      gAscii2 <<= 8U;
-      gAscii2 |= gAscii1 >> (32U - 8U);
-      gAscii1 <<= 8U;
-      gAscii1 |= g;
+      g3 <<= 8;
+      g3 |= g2 >> (32 - 8);
+      g2 <<= 8;
+      g2 |= g1 >> (32 - 8);
+      g1 <<= 8;
+      g1 |= g;
     }
 
-    uint64_t i = static_cast<uint64_t>(toBeCollapsed) * 8;
-    cm.set(hash(++i, gAscii3, gAscii2,             gAscii1)); // last 12 groups
-    cm.set(hash(++i,          gAscii2,             gAscii1)); // last 8 groups
-    cm.set(hash(++i,          gAscii2 & 0xffffu,   gAscii1)); // last 6 groups
-    cm.set(hash(++i,                               gAscii1)); // last 4 groups
-    cm.set(hash(++i,                               gAscii1 & 0xffffu)); // last 2 groups
-    cm.set(hash(++i,          gAscii2 & 0xffffffu, gAscii1, c4 & 0x0000ffffu)); // last 7 groups + last 2 chars
-    cm.set(hash(++i,          gAscii2 & 0xffu,     gAscii1, c4 & 0x00ffffffu)); // last 5 groups + last 3 chars
+    uint64_t i = static_cast<uint64_t>(toBeCollapsed) * nCM;
+    cm.set(hash(++i, g3, g2,            g1)); // last 12 groups
+    cm.set(hash(++i,     g2,            g1)); // last 8 groups
+    cm.set(hash(++i,     g2 & 0x00ffff, g1)); // last 6 groups
+    cm.set(hash(++i,                    g1)); // last 4 groups
+    cm.set(hash(++i,                    g1 & 0x0000ffff)); // last 2 groups
+    cm.set(hash(++i,     g2 & 0xffffff, g1, c4 & 0x0000ffff)); // last 7 groups + last 2 chars
+    cm.set(hash(++i,     g2 & 0x0000ff, g1, c4 & 0x00ffffff)); // last 5 groups + last 3 chars
   }
   cm.mix(m);
 }

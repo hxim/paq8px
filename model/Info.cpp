@@ -284,9 +284,7 @@ void Info::lineModelPredict() {
 }
 
 void Info::lineModelSkip(ContextMap2 &cm) {
-  for( int i = 0; i < nCM1; i++ ) {
-    cm.skip();
-  }
+    cm.skipn(nCM1);
 }
 
 void Info::predict(const uint8_t pdfTextParserState) {
@@ -384,12 +382,8 @@ void Info::predict(const uint8_t pdfTextParserState) {
     cm.set(hash(++i, word0, c1, word1, word3));
     cm.set(hash(++i, word0, c1, word2, word3));
   } else {
-    cm.skip(); i++;
-    cm.skip(); i++;
-    cm.skip(); i++;
-    cm.skip(); i++;
-    cm.skip(); i++;
-    cm.skip(); i++;
+    cm.skipn(6);
+    i+=6;
   }
 
   const uint8_t g = groups & 0xffu;

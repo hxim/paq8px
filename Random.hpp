@@ -8,12 +8,11 @@
  * 32-bit pseudo random number generator
  */
 class Random {
-    Array<uint32_t> table;
-    uint64_t i;
+    uint64_t _state;
 
 public:
     Random();
-    auto operator()() -> uint32_t;
+    auto operator()(int numberOfBits) -> uint32_t;
 };
 
 #endif //PAQ8PX_RANDOM_HPP

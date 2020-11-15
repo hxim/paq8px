@@ -55,6 +55,11 @@ void ContextMap2::skip() {
   validFlags <<= 1U;
 }
 
+void ContextMap2::skipn(int n) {
+  assert(index >= 0 && index+n-1 < C);
+  index+=n;
+  validFlags <<= n;
+}
 void ContextMap2::update() {
   INJECT_SHARED_y
   INJECT_SHARED_bpos
@@ -197,7 +202,7 @@ void ContextMap2::mix(Mixer &m) {
 
       if((useWhat & CM_USE_BYTE_HISTORY) != 0U ) {
         const int bhBits = (((byte1 >> (7 - bpos)) & 1)) | (((byte2 >> (7 - bpos)) & 1) << 1) |
-                           (((byte3 >> (7 - bpos)) & 1) << 2);
+                            (((byte3 >> (7 - bpos)) & 1) << 2);
 
         int bhState = 0; // 4 bit
         if( complete3 ) {

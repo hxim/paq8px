@@ -19,6 +19,7 @@
 #include "model/NormalModel.hpp"
 #include "model/RecordModel.hpp"
 #include "model/SparseMatchModel.hpp"
+#include "model/SparseBitModel.hpp"
 #include "model/SparseModel.hpp"
 #include "model/WordModel.hpp"
 #include "model/XMLModel.hpp"
@@ -39,6 +40,7 @@ public:
   auto dmcForest() -> DmcForest &;
   auto charGroupModel() -> CharGroupModel &;
   auto recordModel() -> RecordModel &;
+  auto sparseBitModel()->SparseBitModel&;
   auto sparseModel() -> SparseModel &;
   auto matchModel() -> MatchModel &;
   auto sparseMatchModel() -> SparseMatchModel &;

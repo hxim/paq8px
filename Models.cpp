@@ -43,6 +43,11 @@ auto Models::recordModel() -> RecordModel & {
   return instance;
 }
 
+auto Models::sparseBitModel() -> SparseBitModel& {
+  static SparseBitModel instance{ shared, shared->mem / 4 };
+  return instance;
+}
+
 auto Models::sparseModel() -> SparseModel & {
   static SparseModel instance {shared, shared->mem * 2};
   return instance;

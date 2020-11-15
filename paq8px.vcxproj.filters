@@ -243,6 +243,9 @@
     <ClCompile Include="filter\DecAlpha.cpp">
       <Filter>filter</Filter>
     </ClCompile>
+    <ClCompile Include="model\SparseBitModel.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -625,6 +628,9 @@
     </ClInclude>
     <ClInclude Include="filter\DecAlphaFilter.hpp">
       <Filter>filter</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SparseBitModel.hpp">
+      <Filter>model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

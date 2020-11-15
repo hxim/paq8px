@@ -53,9 +53,10 @@ void NormalModel::mixPost(Mixer &m) {
   INJECT_SHARED_c1
   INJECT_SHARED_bpos
   INJECT_SHARED_blockType
-  m.set(8 + (c1 | static_cast<int>(bpos > 5) << 8U | static_cast<int>(((c0 & ((1U << bpos) - 1)) == 0) || (c0 == ((2 << bpos) - 1))) << 9U), 8 + 1024);
+  m.set((c1 | static_cast<int>(bpos > 5) << 8U | static_cast<int>(((c0 & ((1U << bpos) - 1)) == 0) || (c0 == ((2 << bpos) - 1))) << 9U), 1024);
   m.set(c0, 256);
-  m.set(shared->State.order | ((c4 >> 6U) & 3U) << 3U | static_cast<int>(bpos == 0) << 5U | static_cast<int>(c1 == c2) << 6U | static_cast<int>(blockType == EXE) << 7U, 256);
+  uint32_t bt = blockType == DEFAULT ? 0 : blockType == TEXT || blockType == TEXT_EOL ? 1 : blockType == EXE || blockType == DEC_ALPHA ? 2 : 3;
+  m.set(shared->State.order | ((c1 >> 6U) & 3U) << 3U | static_cast<int>(bpos == 0) << 5U | static_cast<int>(c1 == c2) << 6U | bt << 7U, 512);
   m.set(c2, 256);
   m.set(c3, 256);
   if( bpos != 0 ) {

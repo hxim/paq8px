@@ -30,6 +30,7 @@ mapped to predictions.
 #include "Stretch.hpp"
 #include "UpdateBroadcaster.hpp"
 
+#define CM_USE_NONE 0U
 #define CM_USE_RUN_STATS 1U
 #define CM_USE_BYTE_HISTORY 2U
 
@@ -77,6 +78,7 @@ public:
      */
     void set(uint64_t ctx);
     void skip();
+    void skipn(int n);
     void update() override;
     void setScale(int Scale);
     void mix(Mixer &m);

@@ -523,6 +523,9 @@ public:
     for (std::uint32_t i = 0u; i < nMaps - 1u; i++) {
       if (((maps_mask[i] >> state) & 1u) != 0u)
         maps[i][map_state(i, state)].mix(m);
+      else
+        for (int j = 0; j < IndirectMap::MIXERINPUTS; j++)
+          m.add(0);
     }
 
     std::uint8_t const opcode = (state != State::OpCode) ? op.Opcode : cache(1).Opcode;

@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "196"  //update version here before publishing your changes
+#define PROGVERSION  "197"  //update version here before publishing your changes
 #define PROGYEAR     "2020"
 
 
@@ -36,10 +36,10 @@ static void printHelp() {
          "  " PROGNAME " -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]\n"
          "\n"
          "    -LEVEL:\n"
-         "      -0 = no compression, only transformations when applicable (uses 478 MB)\n"
-         "      -1 -2 -3 = compress using less memory (574, 588, 615 MB)\n"
-         "      -4 -5 -6 -7 -8 -9 = use more memory (671, 781, 1002, 1444, 2329, 4097 MB)\n"
-         "      -10  -11  -12     = use even more memory (7635, 14710, 27835 MB)\n"
+         "      -0 = no compression, only transformations when applicable (uses 495 MB)\n"
+         "      -1 -2 -3 = compress using less memory (592, 606, 634 MB)\n"
+         "      -4 -5 -6 -7 -8 -9 = use more memory (689, 800, 1021, 1465, 2351, 4124 MB)\n"
+         "      -10  -11  -12     = use even more memory (7669, 14760, 27917 MB)\n"
          "    The listed memory requirements are indicative, actual usage may vary\n"
          "    depending on several factors including need for temporary files,\n"
          "    temporary memory needs of some preprocessing (transformations), etc.\n"

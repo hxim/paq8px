@@ -1803,7 +1803,7 @@ paq8px_v194 by Zoltán Gotthardt
 
 paq8px_v195 by Surya Kandau
 2020.10.23
-- Improved jpeg recompression
+- Improved jpeg model
 
 
 paq8px_v196 by Zoltán Gotthardt
@@ -1815,3 +1815,11 @@ Fixes and improvements in jpeg model
 - using abs for advPred[] and lcp[] in apms (thank you, Kaitz!)
 - reduced memory use in apms (-24 MB on level 8)
 - tweaks
+
+
+paq8px_v197 by Zoltán Gotthardt
+2020.11.15
+- Fix for thumbnails in JpegModel (thank you, Kaitz!)
+- Included more blocktypes as a context in NormalModel (text and dec alpha)
+- Improved SparseModel (text and binary separated; better modeling for 4-byte structures; switched to ContextMap2)
+- New model: SparseBitModel (sparse bit contexts extracted from SparseModel)

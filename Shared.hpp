@@ -15,7 +15,7 @@
 #define INJECT_SHARED_c4    const uint32_t c4=shared->State.c4;
 #define INJECT_SHARED_c8    const uint32_t c8=shared->State.c8;
 
-#define INJECT_SHARED_blockType const uint32_t blockType=shared->State.blockType;
+#define INJECT_SHARED_blockType const BlockType blockType=shared->State.blockType;
 #define INJECT_SHARED_blockPos const uint32_t blockPos=shared->State.blockPos;
 
 /**
