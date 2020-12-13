@@ -5,8 +5,8 @@
 
 /**
  * c0,c1: adaptive counts of zeroes and ones;
- * fixed point numbers with 6 integer and 10 fractional bits, i.e. scaling factor = 1024;
- * thus the values 0 .. 65535 represent real counts of 0.0 .. 63.999
+ *        fixed point numbers with 6 integer and 10 fractional bits, i.e. scaling factor = 1024;
+ *        thus the values 0 .. 65535 represent real counts of 0.0 .. 63.999
  * nx0, nx1: indexes of next DMC nodes in the state graph
  * state: bit history state - as in a contextmap
  */

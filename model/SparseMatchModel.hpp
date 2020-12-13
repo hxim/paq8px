@@ -6,12 +6,14 @@
 #include "../IndirectContext.hpp"
 #include "../Mixer.hpp"
 #include "../Shared.hpp"
+#include "../LargeStationaryMap.hpp"
 #include "../StationaryMap.hpp"
 
 class SparseMatchModel {
 private:
     static constexpr int numHashes = 4;
-    static constexpr int nSM = 4;
+    static constexpr int nLSM = 1;
+    static constexpr int nSM = 3;
     const Shared * const shared;
     enum Parameters : uint32_t {
         MaxLen = 0xFFFF, // longest allowed match
@@ -29,6 +31,7 @@ private:
                                             {0, 2, 0, 4, 0xDF},
                                             {0, 1, 0, 5, 0x0F}};
     Array<uint32_t> table;
+    LargeStationaryMap mapL[nLSM];
     StationaryMap maps[nSM];
     IndirectContext<uint8_t> iCtx8 {19, 1}; // BitsPerContext, InputBits
     IndirectContext<uint16_t> iCtx16 {16, 8}; // BitsPerContext, InputBits
@@ -43,7 +46,10 @@ private:
     const int hashBits;
 
 public:
-    static constexpr int MIXERINPUTS = 3 + nSM * StationaryMap::MIXERINPUTS; // 11
+    static constexpr int MIXERINPUTS = 
+      3 + 
+      nLSM * LargeStationaryMap::MIXERINPUTS + 
+      nSM * StationaryMap::MIXERINPUTS; // 15
     static constexpr int MIXERCONTEXTS = numHashes * (64 + 2048); // 8448
     static constexpr int MIXERCONTEXTSETS = 2;
     explicit SparseMatchModel(const Shared* const sh, uint64_t size);

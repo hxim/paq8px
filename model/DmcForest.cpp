@@ -14,14 +14,16 @@ DmcForest::~DmcForest() {
 
 void DmcForest::mix(Mixer &m) {
   int i = MODELS;
+
   // the slow models predict individually
-  m.add(dmcModels[--i]->st() >> 3U);
-  m.add(dmcModels[--i]->st() >> 3U);
-  // the fast models are combined for better stability
+  m.add(dmcModels[--i]->stw() >> 5);
+  m.add(dmcModels[--i]->stw() >> 5);
+
+  // the fast models are combined for stability
   while( i > 0 ) {
-    const int pr1 = dmcModels[--i]->st();
-    const int pr2 = dmcModels[--i]->st();
-    m.add((pr1 + pr2) >> 4U);
+    const int st1 = dmcModels[--i]->stw();
+    const int st2 = dmcModels[--i]->stw();
+    m.add((st1 + st2) >> 6);
   }
 
   // reset models when their structure can't adapt anymore

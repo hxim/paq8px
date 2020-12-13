@@ -1,59 +1,78 @@
 #include "StationaryMap.hpp"
 
-StationaryMap::StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale, const uint16_t limit) : 
+StationaryMap::StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale, const int rate) : 
   shared(sh),
   data((1ULL << bitsOfContext) * ((1ULL << inputBits) - 1)),
   mask((1 << bitsOfContext) - 1), 
-  maskBits(bitsOfContext),
-  stride((1 << inputBits) - 1), bTotal(inputBits), scale(scale), limit(limit) {
+  stride((1 << inputBits) - 1), bTotal(inputBits), scale(scale), rate(rate),
+  context(0), bCount(0), b(0), cp(nullptr)
+{
 #ifdef VERBOSE
-  printf("Created StationaryMap with bitsOfContext = %d, inputBits = %d, scale = %d, limit = %d\n", bitsOfContext, inputBits, scale, limit);
+  printf("Created StationaryMap with bitsOfContext = %d, inputBits = %d, scale = %d, rate = %d\n", bitsOfContext, inputBits, scale, rate);
 #endif
   assert(inputBits > 0 && inputBits <= 8);
   assert(bitsOfContext + inputBits <= 24);
-  dt = DivisionTable::getDT();
-  reset(0);
-  set(0);
+  assert(9 <= rate && rate <= 16); // 9 is just a reasonable lower bound, 16 is a hard bound
 }
 
-void StationaryMap::setDirect(uint32_t ctx) {
+void StationaryMap::set(uint32_t ctx) {
   context = (ctx & mask) * stride;
   bCount = b = 0;
 }
 
-void StationaryMap::set(uint64_t ctx) {
-  context = (finalize64(ctx, maskBits) & mask) * stride;
-  bCount = b = 0;
-}
-
-void StationaryMap::setscale(int scale) {
+void StationaryMap::setScale(int scale) {
   this->scale = scale;
 }
 
-void StationaryMap::reset(const int rate) {
+void StationaryMap::setRate(int rate) {
+  this->rate = rate;
+}
+
+void StationaryMap::reset() {
   for( uint32_t i = 0; i < data.size(); ++i ) {
-    data[i] = (0x7FF << 20) | min(1023, rate);
+    data[i] = 0;
   }
-  cp = &data[0];
 }
 
 void StationaryMap::update() {
   INJECT_SHARED_y
-  uint32_t count = min(min(limit, 0x3FF), ((*cp) & 0x3FF) + 1);
-  int prediction = (*cp) >> 10; // 22 bit p
-  int error = (y << 22) - prediction; // 22 bit error
-  error = ((error / 8) * dt[count]) / 1024; // error = error *  1.0/(count+1.5)
-  prediction = min(0x3FFFFF, max(0, prediction + error));
-  *cp = (prediction << 10) | count;
+
+  uint32_t counts, n0, n1;
+  counts = *cp;
+  n0 = counts >> 16;
+  n1 = counts & 0xffff;
+
+  n0 += 1 - y;
+  n1 += y;
+  int shift = (n0 | n1) >> rate; //near-stationary: rate=16; adaptive: smaller rate
+  n0 >>= shift;
+  n1 >>= shift;
+
+  *cp = n0 << 16 | n1;
+
   b += static_cast<uint32_t>((y != 0) && b > 0);
 }
 
 void StationaryMap::mix(Mixer &m) {
   shared->GetUpdateBroadcaster()->subscribe(this);
+  uint32_t counts, n0, n1, sum;
+  int p1, st, bitIsUncertain, p0;
+
   cp = &data[context + b];
-  const int prediction = (*cp) >> 20;
-  m.add((stretch(prediction) * scale) >> 8);
-  m.add(((prediction - 2048) * scale) >> 9);
+  counts = *cp;
+  n0 = counts >> 16;
+  n1 = counts & 0xffff;
+
+  sum = n0 + n1;
+  p1 = ((n1 * 2 + 1) << 12) / (sum * 2 + 2);
+  st = (stretch(p1) * scale) >> 8;
+  m.add(st);
+  m.add(((p1 - 2048) * scale) >> 9);
+  bitIsUncertain = int(sum <= 1 || (n0 != 0 && n1 != 0));
+  m.add((bitIsUncertain - 1) & st); // when both counts are nonzero add(0) otherwise add(st)
+  //p0 = 4095 - p1;
+  //m.add((((p1 & (-!n0)) - (p0 & (-!n1))) * scale) >> 10);
+
   bCount++;
   b += b + 1;
   assert(bCount <= bTotal);

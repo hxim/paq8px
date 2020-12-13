@@ -2,7 +2,6 @@
 #define PAQ8PX_STATIONARYMAP_HPP
 
 #include "IPredictor.hpp"
-#include "DivisionTable.hpp"
 #include "Hash.hpp"
 #include "Mixer.hpp"
 #include "Stretch.hpp"
@@ -10,29 +9,22 @@
 
 /**
  * Map for modelling contexts of (nearly-)stationary data.
- * The context is looked up directly. For each bit modelled, a 32bit element stores
- * a 22 bit prediction and a 10 bit adaptation rate offset.
- *
- * - Rate: Initial adaptation rate offset [0..1023]. Lower offsets mean faster adaptation.
- * Will be increased on every occurrence until the higher bound is reached.
- *
- * Uses (2^(BitsOfContext+2))*((2^InputBits)-1) bytes of memory.
+ * The context is looked up directly. For each bit modelled, the exact counts of 0s and 1s are stored.
+ * 
  */
 class StationaryMap : IPredictor {
 public:
-    static constexpr int MIXERINPUTS = 2;
+    static constexpr int MIXERINPUTS = 3;
 
 private:
     const Shared * const shared;
     Array<uint32_t> data;
-    const uint32_t mask, maskBits, stride, bTotal;
-    uint32_t context {};
-    uint32_t bCount {};
-    uint32_t b {};
-    uint32_t *cp {};
-    int scale;
-    const uint16_t limit;
-    int *dt;
+    const uint32_t mask, stride, bTotal;
+    int scale, rate;
+    uint32_t context;
+    uint32_t bCount;
+    uint32_t b;
+    uint32_t *cp;
 
 public:
     /**
@@ -40,23 +32,18 @@ public:
      * @param bitsOfContext How many bits to use for each context. Higher bits are discarded.
      * @param inputBits How many bits [1..8] of input are to be modelled for each context. New contexts must be set at those intervals.
      * @param scale
-     * @param limit
+     * @param rate
      */
-    StationaryMap(const Shared* const sh, int bitsOfContext, int inputBits, int scale, uint16_t limit);
+    StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale, const int rate);
 
     /**
      * ctx must be a direct context (no hash)
      * @param ctx
      */
-    void setDirect(uint32_t ctx);
-
-    /**
-     * ctx must be a hash
-     * @param ctx
-     */
-    void set(uint64_t ctx);
-    void setscale(int scale);
-    void reset(int rate);
+    void set(uint32_t ctx);
+    void setScale(int scale);
+    void setRate(int rate);
+    void reset();
     void update() override;
     void mix(Mixer &m);
 };

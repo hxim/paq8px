@@ -2,21 +2,21 @@
 
 Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) : 
   shared(sh), 
-  cm(sh, size, nCM, 64, CM_USE_RUN_STATS),
-  map { /* StationaryMap: BitsOfContext, InputBits, Scale, Limit  */
-    /*nSM0: 0- 1*/ {sh, 0,8,64,1023}, {sh,15,1,64,1023},
-    /*nSM1: 0- 4*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1: 5- 9*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:10-14*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:15-19*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:20-24*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:25-29*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:30-34*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:35-39*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:40-44*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:45-49*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nSM1:50-54*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023},
-    /*nOLS:   0- 4*/ {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}, {sh,11,1,64,1023}
+  cm(sh, size, nCM, 64),
+  map { /* StationaryMap : BitsOfContext, InputBits, Scale, AdaptivityRate  */
+    /*nSM0: 0- 1*/ {sh, 0,8,64,16}, {sh,15,1,64,16},
+    /*nSM1: 0- 4*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1: 5- 9*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:10-14*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:15-19*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:20-24*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:25-29*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:30-34*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:35-39*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:40-44*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:45-49*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nSM1:50-54*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
+    /*nOLS: 0- 4*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}
   },
   pltMap {   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
     {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}
@@ -49,7 +49,7 @@ void Image8BitModel::mix(Mixer &m) {
       if( gray != 0u ) {
         if((lastPos != 0u) && lastWasPNG != isPNG ) {
           for( int i = 0; i < nSM; i++ ) {
-            map[i].reset(0);
+            map[i].reset();
           }
         }
         lastWasPNG = isPNG;
@@ -189,7 +189,8 @@ void Image8BitModel::mix(Mixer &m) {
       int j = 0;
       jump = jumps[min(x, static_cast<int>(jumps.size()) - 1)];
       uint64_t i = (filterOn ? (filter + 1) * 64 : 0) + (gray * 1024);
-      cm.set(hash(++i, (jump != 0) ? (0x100 | buffer(abs(jump))) * (1 - 2 * static_cast<int>(jump < 0)) : N, line & 3U));
+      const uint8_t R_ = CM_USE_RUN_STATS;
+      cm.set(R_, hash(++i, (jump != 0) ? (0x100 | buffer(abs(jump))) * (1 - 2 * static_cast<int>(jump < 0)) : N, line & 3U));
       if( !gray ) {
         for( j = 0; j < nPltMaps; j++ ) {
           iCtx[j] += W;
@@ -198,56 +199,56 @@ void Image8BitModel::mix(Mixer &m) {
         iCtx[1] = W | (N << 8U);
         iCtx[2] = W | (WW << 8U);
         iCtx[3] = N | (NN << 8U);
-        cm.set(hash(++i, W, px));
-        cm.set(hash(++i, W, px, column[0]));
-        cm.set(hash(++i, N, px));
-        cm.set(hash(++i, N, px, column[0]));
-        cm.set(hash(++i, NW, px));
-        cm.set(hash(++i, NW, px, column[0]));
-        cm.set(hash(++i, NE, px));
-        cm.set(hash(++i, NE, px, column[0]));
-        cm.set(hash(++i, NWW, px));
-        cm.set(hash(++i, NEE, px));
-        cm.set(hash(++i, WW, px));
-        cm.set(hash(++i, NN, px));
-        cm.set(hash(++i, W, N, px));
-        cm.set(hash(++i, W, NW, px));
-        cm.set(hash(++i, W, NE, px));
-        cm.set(hash(++i, W, NEE, px));
-        cm.set(hash(++i, W, NWW, px));
-        cm.set(hash(++i, N, NW, px));
-        cm.set(hash(++i, N, NE, px));
-        cm.set(hash(++i, NW, NE, px));
-        cm.set(hash(++i, W, WW, px));
-        cm.set(hash(++i, N, NN, px));
-        cm.set(hash(++i, NW, NNWW, px));
-        cm.set(hash(++i, NE, NNEE, px));
-        cm.set(hash(++i, NW, NWW, px));
-        cm.set(hash(++i, NW, NNW, px));
-        cm.set(hash(++i, NE, NEE, px));
-        cm.set(hash(++i, NE, NNE, px));
-        cm.set(hash(++i, N, NNW, px));
-        cm.set(hash(++i, N, NNE, px));
-        cm.set(hash(++i, N, NNN, px));
-        cm.set(hash(++i, W, WWW, px));
-        cm.set(hash(++i, WW, NEE, px));
-        cm.set(hash(++i, WW, NN, px));
-        cm.set(hash(++i, W, buffer(w - 3), px));
-        cm.set(hash(++i, W, buffer(w - 4), px));
-        cm.set(hash(++i, W, N, NW, px));
-        cm.set(hash(++i, N, NN, NNN, px));
-        cm.set(hash(++i, W, NE, NEE, px));
-        cm.set(hash(++i, W, NW, N, NE, px));
-        cm.set(hash(++i, N, NE, NN, NNE, px));
-        cm.set(hash(++i, N, NW, NNW, NN, px));
-        cm.set(hash(++i, W, WW, NWW, NW, px));
-        cm.set(hash(++i, W, NW << 8U | N, WW << 8U | NWW, px));
-        cm.set(hash(++i, px, column[0]));
-        cm.set(hash(++i, px));
-        cm.set(hash(++i, N, px, column[1]));
-        cm.set(hash(++i, W, px, column[1]));
+        cm.set(R_, hash(++i, W, px));
+        cm.set(R_, hash(++i, W, px, column[0]));
+        cm.set(R_, hash(++i, N, px));
+        cm.set(R_, hash(++i, N, px, column[0]));
+        cm.set(R_, hash(++i, NW, px));
+        cm.set(R_, hash(++i, NW, px, column[0]));
+        cm.set(R_, hash(++i, NE, px));
+        cm.set(R_, hash(++i, NE, px, column[0]));
+        cm.set(R_, hash(++i, NWW, px));
+        cm.set(R_, hash(++i, NEE, px));
+        cm.set(R_, hash(++i, WW, px));
+        cm.set(R_, hash(++i, NN, px));
+        cm.set(R_, hash(++i, W, N, px));
+        cm.set(R_, hash(++i, W, NW, px));
+        cm.set(R_, hash(++i, W, NE, px));
+        cm.set(R_, hash(++i, W, NEE, px));
+        cm.set(R_, hash(++i, W, NWW, px));
+        cm.set(R_, hash(++i, N, NW, px));
+        cm.set(R_, hash(++i, N, NE, px));
+        cm.set(R_, hash(++i, NW, NE, px));
+        cm.set(R_, hash(++i, W, WW, px));
+        cm.set(R_, hash(++i, N, NN, px));
+        cm.set(R_, hash(++i, NW, NNWW, px));
+        cm.set(R_, hash(++i, NE, NNEE, px));
+        cm.set(R_, hash(++i, NW, NWW, px));
+        cm.set(R_, hash(++i, NW, NNW, px));
+        cm.set(R_, hash(++i, NE, NEE, px));
+        cm.set(R_, hash(++i, NE, NNE, px));
+        cm.set(R_, hash(++i, N, NNW, px));
+        cm.set(R_, hash(++i, N, NNE, px));
+        cm.set(R_, hash(++i, N, NNN, px));
+        cm.set(R_, hash(++i, W, WWW, px));
+        cm.set(R_, hash(++i, WW, NEE, px));
+        cm.set(R_, hash(++i, WW, NN, px));
+        cm.set(R_, hash(++i, W, buffer(w - 3), px));
+        cm.set(R_, hash(++i, W, buffer(w - 4), px));
+        cm.set(R_, hash(++i, W, N, NW, px));
+        cm.set(R_, hash(++i, N, NN, NNN, px));
+        cm.set(R_, hash(++i, W, NE, NEE, px));
+        cm.set(R_, hash(++i, W, NW, N, NE, px));
+        cm.set(R_, hash(++i, N, NE, NN, NNE, px));
+        cm.set(R_, hash(++i, N, NW, NNW, NN, px));
+        cm.set(R_, hash(++i, W, WW, NWW, NW, px));
+        cm.set(R_, hash(++i, W, NW << 8U | N, WW << 8U | NWW, px));
+        cm.set(R_, hash(++i, px, column[0]));
+        cm.set(R_, hash(++i, px));
+        cm.set(R_, hash(++i, N, px, column[1]));
+        cm.set(R_, hash(++i, W, px, column[1]));
         for( int j = 0; j < nPltMaps; j++ ) {
-          cm.set(hash(++i, iCtx[j](), px));
+          cm.set(R_, hash(++i, iCtx[j](), px));
         }
         
         ctx = min(0x1F, (x - isPNG) / min(0x20, columns[0]));
@@ -312,33 +313,33 @@ void Image8BitModel::mix(Mixer &m) {
           ols[j].update(W);
           pOLS[j] = clip(int(floor(ols[j].predict(olsCtxs[j]))));
         }
-
-        cm.set(0);
-        cm.set(hash(++i, N, px));
-        cm.set(hash(++i, N - px));
-        cm.set(hash(++i, W, px));
-        cm.set(hash(++i, NW, px));
-        cm.set(hash(++i, NE, px));
-        cm.set(hash(++i, N, NN, px));
-        cm.set(hash(++i, W, WW, px));
-        cm.set(hash(++i, NE, NNEE, px));
-        cm.set(hash(++i, NW, NNWW, px));
-        cm.set(hash(++i, W, NEE, px));
-        cm.set(hash(++i, (clamp4(W + N - NW, W, NW, N, NE) - px) / 2, logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
-        cm.set(hash(++i, (W - px) / 4, (NE - px) / 4, column[0]));
-        cm.set(hash(++i, (clip(W * 2 - WW) - px) / 4, (clip(N * 2 - NN) - px) / 4));
-        cm.set(hash(++i, (clamp4(N + NE - NNE, W, N, NE, NEE) - px) / 4, column[0]));
-        cm.set(hash(++i, (clamp4(N + NW - NNW, W, NW, N, NE) - px) / 4, column[0]));
-        cm.set(hash(++i, (W + NEE) / 4, px, column[0]));
-        cm.set(hash(++i, clip(W + N - NW) - px, column[0]));
-        cm.set(hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, N, NN, NE), px, logMeanDiffQt(W, clip(NW * 2 - NNW))));
-        cm.set(hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE), px, logMeanDiffQt(N, clip(NW * 2 - NWW))));
-        cm.set(hash(++i, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2, px, logMeanDiffQt(N, (NW + NE) / 2)));
-        cm.set(hash(++i, (N + NNN) / 8, clip(N * 3 - NN * 3 + NNN) / 4, px));
-        cm.set(hash(++i, (W + WWW) / 8, clip(W * 3 - WW * 3 + WWW) / 4, px));
-        cm.set(hash(++i, clip((-buffer(4) + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + buffer(w * 3 - 1) * 4 - buffer(w * 4 - 1), N, NE, buffer(w - 2), buffer(w - 3))) / 5) - px));
-        cm.set(hash(++i, clip(N * 2 - NN) - px, logMeanDiffQt(N, clip(NN * 2 - NNN))));
-        cm.set(hash(++i, clip(W * 2 - WW) - px, logMeanDiffQt(NE, clip(N * 2 - NW))));
+        
+        cm.set(R_, 0);
+        cm.set(R_, hash(++i, N, px));
+        cm.set(R_, hash(++i, N - px));
+        cm.set(R_, hash(++i, W, px));
+        cm.set(R_, hash(++i, NW, px));
+        cm.set(R_, hash(++i, NE, px));
+        cm.set(R_, hash(++i, N, NN, px));
+        cm.set(R_, hash(++i, W, WW, px));
+        cm.set(R_, hash(++i, NE, NNEE, px));
+        cm.set(R_, hash(++i, NW, NNWW, px));
+        cm.set(R_, hash(++i, W, NEE, px));
+        cm.set(R_, hash(++i, (clamp4(W + N - NW, W, NW, N, NE) - px) / 2, logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
+        cm.set(R_, hash(++i, (W - px) / 4, (NE - px) / 4, column[0]));
+        cm.set(R_, hash(++i, (clip(W * 2 - WW) - px) / 4, (clip(N * 2 - NN) - px) / 4));
+        cm.set(R_, hash(++i, (clamp4(N + NE - NNE, W, N, NE, NEE) - px) / 4, column[0]));
+        cm.set(R_, hash(++i, (clamp4(N + NW - NNW, W, NW, N, NE) - px) / 4, column[0]));
+        cm.set(R_, hash(++i, (W + NEE) / 4, px, column[0]));
+        cm.set(R_, hash(++i, clip(W + N - NW) - px, column[0]));
+        cm.set(R_, hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, N, NN, NE), px, logMeanDiffQt(W, clip(NW * 2 - NNW))));
+        cm.set(R_, hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE), px, logMeanDiffQt(N, clip(NW * 2 - NWW))));
+        cm.set(R_, hash(++i, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2, px, logMeanDiffQt(N, (NW + NE) / 2)));
+        cm.set(R_, hash(++i, (N + NNN) / 8, clip(N * 3 - NN * 3 + NNN) / 4, px));
+        cm.set(R_, hash(++i, (W + WWW) / 8, clip(W * 3 - WW * 3 + WWW) / 4, px));
+        cm.set(R_, hash(++i, clip((-buffer(4) + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + buffer(w * 3 - 1) * 4 - buffer(w * 4 - 1), N, NE, buffer(w - 2), buffer(w - 3))) / 5) - px));
+        cm.set(R_, hash(++i, clip(N * 2 - NN) - px, logMeanDiffQt(N, clip(NN * 2 - NNN))));
+        cm.set(R_, hash(++i, clip(W * 2 - WW) - px, logMeanDiffQt(NE, clip(N * 2 - NW))));
 
         if( isPNG ) {
           ctx = (static_cast<int>(abs(W - N) > 8) << 10U) | (static_cast<int>(W > N) << 9U) | (static_cast<int>(abs(N - NW) > 8) << 8U) |
@@ -364,16 +365,16 @@ void Image8BitModel::mix(Mixer &m) {
   if((x != 0) || !isPNG) {
     if( gray ) {
       int i = 0;
-      map[i++].setDirect(0);
-      map[i++].setDirect(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
+      map[i++].set(0);
+      map[i++].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
                          (logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11U));
 
       for( int j = 0; j < nSM1; i++, j++ ) {
-        map[i].setDirect((mapContexts[j] - px - b) * 8 + bpos);
+        map[i].set((mapContexts[j] - px - b) * 8 + bpos);
       }
 
       for( int j = 0; i < nSM; i++, j++ ) {
-        map[i].setDirect((pOLS[j] - px - b) * 8 + bpos);
+        map[i].set((pOLS[j] - px - b) * 8 + bpos);
       }
     }
     sceneMap[2].setDirect(finalize64(hash(x, line), 19) * 8 + bpos);

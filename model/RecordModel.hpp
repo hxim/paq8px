@@ -47,8 +47,10 @@ private:
 
 public:
     static constexpr int MIXERINPUTS =
-            nCM * ContextMap::MIXERINPUTS + nSM * StationaryMap::MIXERINPUTS + nSSM * SmallStationaryContextMap::MIXERINPUTS +
-            nIM * IndirectMap::MIXERINPUTS; // 149
+      nCM * ContextMap::MIXERINPUTS +
+      nSM * StationaryMap::MIXERINPUTS + 
+      nSSM * SmallStationaryContextMap::MIXERINPUTS +
+      nIM * IndirectMap::MIXERINPUTS; // 157
     static constexpr int MIXERCONTEXTS = 1024 + 512 + 11 * 32; //1888
     static constexpr int MIXERCONTEXTSETS = 3;
     RecordModel(Shared* const sh, uint64_t size);

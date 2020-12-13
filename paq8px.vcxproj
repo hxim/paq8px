@@ -260,6 +260,7 @@
     <ClCompile Include="filter\TextParserStateInfo.cpp" />
     <ClCompile Include="Ilog.cpp" />
     <ClCompile Include="IndirectMap.cpp" />
+    <ClCompile Include="LargeStationaryMap.cpp" />
     <ClCompile Include="Mixer.cpp" />
     <ClCompile Include="MixerFactory.cpp" />
     <ClCompile Include="Models.cpp" />
@@ -322,6 +323,7 @@
     <ClInclude Include="BH.hpp" />
     <ClInclude Include="BitCount.hpp" />
     <ClInclude Include="Bucket.hpp" />
+    <ClInclude Include="Bucket16.hpp" />
     <ClInclude Include="ContextMap.hpp" />
     <ClInclude Include="ContextMap2.hpp" />
     <ClInclude Include="DivisionTable.hpp" />
@@ -360,6 +362,7 @@
     <ClInclude Include="IndirectContext.hpp" />
     <ClInclude Include="IndirectMap.hpp" />
     <ClInclude Include="IPredictor.hpp" />
+    <ClInclude Include="LargeStationaryMap.hpp" />
     <ClInclude Include="LMS.hpp" />
     <ClInclude Include="lstm\Activations.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />

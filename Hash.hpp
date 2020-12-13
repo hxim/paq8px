@@ -17,47 +17,17 @@
 
 // Multipliers
 // - They don't need to be prime, just large odd numbers
-// - The golden ratio is usually preferred as a multiplier (PHI64)
+// - It's advantageous to have a multiplier such as m-1 is divicible by 4
+//   See also: https://en.wikipedia.org/wiki/Linear_congruential_generator
+// - It's advantageoud where the multiplier is based on an irrational number to guarantee good (long) periodic behaviour
+// - The golden ratio is usually preferred as a multiplier (PHI64) as it is the most irrational number
 
-#ifdef HASHCONFIGCMD
-#define HASHEXPR
-#else
-#define HASHEXPR constexpr
-#endif
-
-static HASHEXPR uint64_t hashes[14] = {UINT64_C(0x9E3779B97F4A7C15), UINT64_C(0x993DDEFFB1462949), UINT64_C(0xE9C91DC159AB0D2D),
-                                       UINT64_C(0x83D6A14F1B0CED73), UINT64_C(0xA14F1B0CED5A841F), UINT64_C(0xC0E51314A614F4EF),
-                                       UINT64_C(0xDA9CC2600AE45A27), UINT64_C(0x826797AA04A65737), UINT64_C(0x2375BE54C41A08ED),
-                                       UINT64_C(0xD39104E950564B37), UINT64_C(0x3091697D5E685623), UINT64_C(0x20EB84EE04A3C7E1),
-                                       UINT64_C(0xF501F1D0944B2383), UINT64_C(0xE3E4E8AA829AB9B5)};
-
-#ifdef HASHCONFIGCMD
-
-static void loadHashesFromCmd(const char *hashesFromCommandline) {
-  if( strlen(hashesFromCommandline) != 16 * 14 + 13 /*237*/) {
-    quit("Bad hash config.");
-  }
-  for( int i = 0; i < 14; i++ ) { // for each specified hash value
-    uint64_t hashVal = 0;
-    for( int j = 0; j < 16; j++ ) { // for each hex char
-      uint8_t c = hashesFromCommandline[i * 17 + j];
-      if( c >= 'a' && c <= 'f' ) {
-        c = c + 'A' - 'a';
-      }
-      if( c >= '0' && c <= '9' ) {
-        c -= '0';
-      } else if( c >= 'A' && c <= 'F' ) {
-        c = c - 'A' + 10;
-      } else {
-        quit("Bad hash config.");
-      }
-      hashVal = hashVal << 4U | c;
-    }
-    hashes[i] = hashVal;
-  }
-}
-
-#endif //HASHCONFIGCMD
+static constexpr uint64_t hashes[14] = {UINT64_C(0x9E3779B97F4A7C15), UINT64_C(0x993DDEFFB1462949), UINT64_C(0xE9C91DC159AB0D2D),
+                                       UINT64_C(0x83D6A14F1B0CED75), UINT64_C(0xA14F1B0CED5A841D), UINT64_C(0xC0E51314A614F4E1),
+                                       UINT64_C(0xDA9CC2600AE45A25), UINT64_C(0x826797AA04A65735), UINT64_C(0x2375BE54C41A08ED),
+                                       UINT64_C(0xD39104E950564B39), UINT64_C(0x3091697D5E685621), UINT64_C(0x20EB84EE04A3C7E1),
+                                       UINT64_C(0xF501F1D0944B2385), UINT64_C(0xE3E4E8AA829AB9B5)};
+                                       
 
 // Golden ratio of 2^64 (not a prime)
 #define PHI64 hashes[0] // 11400714819323198485
@@ -77,17 +47,6 @@ static void loadHashesFromCmd(const char *hashesFromCommandline) {
 #define MUL64_12 hashes[12]
 #define MUL64_13 hashes[13]
 
-/**
- * @todo Is it okay that this function hashes values in reverse order? If so, we can replace the below functions.
- */
-template<uint64_t first = 0, uint64_t... rest>
-constexpr uint64_t hash() {
-  if( sizeof...(rest) == 0 ) {
-    return (first + 1) * hashes[0];
-  } else {
-    return ((first + 1) * hashes[sizeof...(rest)]) + hash<rest...>();
-  }
-}
 
 /**
  * Finalizers (range reduction).

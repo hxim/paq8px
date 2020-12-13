@@ -206,6 +206,7 @@ void ExeModel::update() {
     uint32_t mask = 0;
     uint32_t count0 = 0;
     uint32_t i = 0;
+    const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
     while( i < nCM1 ) {
       if( i > 1 ) {
         mask = mask * 2 + static_cast<uint32_t>(buf(i - 1) == 0);
@@ -213,7 +214,7 @@ void ExeModel::update() {
       }
       int j = (i < 4) ? i + 1 : 5 + (i - 4) * (2 + static_cast<int>(i > 6));
       INJECT_SHARED_blockPos
-      cm.set(hash(i, exeCxt(j, 
+      cm.set(RH, hash(i, exeCxt(j, 
         buf(1) * static_cast<int>(j > 6)),
         ((1U << nCM1) | mask) * static_cast<uint32_t>(count0 * nCM1 / 2 >= i), 
         (0x08U | (blockPos & 0x07U)) * static_cast<uint32_t>(i < 4)
@@ -221,21 +222,21 @@ void ExeModel::update() {
       i++;
     }
 
-    cm.set(brkCtx);
+    cm.set(RH, brkCtx);
 
     mask = prefixMask | (0xF8U << codeShift) | multiByteOpcode | prefix38 | prefix3A;
-    cm.set(hash(++i, opN(cache, 1) & (mask | regDWordDisplacement | addressMode), 
+    cm.set(RH, hash(++i, opN(cache, 1) & (mask | regDWordDisplacement | addressMode),
       state + 16 * op.bytesRead, op.data & mask, op.REX, op.category
     ));
 
     mask = 0x04U | (0xFEU << codeShift) | multiByteOpcode | prefix38 | prefix3A | ((ModRM_mod | ModRM_reg) << ModRMShift);
-    cm.set(hash(++i, opN(cache, 1) & mask, opN(cache, 2) & mask, opN(cache, 3) & mask,
+    cm.set(RH, hash(++i, opN(cache, 1) & mask, opN(cache, 2) & mask, opN(cache, 3) & mask,
       context + 256 * static_cast<int>((op.ModRM & ModRM_mod) == ModRM_mod),
       op.data & ((mask | prefixRex) ^ (ModRM_mod << ModRMShift))
     ));
 
     mask = 0x04U | codeMask;
-    cm.set(hash(++i, 
+    cm.set(RH, hash(++i,
       opN(cache, 1) & mask, 
       opN(cache, 2) & mask, 
       opN(cache, 3) & mask, 
@@ -244,30 +245,30 @@ void ExeModel::update() {
     ));
 
     mask = 0x04U | (0xFCU << codeShift) | multiByteOpcode | prefix38 | prefix3A;
-    cm.set(hash(++i, state + 16 * op.bytesRead, op.data & mask, op.category * 8 + (opMask & 0x07U), op.flags,
+    cm.set(RH, hash(++i, state + 16 * op.bytesRead, op.data & mask, op.category * 8 + (opMask & 0x07U), op.flags,
                 static_cast<int>((op.SIB & SIB_base) == 5) * 4 + static_cast<int>((op.ModRM & ModRM_reg) == ModRM_reg) * 2 +
                 static_cast<int>((op.ModRM & ModRM_mod) == 0)
     ));
     mask = prefixMask | codeMask | operandSizeOverride | multiByteOpcode | prefixRex | prefix38 | prefix3A | hasExtraFlags | hasModRm |
            ((ModRM_mod | ModRM_rm) << ModRMShift);
-    cm.set(hash(++i, op.data & mask, state + 16 * op.bytesRead, op.flags));
+    cm.set(RH, hash(++i, op.data & mask, state + 16 * op.bytesRead, op.flags));
 
     mask = prefixMask | codeMask | operandSizeOverride | multiByteOpcode | prefix38 | prefix3A | hasExtraFlags | hasModRm;
-    cm.set(hash(++i, opN(cache, 1) & mask, state, 
+    cm.set(RH, hash(++i, opN(cache, 1) & mask, state,
                 op.bytesRead * 2 + static_cast<int>((op.REX & REX_w) > 0),
                 op.data & (static_cast<uint16_t>(mask ^ operandSizeOverride))
     ));
     mask = 0x04U | (0xFEU << codeShift) | multiByteOpcode | prefix38 | prefix3A | (ModRM_reg << ModRMShift);
-    cm.set(hash(++i, 
+    cm.set(RH, hash(++i,
       opN(cache, 1) & mask, 
       opN(cache, 2) & mask, 
       state + 16 * op.bytesRead, 
       op.data & (mask | prefixMask | codeMask)
     ));
 
-    cm.set(hash(++i, state + 16 * op.bytesRead));
+    cm.set(RH, hash(++i, state + 16 * op.bytesRead));
 
-    cm.set(hash(++i, 
+    cm.set(RH, hash(++i,
       (0x100U | c1) * static_cast<uint32_t>(op.bytesRead > 0), 
       state + 16 * pState + 256 * op.bytesRead,
          static_cast<int>((op.flags & fMODE) == fAM) * 16 + 
@@ -291,10 +292,12 @@ void ExeModel::mix(Mixer &m) {
   }
 
   if( valid || forced ) {
-    cm.setScale(forced ? 128 : 64);
+    if (bpos == 0) {
+      cm.setScale(forced ? 128 : 64); // +100% boost
+      iMap.setScale(forced ? 128 : 64); // +100% boost
+    }
     cm.mix(m);
     iMap.set(hash(brkCtx, bpos));
-    iMap.setScale(forced ? 128 : 64);
     iMap.mix(m);
   } else {
     for( int i = 0; i < MIXERINPUTS; ++i ) {

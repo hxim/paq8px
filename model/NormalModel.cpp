@@ -1,7 +1,7 @@
 #include "NormalModel.hpp"
 
 NormalModel::NormalModel(Shared* const sh, const uint64_t cmSize) : 
-  shared(sh), cm(sh, cmSize, nCM, 64, CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY),
+  shared(sh), cm(sh, cmSize, nCM, 64),
   smOrder0Slow(sh, 1, 255, 1023, StateMap::Generic), 
   smOrder1Slow(sh, 1, 255 * 256, 1023, StateMap::Generic),
   smOrder1Fast(sh, 1, 255 * 256, 64, StateMap::Generic) // 64->16 is also ok
@@ -24,11 +24,12 @@ void NormalModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
     updateHashes();
+    const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
     for( int i = 1; i <= 7; ++i ) {
-      cm.set(cxt[i]);
+      cm.set(RH, cxt[i]);
     }
-    cm.set(cxt[9]);
-    cm.set(cxt[14]);
+    cm.set(RH, cxt[9]);
+    cm.set(RH, cxt[14]);
   }
   cm.mix(m);
   INJECT_SHARED_c0

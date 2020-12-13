@@ -54,6 +54,7 @@ private:
      * @return
      */
     [[nodiscard]] static auto incrementCounter(uint32_t x, uint32_t increment) -> uint32_t;
+
 public:
     DmcModel(const Shared* const sh, uint64_t dmcNodes, uint32_t thStart);
 
@@ -76,9 +77,23 @@ public:
      */
     [[nodiscard]] auto isFull() const -> bool;
 
-    [[nodiscard]] auto pr1() const -> int;
-    auto pr2() -> int;
-    auto st() -> int;
+    /**
+     * Stretched probability based on counts.
+     * @return
+     */
+    [[nodiscard]] auto st1() const -> int;
+
+    /**
+     * Stretched probability based on state.
+     * @return
+     */
+    [[nodiscard]] auto st2() -> int;
+
+    /**
+    * Weighted stretched probability.
+    * @return
+    */
+    [[nodiscard]] auto stw() -> int;
 };
 
 #endif //PAQ8PX_DMCMODEL_HPP

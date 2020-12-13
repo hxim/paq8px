@@ -246,6 +246,9 @@
     <ClCompile Include="model\SparseBitModel.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="LargeStationaryMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -631,6 +634,12 @@
     </ClInclude>
     <ClInclude Include="model\SparseBitModel.hpp">
       <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="LargeStationaryMap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Bucket16.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

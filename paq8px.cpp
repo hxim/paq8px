@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "197"  //update version here before publishing your changes
+#define PROGVERSION  "198"  //update version here before publishing your changes
 #define PROGYEAR     "2020"
 
 
@@ -36,10 +36,10 @@ static void printHelp() {
          "  " PROGNAME " -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]\n"
          "\n"
          "    -LEVEL:\n"
-         "      -0 = no compression, only transformations when applicable (uses 495 MB)\n"
-         "      -1 -2 -3 = compress using less memory (592, 606, 634 MB)\n"
-         "      -4 -5 -6 -7 -8 -9 = use more memory (689, 800, 1021, 1465, 2351, 4124 MB)\n"
-         "      -10  -11  -12     = use even more memory (7669, 14760, 27917 MB)\n"
+         "      -0 = no compression, only transformations when applicable (uses 499 MB)\n"
+         "      -1 -2 -3 = compress using less memory (595, 609, 637 MB)\n"
+         "      -4 -5 -6 -7 -8 -9 = use more memory (692, 803, 1025, 1468, 2354, 4127 MB)\n"
+         "      -10  -11  -12     = use even more memory (7672, 14763, 27920 MB)\n"
          "    The listed memory requirements are indicative, actual usage may vary\n"
          "    depending on several factors including need for temporary files,\n"
          "    temporary memory needs of some preprocessing (transformations), etc.\n"
@@ -238,9 +238,6 @@ auto processCommandLine(int argc, char **argv) -> int {
     FileName outputPath;
     FileName archiveName;
     FileName logfile;
-#ifdef HASHCONFIGCMD
-    String hashConfig;
-#endif
 
     for( int i = 1; i < argc; i++ ) {
       int argLen = static_cast<int>(strlen(argv[i]));
@@ -319,14 +316,6 @@ auto processCommandLine(int argc, char **argv) -> int {
           }
           logfile += argv[i];
         }
-#ifdef HASHCONFIGCMD
-          else if (strcasecmp(argv[i],"-hash")==0) {
-            if(hashConfig.strsize()!=0)quit("Only one hash configuration may be specified.");
-            if(++i==argc)quit("The -hash switch requires more parameters: 14 magic hash constants delimited by non-spaces.");
-            hashConfig+=argv[i];
-            loadHashesFromCmd(hashConfig.c_str());
-          }
-#endif //HASHCONFIGCMD
         else if( strcasecmp(argv[i], "-simd") == 0 ) {
           if( ++i == argc ) {
             quit("The -simd switch requires an instruction set name (NONE,SSE2,SSSE3, AVX2, NEON).");

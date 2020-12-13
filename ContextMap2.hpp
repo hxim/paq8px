@@ -30,9 +30,10 @@ mapped to predictions.
 #include "Stretch.hpp"
 #include "UpdateBroadcaster.hpp"
 
-#define CM_USE_NONE 0U
-#define CM_USE_RUN_STATS 1U
-#define CM_USE_BYTE_HISTORY 2U
+#define CM_USE_NONE 0
+#define CM_USE_RUN_STATS 1
+#define CM_USE_BYTE_HISTORY 2
+#define CM_SKIPPED_CONTEXT 128
 
 class ContextMap2 : IPredictor {
 public:
@@ -50,6 +51,7 @@ private:
     Array<uint8_t *> byteHistory; /**< @ref C pointers to run stats plus byte history, 4 bytes, [RunStats,1..3] */
     Array<uint32_t> contexts; /**< @ref C whole byte context hashes */
     Array<uint16_t> checksums; /**< @ref C whole byte context checksums */
+    Array<uint8_t> contextflags;
     StateMap runMap;
     StateMap stateMap;
     StateMap bhMap8B;
@@ -57,9 +59,8 @@ private:
     uint32_t index; /**< next context to set by @ref ContextMap2::set(), resets to zero after every round */
     const uint32_t mask;
     const int hashBits;
-    uint64_t validFlags;
     int scale;
-    uint32_t useWhat;
+    uint8_t contextflagsAll;
 
 public:
     int order = 0; // is set after mix()
@@ -70,15 +71,15 @@ public:
      * @param scale
      * @param uw
      */
-    ContextMap2(const Shared* const sh, uint64_t size, uint32_t contexts, int scale, uint32_t uw);
+    ContextMap2(const Shared* const sh, uint64_t size, uint32_t contexts, int scale);
 
     /**
      * Set next whole byte context to @ref ctx.
      * @param ctx
      */
-    void set(uint64_t ctx);
-    void skip();
-    void skipn(int n);
+    void set(const uint8_t ctxflags, uint64_t ctx);
+    void skip(const uint8_t ctxflags);
+    void skipn(const uint8_t ctxflags, int n);
     void update() override;
     void setScale(int Scale);
     void mix(Mixer &m);

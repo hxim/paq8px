@@ -219,6 +219,7 @@ void Info::processChar(const bool isExtendedChar) {
 }
 
 void Info::lineModelPredict() {
+  const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
   uint64_t i = 1024;
   const auto isNewline = c == NEW_LINE || c == 0;
   INJECT_SHARED_pos
@@ -231,7 +232,7 @@ void Info::lineModelPredict() {
   }
   INJECT_SHARED_c1
   line0 = combine64(line0, c1);
-  cm.set(hash(++i, line0));
+  cm.set(RH, hash(++i, line0));
 
   int col = pos - nl1;
   if( col == 1 ) {
@@ -254,37 +255,38 @@ void Info::lineModelPredict() {
 
   // context: matches with the previous line
   if( lineMatch >= 0 ) {
-    cm.set(hash(++i, cAbove, lineMatch));
+    cm.set(RH, hash(++i, cAbove, lineMatch));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
-  cm.set(hash(++i, aboveCtx, c1));
-  cm.set(hash(++i, col << 9U | aboveCtx, c1));
+  cm.set(RH, hash(++i, aboveCtx, c1));
+  cm.set(RH, hash(++i, col << 9U | aboveCtx, c1));
   const int lineLength = nl1 - nl2;
-  cm.set(hash(++i, nl1 - nl2, col, aboveCtx, groups & 0xffu)); // english_mc
-  cm.set(hash(++i, nl1 - nl2, col, aboveCtx, c1)); // english_mc
+  cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, groups & 0xffu)); // english_mc
+  cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, c1)); // english_mc
 
   // modeling line content per column (and NEW_LINE is some extent)
-  cm.set(hash(++i, col, static_cast<uint64_t>(c1 == SPACE))); // after space vs after other char in this column // world95.txt
-  cm.set(hash(++i, col, c1));
-  cm.set(hash(++i, col, mask & 0x1ffU));
-  cm.set(hash(++i, col, lineLength)); // the length of the previous line may foretell the content of columns
+  cm.set(RH, hash(++i, col, static_cast<uint64_t>(c1 == SPACE))); // after space vs after other char in this column // world95.txt
+  cm.set(RH, hash(++i, col, c1));
+  cm.set(RH, hash(++i, col, mask & 0x1ffU));
+  cm.set(RH, hash(++i, col, lineLength)); // the length of the previous line may foretell the content of columns
 
-  cm.set(hash(++i, col, firstChar, static_cast<int>(static_cast<int>(lastUpper) < col) << 8U | (groups & 0xffu))); // book1 book2 news
+  cm.set(RH, hash(++i, col, firstChar, static_cast<int>(static_cast<int>(lastUpper) < col) << 8U | (groups & 0xffu))); // book1 book2 news
 
   // content of lines, paragraphs
-  cm.set(hash(++i, nl1)); //chars occurring in this paragraph (order 0)
-  cm.set(hash(++i, nl1, c)); //chars occurring in this paragraph (order 1)
-  cm.set(hash(++i, firstChar)); //chars occurring in a paragraph that began with firstChar (order 0)
-  cm.set(hash(++i, firstChar, c)); //chars occurring in a paragraph that began with firstChar (order 1)
-  cm.set(hash(++i, firstWord)); //chars occurring in a paragraph that began with firstWord (order 0)
-  cm.set(hash(++i, firstWord, c)); //chars occurring in a paragraph that began with firstWord (order 1)
+  cm.set(RH, hash(++i, nl1)); //chars occurring in this paragraph (order 0)
+  cm.set(RH, hash(++i, nl1, c)); //chars occurring in this paragraph (order 1)
+  cm.set(RH, hash(++i, firstChar)); //chars occurring in a paragraph that began with firstChar (order 0)
+  cm.set(RH, hash(++i, firstChar, c)); //chars occurring in a paragraph that began with firstChar (order 1)
+  cm.set(RH, hash(++i, firstWord)); //chars occurring in a paragraph that began with firstWord (order 0)
+  cm.set(RH, hash(++i, firstWord, c)); //chars occurring in a paragraph that began with firstWord (order 1)
   assert(i == 1024 + nCM1);
 }
 
 void Info::lineModelSkip(ContextMap2 &cm) {
-    cm.skipn(nCM1);
+  const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
+  cm.skipn(RH, nCM1);
 }
 
 void Info::predict(const uint8_t pdfTextParserState) {
@@ -297,108 +299,109 @@ void Info::predict(const uint8_t pdfTextParserState) {
   INJECT_SHARED_blockType
   const bool isTextBlock = blockType == TEXT || blockType == TEXT_EOL;
 
+  const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
   uint64_t i = 2048 * static_cast<int>(isTextBlock);
 
-  cm.set(hash(++i, text0)); //strong
+  cm.set(RH, hash(++i, text0)); //strong
 
   // expressions in normal text
   if( isTextBlock ) {
-    cm.set(hash(++i, expr0, expr1, expr2, expr3, expr4));
-    cm.set(hash(++i, expr0, expr1, expr2));
+    cm.set(RH, hash(++i, expr0, expr1, expr2, expr3, expr4));
+    cm.set(RH, hash(++i, expr0, expr1, expr2));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
 
   // sections introduced by keywords (enwik world95.txt html/xml)
-  cm.set(hash(++i, gapToken0,
+  cm.set(RH, hash(++i, gapToken0,
               keyword0)); // chars occurring in a section introduced by "keyword:" or "keyword=" (order 0 and variable order for the gap)
-  cm.set(hash(++i, word0, c,
+  cm.set(RH, hash(++i, word0, c,
               keyword0)); // tokens occurring in a section introduced by "keyword:" or "keyword=" (order 1 and variable order for a word)
 
-  cm.set(hash(++i, word0, dist));
-  cm.set(hash(++i, word1, gapToken0, dist));
+  cm.set(RH, hash(++i, word0, dist));
+  cm.set(RH, hash(++i, word1, gapToken0, dist));
 
-  cm.set(hash(++i, pos >> 10U, word0)); //word/number tokens and characters occurring in this 1K block
+  cm.set(RH, hash(++i, pos >> 10U, word0)); //word/number tokens and characters occurring in this 1K block
 
   // Simple word morphology (order 1-4)
 
   const int wmeMbc = static_cast<int>(word0MayEndNow) << 1U | mayBeCaps;
   const int wl = min(wordLen0, 6);
   const int wlWmeMbc = wl << 2U | wmeMbc;
-  cm.set(hash(++i, wlWmeMbc, mask2 /*last 1-4 char types*/));
+  cm.set(RH, hash(++i, wlWmeMbc, mask2 /*last 1-4 char types*/));
 
   if( exprLen0 >= 1 ) {
     const int wlWmeMbc = min(exprLen0, 1 + 3) << 2U | wmeMbc;
-    cm.set(hash(++i, wlWmeMbc, c));
+    cm.set(RH, hash(++i, wlWmeMbc, c));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
 
   if( exprLen0 >= 2 ) {
     const int wlWmeMbc = min(exprLen0, 2 + 3) << 2U | wmeMbc;
-    cm.set(hash(++i, wlWmeMbc, expr0Chars & 0xffffu));
+    cm.set(RH, hash(++i, wlWmeMbc, expr0Chars & 0xffffu));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
 
   if( exprLen0 >= 3 ) {
     const int wlWmeMbc = min(exprLen0, 3 + 3) << 2 | wmeMbc;
-    cm.set(hash(++i, wlWmeMbc, expr0Chars & 0xffffffu));
+    cm.set(RH, hash(++i, wlWmeMbc, expr0Chars & 0xffffffu));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
 
   if( exprLen0 >= 4 ) {
     const int wlWmeMbc = min(exprLen0, 4 + 3) << 2U | wmeMbc;
-    cm.set(hash(++i, wlWmeMbc, expr0Chars));
+    cm.set(RH, hash(++i, wlWmeMbc, expr0Chars));
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
 
-  cm.set(hash(++i, word0, pdfTextParserState));
+  cm.set(RH, hash(++i, word0, pdfTextParserState));
 
-  cm.set(hash(++i, word0, gapToken0)); // stronger
-  cm.set(hash(++i, c, word0, gapToken1)); // stronger
-  cm.set(hash(++i, c, gapToken0, word1)); // stronger //french texts need that "c"
-  cm.set(hash(++i, word0, word1)); // stronger
-  cm.set(hash(++i, word0, word1, word2)); // weaker
-  cm.set(hash(++i, gapToken0, word1, gapToken1, word2)); // stronger
-  cm.set(hash(++i, word0, word1, gapToken1, word2)); // weaker
-  cm.set(hash(++i, word0, word1, gapToken1)); // weaker
+  cm.set(RH, hash(++i, word0, gapToken0)); // stronger
+  cm.set(RH, hash(++i, c, word0, gapToken1)); // stronger
+  cm.set(RH, hash(++i, c, gapToken0, word1)); // stronger //french texts need that "c"
+  cm.set(RH, hash(++i, word0, word1)); // stronger
+  cm.set(RH, hash(++i, word0, word1, word2)); // weaker
+  cm.set(RH, hash(++i, gapToken0, word1, gapToken1, word2)); // stronger
+  cm.set(RH, hash(++i, word0, word1, gapToken1, word2)); // weaker
+  cm.set(RH, hash(++i, word0, word1, gapToken1)); // weaker
 
   const uint8_t c1 = c4 & 0xffu;
   if( isTextBlock ) {
-    cm.set(hash(++i, word0, c1, word2));
-    cm.set(hash(++i, word0, c1, word3));
-    cm.set(hash(++i, word0, c1, word4));
-    cm.set(hash(++i, word0, c1, word1, word4));
-    cm.set(hash(++i, word0, c1, word1, word3));
-    cm.set(hash(++i, word0, c1, word2, word3));
+    cm.set(RH, hash(++i, word0, c1, word2));
+    cm.set(RH, hash(++i, word0, c1, word3));
+    cm.set(RH, hash(++i, word0, c1, word4));
+    cm.set(RH, hash(++i, word0, c1, word1, word4));
+    cm.set(RH, hash(++i, word0, c1, word1, word3));
+    cm.set(RH, hash(++i, word0, c1, word2, word3));
   } else {
-    cm.skipn(6);
+    cm.skipn(RH, 6);
     i+=6;
   }
 
   const uint8_t g = groups & 0xffu;
-  cm.set(hash(++i, opened, wlWmeMbc, g, pdfTextParserState));
-  cm.set(hash(++i, opened, c, static_cast<uint64_t>(dist != 0), pdfTextParserState));
-  cm.set(hash(++i, opened, word0)); // book1, book2, dickens, enwik
+  cm.set(RH, hash(++i, opened, wlWmeMbc, g, pdfTextParserState));
+  cm.set(RH, hash(++i, opened, c, static_cast<uint64_t>(dist != 0), pdfTextParserState));
+  cm.set(RH, hash(++i, opened, word0)); // book1, book2, dickens, enwik
 
 
-  cm.set(hash(++i, groups));
-  cm.set(hash(++i, groups, c));
-  cm.set(hash(++i, groups, c4 & 0x0000ffff));
+  cm.set(RH, hash(++i, groups));
+  cm.set(RH, hash(++i, groups, c));
+  cm.set(RH, hash(++i, groups, c4 & 0x0000ffff));
 
   f4 = (f4 << 4U) | (c1 == ' ' ? 0 : c1 >> 4U);
-  cm.set(hash(++i, f4 & 0xfffu));
-  cm.set(hash(++i, f4));
+  cm.set(RH, hash(++i, f4 & 0xfffu));
+  cm.set(RH, hash(++i, f4));
 
   int fl = 0;
   if( c1 != 0 ) {
@@ -420,17 +423,17 @@ void Info::predict(const uint8_t pdfTextParserState) {
   }
   mask = (mask << 3U) | fl;
 
-  cm.set(hash(++i, mask));
-  cm.set(hash(++i, mask, c1));
-  cm.set(hash(++i, mask, c4 & 0x00ffff00u));
-  cm.set(hash(++i, mask & 0x1ffu, f4 & 0x00fff0u)); // for some binary files
+  cm.set(RH, hash(++i, mask));
+  cm.set(RH, hash(++i, mask, c1));
+  cm.set(RH, hash(++i, mask, c4 & 0x00ffff00u));
+  cm.set(RH, hash(++i, mask & 0x1ffu, f4 & 0x00fff0u)); // for some binary files
 
   if( isTextBlock ) {
-    cm.set(hash(++i, word0, c1, llog(wordGap), mask & 0x1FFU,
+    cm.set(RH, hash(++i, word0, c1, llog(wordGap), mask & 0x1FFU,
                 (static_cast<int>(wordLen1 > 3) << 2U) | (static_cast<int>(lastUpper < lastLetter + wordLen1) << 1U) |
                 static_cast<int>(lastUpper < wordLen0 + wordLen1 + wordGap))); //weak
   } else {
-    cm.skip();
+    cm.skip(RH);
     i++;
   }
   // TODO(epsteina): Figure out how to do this

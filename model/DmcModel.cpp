@@ -1,7 +1,7 @@
 #include "DmcModel.hpp"
 
 auto DmcModel::incrementCounter(const uint32_t x, const uint32_t increment) -> uint32_t {
-  return (((x << 6U) - x) >> 6U) + (increment << 10U); // x * (1-1/64) + increment
+  return (((x << 6) - x) >> 6) + (increment << 10); // x * (1-1/64) + increment
 }
 
 DmcModel::DmcModel(const Shared* const sh, const uint64_t dmcNodes, const uint32_t thStart) : shared(sh), 
@@ -15,7 +15,7 @@ void DmcModel::resetStateGraph(const uint32_t thStart) {
   assert(((t.size() - 1) >> 28) == 0);
   top = curr = extra = 0;
   threshold = thStart;
-  thresholdFine = thStart << 11U;
+  thresholdFine = thStart << 11;
   for( int j = 0; j < 256; ++j ) { //256 trees
     for( int i = 0; i < 255; ++i ) { //255 nodes in each tree
       if( i < 127 ) { //internal tree nodes
@@ -77,10 +77,10 @@ void DmcModel::update() {
         ++top;
 
         if( threshold < 8 * 1024 ) {
-          threshold = (++thresholdFine) >> 11U;
+          threshold = (++thresholdFine) >> 11;
         }
       } else { // state graph was full
-        extra += nn >> 10U;
+        extra += nn >> 10;
       }
     }
   }
@@ -92,20 +92,25 @@ void DmcModel::update() {
   }
 }
 
-auto DmcModel::isFull() const -> bool { return extra >> 7U > uint32_t(t.size()); }
+auto DmcModel::isFull() const -> bool {
+  return (extra >> 7) > uint32_t(t.size());
+}
 
-auto DmcModel::pr1() const -> int {
+auto DmcModel::st1() const -> int {
   const uint32_t n0 = t[curr].c0 + 1;
   const uint32_t n1 = t[curr].c1 + 1;
-  return (n1 << 12U) / (n0 + n1);
+  return stretch((n1 << 12) / (n0 + n1));
 }
 
-auto DmcModel::pr2() -> int {
+auto DmcModel::st2() -> int {
   const uint8_t state = t[curr].getState();
-  return sm.p1(state);
+  if (state == 0)
+    return 0; // p = 0.5
+  else
+    return stretch(sm.p1(state));
 }
 
-auto DmcModel::st() -> int {
+auto DmcModel::stw() -> int {
   shared->GetUpdateBroadcaster()->subscribe(this);
-  return stretch(pr1()) + stretch(pr2()); // average the predictions for stability
+  return st1() * 5 + st2() * 3; // (weighted) average of the predictions for stability
 }

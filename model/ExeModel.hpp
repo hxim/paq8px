@@ -626,7 +626,7 @@ public:
     static constexpr int MIXERCONTEXTSETS = 6;
 
     ExeModel(Shared* const sh, const uint64_t size) : shared(sh), 
-            cm(sh, size, nCM1 + nCM2, 64, CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY), iMap(sh, 20, 1, 64, 1023), pState(Start), state(Start),
+            cm(sh, size, nCM1 + nCM2, 64), iMap(sh, 20, 1, 64, 1023), pState(Start), state(Start),
             totalOps(0), opMask(0), opCategoryMask(0), context(0), brkCtx(0), valid(false) {
       assert(isPowerOf2(size));
       memset(&cache, 0, sizeof(OpCache));

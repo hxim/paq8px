@@ -10,7 +10,7 @@ IndirectMap::IndirectMap(const Shared* const sh, const int bitsOfContext, const 
 #endif
   assert(inputBits > 0 && inputBits <= 8);
   assert(bitsOfContext + inputBits <= 24);
-  cp = &data[0];
+  cp = nullptr;
   setDirect(0);
   sm.setLimit(limit);
 }
@@ -28,7 +28,7 @@ void IndirectMap::set(const uint64_t ctx) {
 void IndirectMap::update() {
   INJECT_SHARED_y
   StateTable::update(cp, y, rnd);
-  b += static_cast<uint32_t>((y != 0U) && b > 0);
+  b += static_cast<uint32_t>((y != 0) && b > 0);
 }
 
 void IndirectMap::setScale(const int Scale) { this->scale = Scale; }
@@ -38,8 +38,8 @@ void IndirectMap::mix(Mixer &m) {
   cp = &data[context + b];
   const uint8_t state = *cp;
   const int p1 = sm.p1(state);
-  m.add((stretch(p1) * scale) >> 8U);
-  m.add(((p1 - 2048) * scale) >> 9U);
+  m.add((stretch(p1) * scale) >> 8);
+  m.add(((p1 - 2048) * scale) >> 9);
   bCount++;
   b += b + 1;
   assert(bCount <= bTotal);

@@ -6,10 +6,14 @@ MatchModel::MatchModel(Shared* const sh, const uint64_t buffermemorysize, const 
   stateMaps {{sh, 1, 56 * 256,          1023, StateMap::Generic},
              {sh, 1, 8 * 256 * 256 + 1, 1023, StateMap::Generic},
              {sh, 1, 256 * 256,         1023, StateMap::Generic}},
-  cm(sh, mapmemorysize, nCM, 74, CM_USE_RUN_STATS),
+  cm(sh, mapmemorysize, nCM, 74),
   SCM {sh, 6, 1, 6, 64},
-  maps {{sh, 23, 1, 64, 1023},
-        {sh, 15, 1, 64, 1023}}, 
+  mapL{ /* LargeStationaryMap : HashMaskBits, Scale, AdaptivityRate  */
+        {sh, 20, 64, 16},
+  },
+  map { /* StationaryMap : BitsOfContext, InputBits, Scale, AdaptivityRate  */
+        {sh, 15, 1, 64, 16},
+  }, 
   iCtx {15, 1}, 
   mask(uint32_t(buffermemorysize / sizeof(uint32_t) - 1)), 
   hashBits(ilog2(mask + 1)) {
@@ -162,29 +166,30 @@ void MatchModel::mix(Mixer &m) {
   //bytewise contexts
   INJECT_SHARED_c4
   if( bpos == 0 ) {
+    const uint8_t R_ = CM_USE_RUN_STATS;
     if( length != 0 ) {
-      cm.set(hash(0, expectedByte, length3Rm));
-      cm.set(hash(1, expectedByte, length3Rm, c1));
+      cm.set(R_, hash(0, expectedByte, length3Rm));
+      cm.set(R_, hash(1, expectedByte, length3Rm, c1));
     } else {
       // when there is no match it is still slightly beneficial not to skip(), but set some low-order contexts
-      cm.set(hash(2, c4 & 0xffu)); // order 1
-      cm.set(hash(3, c4 & 0xffffu)); // order 2
+      cm.set(R_, hash(2, c4 & 0xffu)); // order 1
+      cm.set(R_, hash(3, c4 & 0xffffu)); // order 2
     }
   }
   cm.mix(m);
 
   //bitwise contexts
   {
-    maps[0].set(hash(expectedByte, c0, c4 & 0xffffu, length3Rm));
+    mapL[0].set(hash(expectedByte, c0, c4 & 0xffffu, length3Rm)); // max context bits: 8+8+16+3 = 35
     INJECT_SHARED_y
     iCtx += y;
     const uint8_t c = length3Rm << 1U | expectedBit; // 4 bits
     iCtx = (bpos << 11U) | (c1 << 3U) | c;
-    maps[1].setDirect(iCtx());
+    map[0].set(iCtx());
     SCM.set((bpos << 3U) | c);
   }
-  maps[0].mix(m);
-  maps[1].mix(m);
+  mapL[0].mix(m);
+  map[0].mix(m);
   SCM.mix(m);
 
   const uint32_t lengthC = lengthIlog2 != 0 ? lengthIlog2 + 1 : static_cast<uint32_t>(delta);

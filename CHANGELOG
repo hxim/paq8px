@@ -1823,3 +1823,16 @@ paq8px_v197 by Zoltán Gotthardt
 - Included more blocktypes as a context in NormalModel (text and dec alpha)
 - Improved SparseModel (text and binary separated; better modeling for 4-byte structures; switched to ContextMap2)
 - New model: SparseBitModel (sparse bit contexts extracted from SparseModel)
+
+
+paq8px_v198 by Zoltán Gotthardt
+2020.12.12
+- Replaced the RNG with a simpler and faster one (which is equally strong for our use case) - 0.7% speedup
+- Removed HASHCONFIGCMD support (set hash magic numbers from command line)
+- Tuned hash multipliers such that m-1 is divisible by 4
+- ContextMap2 now supports any many contexts; context flags can now be set per contexts (vs. per model)
+- Improved SparseBitModel
+- Small improvements in DmcModel/DmcForest
+- Tuned some states in StateTable; Enhanced probabilistic increment
+- Separated hashed contexts from StationaryMap into a new map: LargeStationaryMap (with collision detection)
+- Improved StationaryMap: we store exact counts now

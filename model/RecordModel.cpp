@@ -3,17 +3,17 @@
 RecordModel::RecordModel(Shared* const sh, const uint64_t size) : shared(sh),
     cm(sh,32768,3), cn(sh,32768/2,3), co(sh,32768*2,3), // cm,cn,co: memory pressure is advantageous
     cp(sh,size,16),
-    maps{ /* BitsOfContext, InputBits, Scale, Limit  */
-      {sh,10,8,86,1023},{sh,10,8,86,1023},{sh,8,8,86,1023},{sh,8,8,86,1023},{sh,8,8,86,1023},{sh,11,1,86,1023}
+    maps{ /* StationaryMap :  BitsOfContext, InputBits, Scale, AdaptivityRate  */
+      {sh,10,8,64,16},{sh,10,8,64,16},{sh,8,8,64,16},{sh,8,8,64,16},{sh,8,8,64,16},{sh,11,1,64,16}
     },
-    sMap{ /* BitsOfContext, InputBits, Rate, Scale */
+    sMap{ /* SmallStationaryContextMap :  BitsOfContext, InputBits, Rate, Scale */
       {sh,11,1,6,86}, {sh,3,1,6,86}, {sh,19,1,5,128},
       {sh,8,8,5,64} // pos&255
     },
-    iMap{ /* BitsOfContext, InputBits, Scale, Limit */
+    iMap{ /* IndirectMap :  BitsOfContext, InputBits, Scale, Limit */
       {sh,8,8,86,255}, {sh,8,8,86,255}, {sh,8,8,86,255}
     },
-    iCtx{ // BitsPerContext, InputBits
+    iCtx{ // IndirectContext :  BitsPerContext, InputBits
       {16,8}, {16,8}, {16,8}, {20,8}, {11,1}
     }
   {} 
@@ -205,14 +205,14 @@ void RecordModel::mix(Mixer &m) {
     int k = 0x300;
     if( mayBeImg24B ) {
       k = (col % 3) << 8U;
-      maps[0].setDirect(clip((static_cast<uint8_t>(c4 >> 16U)) + c - (c4 >> 24U)) | k);
+      maps[0].set(clip((static_cast<uint8_t>(c4 >> 16U)) + c - (c4 >> 24U)) | k);
     } else {
-      maps[0].setDirect(clip(c * 2 - d) | k);
+      maps[0].set(clip(c * 2 - d) | k);
     }
-    maps[1].setDirect(clip(c + N - buf(runLength[0] + 1)) | k);
-    maps[2].setDirect(clip(N + NN - NNN));
-    maps[3].setDirect(clip(N * 2 - NN));
-    maps[4].setDirect(clip(N * 3 - NN * 3 + NNN));
+    maps[1].set(clip(c + N - buf(runLength[0] + 1)) | k);
+    maps[2].set(clip(N + NN - NNN));
+    maps[3].set(clip(N * 2 - NN));
+    maps[4].set(clip(N * 3 - NN * 3 + NNN));
     iMap[0].setDirect(N + NN - NNN);
     iMap[1].setDirect(N * 2 - NN);
     iMap[2].setDirect(N * 3 - NN * 3 + NNN);
@@ -230,11 +230,11 @@ void RecordModel::mix(Mixer &m) {
   }
   INJECT_SHARED_c0
   uint8_t B = c0 << (8 - bpos);
-  uint32_t ctx = (N ^ B) | (bpos << 8U);
+  uint32_t ctx = (N ^ B) | (bpos << 8U); // 11 bits
   INJECT_SHARED_y
   iCtx[nIndContexts - 1] += y;
   iCtx[nIndContexts - 1] = ctx;
-  maps[5].setDirect(ctx);
+  maps[5].set(ctx);
 
   sMap[0].set(ctx);
   sMap[1].set(iCtx[nIndContexts - 1]());

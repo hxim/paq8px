@@ -5,6 +5,7 @@
 #include "../HashTable.hpp"
 #include "../OLS.hpp"
 #include "../SmallStationaryContextMap.hpp"
+#include "../LargeStationaryMap.hpp"
 #include "../StationaryMap.hpp"
 #include "ImageModelsCommon.hpp"
 #include <cmath>
@@ -14,23 +15,28 @@
  */
 class Image24BitModel {
 private:
-    static constexpr int nSM0 = 18;
+    static constexpr int nSM0 = 14;
     static constexpr int nSM1 = 76;
     static constexpr int nOLS = 6;
     static constexpr int nSM = nSM0 + nSM1 + nOLS;
+    static constexpr int nLSM = 4;
     static constexpr int nSSM = 59;
     static constexpr int nCM = 45;
     Ilog *ilog = &Ilog::getInstance();
 
 public:
-    static constexpr int MIXERINPUTS = nSSM * SmallStationaryContextMap::MIXERINPUTS + nSM * StationaryMap::MIXERINPUTS +
-                                       nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS);
+    static constexpr int MIXERINPUTS = 
+      nSSM * SmallStationaryContextMap::MIXERINPUTS + 
+      nLSM * LargeStationaryMap::MIXERINPUTS +
+      nSM * StationaryMap::MIXERINPUTS +
+      nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); //643
     static constexpr int MIXERCONTEXTS = (5 + 256) + 256 + 512 + 2048 + 8 * 32 + 6 * 64 + 256 * 2 + 1024 + 8192 + 8192 + 8192 + 8192 + 256; //38277
     static constexpr int MIXERCONTEXTSETS = 13;
 
     Shared * const shared;
     ContextMap2 cm;
     SmallStationaryContextMap SCMap[nSSM];
+    LargeStationaryMap mapL[nLSM];
     StationaryMap map[nSM];
     RingBuffer<uint8_t> buffer {0x100000}; // internal rotating buffer for (PNG unfiltered) pixel data (1 MB)
     //pixel neighborhood

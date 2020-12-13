@@ -1,25 +1,24 @@
 #include "ContextMap2.hpp"
 
-ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale, const uint32_t uw) : shared(sh), C(contexts), table(size / sizeof(Bucket)),
-        bitState(contexts), bitState0(contexts), byteHistory(contexts), contexts(contexts), checksums(contexts),
+ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), C(contexts), table(size / sizeof(Bucket)),
+        bitState(contexts), bitState0(contexts), byteHistory(contexts), contexts(contexts), checksums(contexts), contextflags(contexts),
         runMap(sh, contexts, (1U << 12U), 127, StateMap::Run),         /* StateMap : s, n, lim, init */ // 63-255
         stateMap(sh, contexts, (1U << 8U), 511, StateMap::BitHistory), /* StateMap : s, n, lim, init */ // 511-1023
         bhMap8B(sh, contexts, (1U << 8U), 511, StateMap::Generic),     /* StateMap : s, n, lim, init */ // 511-1023
         bhMap12B(sh, contexts, (1U << 12U), 511, StateMap::Generic),   /* StateMap : s, n, lim, init */ // 255-1023
-        index(0), mask(uint32_t(table.size() - 1)), hashBits(ilog2(mask + 1)), validFlags(0), scale(scale), useWhat(uw) {
+        index(0), mask(uint32_t(table.size() - 1)), hashBits(ilog2(mask + 1)), scale(scale), contextflagsAll(0) {
 #ifdef VERBOSE
   printf("Created ContextMap2 with size = %" PRIu64 ", contexts = %d, scale = %d, uw = %d\n", size, contexts, scale, uw);
 #endif
   assert(size >= 64 && isPowerOf2(size));
   static_assert(sizeof(Bucket) == 64, "Size of Bucket should be 64!");
-  assert(C <= (int) sizeof(validFlags) * 8); // validFlags is 64 bits - it can't support more than 64 contexts
   for( uint32_t i = 0; i < C; i++ ) {
     bitState[i] = bitState0[i] = &table[i].bitState[0][0];
     byteHistory[i] = bitState[i] + 3;
   }
 }
 
-void ContextMap2::set(const uint64_t ctx) {
+void ContextMap2::set(const uint8_t ctxflags, const uint64_t ctx) {
   assert(index >= 0 && index < C);
   const uint32_t ctx0 = contexts[index] = finalize64(ctx, hashBits);
   const uint16_t chk0 = checksums[index] = checksum16(ctx, hashBits);
@@ -45,20 +44,20 @@ void ContextMap2::set(const uint64_t ctx) {
       base[3] = 255; // runCount: flag for skipping updating bits 2..7
     }
   }
+  contextflags[index] = ctxflags;
+  contextflagsAll |= ctxflags;
   index++;
-  validFlags = (validFlags << 1U) + 1;
 }
 
-void ContextMap2::skip() {
+void ContextMap2::skip(const uint8_t ctxflags) {
   assert(index >= 0 && index < C);
+  contextflags[index] = ctxflags | CM_SKIPPED_CONTEXT;
   index++;
-  validFlags <<= 1U;
 }
 
-void ContextMap2::skipn(int n) {
-  assert(index >= 0 && index+n-1 < C);
-  index+=n;
-  validFlags <<= n;
+void ContextMap2::skipn(const uint8_t ctxflags, int n) {
+  for (int i = 0; i < n; i++)
+    skip(ctxflags);
 }
 void ContextMap2::update() {
   INJECT_SHARED_y
@@ -66,7 +65,7 @@ void ContextMap2::update() {
   INJECT_SHARED_c1
   INJECT_SHARED_c0
   for( uint32_t i = 0; i < index; i++ ) {
-    if(((validFlags >> (index - 1 - i)) & 1U) != 0 ) {
+    if((contextflags[i]& CM_SKIPPED_CONTEXT) == 0) {
       if( bitState[i] != nullptr ) {
         StateTable::update(bitState[i], y, rnd);
       }
@@ -81,15 +80,17 @@ void ContextMap2::update() {
           case 0: {
             // update byte history
             const auto byteState = byteHistoryPtr[-3];
-            if( byteState < 3 ) { // 1st byte has just become known
+            if (byteState < 3) { // 1st byte has just become known
               byteHistoryPtr[1] = byteHistoryPtr[2] = byteHistoryPtr[3] = c1; // set all byte candidates to c1
-            } else { // 2nd byte is known
+            }
+            else { // 2nd byte is known
               const auto isMatch = byteHistoryPtr[1] == c1;
-              if( isMatch ) {
-                if( runCount < 253 ) {
+              if (isMatch) {
+                if (runCount < 253) {
                   byteHistoryPtr[0] = runCount + 1;
                 }
-              } else {
+              }
+              else {
                 byteHistoryPtr[0] = 1; //runCount
                 // scroll byte candidates
                 byteHistoryPtr[3] = byteHistoryPtr[2];
@@ -123,7 +124,7 @@ void ContextMap2::update() {
   }
   if( bpos == 0 ) {
     index = 0;
-    validFlags = 0;
+    contextflagsAll = 0;
   } // start over
 }
 
@@ -132,18 +133,18 @@ void ContextMap2::setScale(const int Scale) { scale = Scale; }
 void ContextMap2::mix(Mixer &m) {
   shared->GetUpdateBroadcaster()->subscribe(this);
   stateMap.subscribe();
-  if((useWhat & CM_USE_RUN_STATS) != 0U ) {
+  if ((contextflagsAll & CM_USE_RUN_STATS) != 0)
     runMap.subscribe();
-  }
-  if((useWhat & CM_USE_BYTE_HISTORY) != 0U ) {
+  if ((contextflagsAll & CM_USE_BYTE_HISTORY) != 0) {
     bhMap8B.subscribe();
     bhMap12B.subscribe();
   }
+
   order = 0;
   INJECT_SHARED_bpos
   INJECT_SHARED_c0
   for( uint32_t i = 0; i < index; i++ ) {
-    if(((validFlags >> (index - 1 - i)) & 1) != 0 ) {
+    if((contextflags[i] & CM_SKIPPED_CONTEXT) == 0 ) {
       const int state = bitState[i] != nullptr ? *bitState[i] : 0;
       const int n0 = StateTable::next(state, 2);
       const int n1 = StateTable::next(state, 3);
@@ -158,7 +159,7 @@ void ContextMap2::mix(Mixer &m) {
       const bool complete1 = (byteState >= 3) || (byteState >= 1 && bpos == 0);
       const bool complete2 = (byteState >= 7) || (byteState >= 3 && bpos == 0);
       const bool complete3 = (byteState >= 15) || (byteState >= 7 && bpos == 0);
-      if((useWhat & CM_USE_RUN_STATS) != 0U ) {
+      if((contextflags[i] & CM_USE_RUN_STATS) != 0 ) {
         const int bp = (0xFEA4U >> (bpos << 1U)) & 3U; // {0}->0  {1}->1  {2,3,4}->2  {5,6,7}->3
         bool skipRunMap = true;
         if( complete1 ) {
@@ -200,7 +201,7 @@ void ContextMap2::mix(Mixer &m) {
         order++;
       }
 
-      if((useWhat & CM_USE_BYTE_HISTORY) != 0U ) {
+      if((contextflags[i] & CM_USE_BYTE_HISTORY) != 0 ) {
         const int bhBits = (((byte1 >> (7 - bpos)) & 1)) | (((byte2 >> (7 - bpos)) & 1) << 1) |
                             (((byte3 >> (7 - bpos)) & 1) << 2);
 
@@ -220,11 +221,11 @@ void ContextMap2::mix(Mixer &m) {
         m.add(stretch(bhMap12B.p2(i, stateGroup << 7U | (bhState << 3U) | bpos)) >> 2U);
       }
     } else { //skipped context
-      if((useWhat & CM_USE_RUN_STATS) != 0U ) {
+      if((contextflags[i] & CM_USE_RUN_STATS) != 0 ) {
         runMap.skip(i);
         m.add(0);
       }
-      if((useWhat & CM_USE_BYTE_HISTORY) != 0U ) {
+      if((contextflags[i] & CM_USE_BYTE_HISTORY) != 0 ) {
         bhMap8B.skip(i);
         m.add(0);
         bhMap12B.skip(i);

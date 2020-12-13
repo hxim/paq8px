@@ -6,15 +6,15 @@
 #include <cstdint>
 
 /**
- * Modeling bit contexts with gaps having differetn masks.
+ * Modeling bit contexts with various masks.
  */
 class SparseBitModel {
 private:
-    static constexpr int nCM = 8;
+    static constexpr int nCM = 9;
     const Shared * const shared;
     ContextMap2 cm;
 public:
-    static constexpr int MIXERINPUTS = nCM * (ContextMap2::MIXERINPUTS); // 32
+    static constexpr int MIXERINPUTS = nCM * (ContextMap2::MIXERINPUTS); // 36
     static constexpr int MIXERCONTEXTS = 0;
     static constexpr int MIXERCONTEXTSETS = 0;
     explicit SparseBitModel(const Shared* const sh, uint64_t size);

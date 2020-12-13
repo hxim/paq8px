@@ -1,6 +1,6 @@
 #include "CharGroupModel.hpp"
 
-CharGroupModel::CharGroupModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM, 64, CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY) {}
+CharGroupModel::CharGroupModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM, 64) {}
 
 void CharGroupModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
@@ -28,13 +28,14 @@ void CharGroupModel::mix(Mixer &m) {
     }
 
     uint64_t i = static_cast<uint64_t>(toBeCollapsed) * nCM;
-    cm.set(hash(++i, g3, g2,            g1)); // last 12 groups
-    cm.set(hash(++i,     g2,            g1)); // last 8 groups
-    cm.set(hash(++i,     g2 & 0x00ffff, g1)); // last 6 groups
-    cm.set(hash(++i,                    g1)); // last 4 groups
-    cm.set(hash(++i,                    g1 & 0x0000ffff)); // last 2 groups
-    cm.set(hash(++i,     g2 & 0xffffff, g1, c4 & 0x0000ffff)); // last 7 groups + last 2 chars
-    cm.set(hash(++i,     g2 & 0x0000ff, g1, c4 & 0x00ffffff)); // last 5 groups + last 3 chars
+    const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
+    cm.set(RH, hash(++i, g3, g2,            g1)); // last 12 groups
+    cm.set(RH, hash(++i,     g2,            g1)); // last 8 groups
+    cm.set(RH, hash(++i,     g2 & 0x00ffff, g1)); // last 6 groups
+    cm.set(RH, hash(++i,                    g1)); // last 4 groups
+    cm.set(RH, hash(++i,                    g1 & 0x0000ffff)); // last 2 groups
+    cm.set(RH, hash(++i,     g2 & 0xffffff, g1, c4 & 0x0000ffff)); // last 7 groups + last 2 chars
+    cm.set(RH, hash(++i,     g2 & 0x0000ff, g1, c4 & 0x00ffffff)); // last 5 groups + last 3 chars
   }
   cm.mix(m);
 }

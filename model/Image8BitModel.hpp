@@ -25,7 +25,9 @@ private:
 
 public:
     static constexpr int MIXERINPUTS =
-            nSM * StationaryMap::MIXERINPUTS + nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS);
+      nSM * StationaryMap::MIXERINPUTS + 
+      nCM * (ContextMap2::MIXERINPUTS + 
+      ContextMap2::MIXERINPUTS_RUN_STATS); //451
     static constexpr int MIXERCONTEXTS = (2048 + 5) + 6 * 16 + 6 * 32 + 256 + 1024 + 64 + 128 + 256; /**< 4069 */
     static constexpr int MIXERCONTEXTSETS = 8;
 

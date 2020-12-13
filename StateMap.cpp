@@ -10,38 +10,53 @@ StateMap::StateMap(const Shared* const sh, const int s, const int n, const int l
   if( mapType == BitHistory ) { // when the context is a bit history byte, we have a-priory for p
     assert((numContextsPerSet & 255) == 0);
     for( uint32_t cx = 0; cx < numContextsPerSet; ++cx ) {
-      auto state = uint8_t(cx & 255U);
-      uint32_t n0 = StateTable::next(state, 2) * 3 + 1;
-      uint32_t n1 = StateTable::next(state, 3) * 3 + 1;
-      for( uint32_t s = 0; s < numContextSets; ++s ) {
-        t[s * numContextsPerSet + cx] = ((n1 << 20U) / (n0 + n1)) << 12U;
+      auto state = uint8_t(cx & 255);
+      for ( uint32_t s = 0; s < numContextSets; ++s ) {
+        uint32_t n0 = StateTable::next(state, 2);
+        uint32_t n1 = StateTable::next(state, 3);
+        uint32_t p;
+        if (state < 205) {
+          n0 = n0 * 3 + 1;
+          n1 = n1 * 3 + 1;
+          p = ((n1 << 20) / (n0 + n1)) << 12;
+          //printf("%d %d\n", state, p >> 20); // verifying
+        }
+        else if(state < 253){
+          int incremental_state = (state - 205)>>2;
+          if (((state - 205) & 3) <= 1)
+            n0 = 29 + (1 << incremental_state);
+          else
+            n1 = 29 + (1 << incremental_state);
+          n0 = n0 * 3 + 1;
+          n1 = n1 * 3 + 1;
+          p = ((n1 << 18) / (n0 + n1)) << 14 | min((n0 + n1) >> 3, 1023);
+          //printf("%d %d\n", state, p >> 20); // verifying
+        }
+        else { // 253, 254, 255
+          p = 2048 << 20; //unused states: p=0.5
+        }
+        t[s * numContextsPerSet + cx] = p;
       }
     }
   } else if( mapType == Run ) { // when the context is a run count: we have a-priory for p
     for( uint32_t cx = 0; cx < numContextsPerSet; ++cx ) {
-      const int predictedBit = (cx) & 1U;
-      const int uncertainty = (cx >> 1U) & 1U;
+      const int predictedBit = (cx) & 1;
+      const int uncertainty = (cx >> 1) & 1;
       //const int bp = (cx>>2)&1; // unused in calculation - a-priory does not seem to depend on bitPosition in the general case
-      const int runCount = (cx >> 4U); // 0..254
+      const int runCount = (cx >> 4); // 0..254
       uint32_t n0 = uncertainty * 16 + 16;
       uint32_t n1 = runCount * 128 + 16;
       if( predictedBit == 0 ) {
         std::swap(n0, n1);
       }
       for( uint32_t s = 0; s < numContextSets; ++s ) {
-        t[s * numContextsPerSet + cx] = ((n1 << 20U) / (n0 + n1)) << 12U | min(runCount, limit);
+        t[s * numContextsPerSet + cx] = ((n1 << 20) / (n0 + n1)) << 12 | min(runCount, limit);
       }
     }
-  } else { // no a-priory
+  } else { // no a-priory in the general case
     for( uint32_t i = 0; i < numContextsPerSet * numContextSets; ++i ) {
-      t[i] = (1U << 31U) + 0; //initial p=0.5, initial count=0
+      t[i] = 2048<<20 | 0; //initial p=0.5, initial count=0
     }
-  }
-}
-
-void StateMap::reset(const int rate) {
-  for( uint32_t i = 0; i < numContextsPerSet * numContextSets; ++i ) {
-    t[i] = (t[i] & 0xfffffc00U) | min(rate, t[i] & 0x3FFU);
   }
 }
 
@@ -50,8 +65,8 @@ void StateMap::update() {
   while( numContexts > 0 ) {
     numContexts--;
     const uint32_t idx = cxt[numContexts];
-    if( idx + 1 == 0 ) {
-      continue; // UINT32_MAX: skipped context
+    if( idx == UINT32_MAX) {
+      continue; // skipped context
     }
     assert(numContexts * numContextsPerSet <= idx && idx < (numContexts + 1) * numContextsPerSet);
     AdaptiveMap::update(&t[idx]);
@@ -63,7 +78,7 @@ auto StateMap::p1(const uint32_t cx) -> int {
   assert(cx >= 0 && cx < numContextsPerSet);
   cxt[0] = cx;
   numContexts++;
-  return t[cx] >> 20U;
+  return t[cx] >> 20;
 }
 
 auto StateMap::p2(const uint32_t s, const uint32_t cx) -> int {
@@ -73,7 +88,7 @@ auto StateMap::p2(const uint32_t s, const uint32_t cx) -> int {
   const uint32_t idx = numContexts * numContextsPerSet + cx;
   cxt[numContexts] = idx;
   numContexts++;
-  return t[idx] >> 20U;
+  return t[idx] >> 20;
 }
 
 void StateMap::subscribe() {
@@ -83,7 +98,7 @@ void StateMap::subscribe() {
 void StateMap::skip(const uint32_t s) {
   assert(s >= 0 && s < numContextSets);
   assert(s == numContexts);
-  cxt[numContexts] = 0 - 1; // UINT32_MAX: mark for skipping
+  cxt[numContexts] = UINT32_MAX; // mark for skipping
   numContexts++;
 }
 

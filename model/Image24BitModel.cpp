@@ -1,32 +1,35 @@
 #include "Image24BitModel.hpp"
 
 Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) : 
-  shared(sh), cm(sh, size, nCM, 64, CM_USE_RUN_STATS),
+  shared(sh), cm(sh, size, nCM, 64),
   SCMap { /* SmallStationaryContextMap : BitsOfContext, InputBits, Rate, Scale */
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86}, {sh,11,1,9,86},
-    {sh,11,1,9,86}, {sh,11,1,9,86}, {sh, 0,8,9,86}
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
+    {sh,11,1,9,74}, {sh,11,1,9,74}, {sh, 0,8,9,74}
   },
-  map{ /* StationaryMap: BitsOfContext, InputBits, Scale, Limit  */
-    /*nSM0: 0- 8*/  {sh,8,8,86,1023},  {sh,8,8,86,1023},  {sh,8,8,86,1023},  {sh,2,8,86,1023},  {sh,0,8,86,1023}, {sh,15,1,86,1023}, {sh,15,1,86,1023}, {sh,15,1,86,1023}, {sh,15,1,86,1023},
-    /*nSM0: 9-17*/ {sh,15,1,86,1023}, {sh,17,1,86,1023}, {sh,17,1,86,1023}, {sh,17,1,86,1023}, {sh,17,1,86,1023}, {sh,13,1,86,1023}, {sh,13,1,86,1023}, {sh,13,1,86,1023}, {sh,13,1,86,1023},
-    /*nSM1: 0- 8*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1: 9-17*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:18-26*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:27-35*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:36-44*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:45-53*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:54-62*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:63-71*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nSM1:72-75*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023},
-    /*nOLS: 0- 5*/ {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}, {sh,11,1,86,1023}
+  mapL{ /* LargeStationaryMap : HashMaskBits, Scale, AdaptivityRate  */
+    {sh,17,74,16}, {sh,17,74,16}, {sh,17,74,16}, {sh,17,74,16},
+  },
+  map{ /* StationaryMap : BitsOfContext, InputBits, Scale, AdaptivityRate  */
+    /*nSM0: 0- 8*/ {sh,8,8,74,16},  {sh,8,8,74,16},  {sh,8,8,74,16},  {sh,2,8,74,16}, {sh,0,8,74,16}, {sh,15,1,74,16}, {sh,15,1,74,16}, {sh,15,1,74,16}, {sh,15,1,74,16},
+    /*nSM0: 9-13*/ {sh,15,1,74,16}, {sh,13,1,74,16}, {sh,13,1,74,16}, {sh,13,1,74,16}, {sh,13,1,74,16},
+    /*nSM1: 0- 8*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1: 9-17*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:18-26*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:27-35*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:36-44*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:45-53*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:54-62*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:63-71*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nSM1:72-75*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16},
+    /*nOLS: 0- 5*/ {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}, {sh,11,1,74,16}
   }
-{}
+  {}
 
 void Image24BitModel::update() {
   INJECT_SHARED_bpos
@@ -258,52 +261,53 @@ void Image24BitModel::update() {
         const int logVar = ilog->log(var);
 
         uint64_t i = 0;
-        cm.set(hash(++i, (N + 1) >> 1U, logMeanDiffQt(N, clip(NN * 2 - NNN))));
-        cm.set(hash(++i, (W + 1) >> 1U, logMeanDiffQt(W, clip(WW * 2 - WWW))));
-        cm.set(hash(++i, clamp4(W + N - NW, W, NW, N, NE), logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
-        cm.set(hash(++i, (NNN + N + 4) / 8, clip(N * 3 - NN * 3 + NNN) >> 1));
-        cm.set(hash(++i, (WWW + W + 4) / 8, clip(W * 3 - WW * 3 + WWW) >> 1));
-        cm.set(hash(++i, color, (W + clip(NE * 3 - NNE * 3 + NNNE)) / 4, logMeanDiffQt(N, (NW + NE) / 2)));
-        cm.set(hash(++i, color, clip((-WWWW + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + NNNE * 4 - NNNNE, N, NE, NEE, NEEE)) / 5) / 4));
-        cm.set(hash(++i, clip(NEE + N - NNEE), logMeanDiffQt(W, clip(NW + NE - NNE))));
-        cm.set(hash(++i, clip(NN + W - NNW), logMeanDiffQt(W, clip(NNW + WW - NNWW))));
-        cm.set(hash(++i, color, p1));
-        cm.set(hash(++i, color, p2));
-        cm.set(hash(++i, color, clip(W + N - NW) / 2, clip(W + p1 - Wp1) / 2));
-        cm.set(hash(++i, clip(N * 2 - NN) / 2, logMeanDiffQt(N, clip(NN * 2 - NNN))));
-        cm.set(hash(++i, clip(W * 2 - WW) / 2, logMeanDiffQt(W, clip(WW * 2 - WWW))));
-        cm.set(hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, NW, N, NE) / 2));
-        cm.set(hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE) / 2));
-        cm.set(hash(++i, color, logMeanDiffQt(W, Wp1), clamp4((p1 * W) / (Wp1 < 1 ? 1 : Wp1), W, N, NE, NEE))); //using max(1,Wp1) results in division by zero in VC2015
-        cm.set(hash(++i, color, clamp4(N + p2 - Np2, W, NW, N, NE)));
-        cm.set(hash(++i, color, clip(W + N - NW), column[0]));
-        cm.set(hash(++i, color, clip(N * 2 - NN), logMeanDiffQt(W, clip(NW * 2 - NNW))));
-        cm.set(hash(++i, color, clip(W * 2 - WW), logMeanDiffQt(N, clip(NW * 2 - NWW))));
-        cm.set(hash(++i, (W + NEE) / 2, logMeanDiffQt(W, (WW + NE) / 2)));
-        cm.set(hash(++i, (clamp4(clip(W * 2 - WW) + clip(N * 2 - NN) - clip(NW * 2 - NNWW), W, NW, N, NE))));
-        cm.set(hash(++i, color, W, p2));
-        cm.set(hash(++i, N, NN & 0x1FU, NNN & 0x1FU));
-        cm.set(hash(++i, W, WW & 0x1FU, WWW & 0x1FU));
-        cm.set(hash(++i, color, N, column[0]));
-        cm.set(hash(++i, color, clip(W + NEE - NE), logMeanDiffQt(W, clip(WW + NE - N))));
-        cm.set(hash(++i, NN, NNNN & 0x1FU, NNNNNN & 0x1FU, column[1]));
-        cm.set(hash(++i, WW, WWWW & 0x1FU, WWWWWW & 0x1FU, column[1]));
-        cm.set(hash(++i, NNN, NNNNNN & 0x1FU, buffer(w * 9) & 0x1FU, column[1]));
-        cm.set(hash(++i, color, column[1]));
+        const uint8_t R_ = CM_USE_RUN_STATS;
+        cm.set(R_, hash(++i, (N + 1) >> 1U, logMeanDiffQt(N, clip(NN * 2 - NNN))));
+        cm.set(R_, hash(++i, (W + 1) >> 1U, logMeanDiffQt(W, clip(WW * 2 - WWW))));
+        cm.set(R_, hash(++i, clamp4(W + N - NW, W, NW, N, NE), logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
+        cm.set(R_, hash(++i, (NNN + N + 4) / 8, clip(N * 3 - NN * 3 + NNN) >> 1));
+        cm.set(R_, hash(++i, (WWW + W + 4) / 8, clip(W * 3 - WW * 3 + WWW) >> 1));
+        cm.set(R_, hash(++i, color, (W + clip(NE * 3 - NNE * 3 + NNNE)) / 4, logMeanDiffQt(N, (NW + NE) / 2)));
+        cm.set(R_, hash(++i, color, clip((-WWWW + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + NNNE * 4 - NNNNE, N, NE, NEE, NEEE)) / 5) / 4));
+        cm.set(R_, hash(++i, clip(NEE + N - NNEE), logMeanDiffQt(W, clip(NW + NE - NNE))));
+        cm.set(R_, hash(++i, clip(NN + W - NNW), logMeanDiffQt(W, clip(NNW + WW - NNWW))));
+        cm.set(R_, hash(++i, color, p1));
+        cm.set(R_, hash(++i, color, p2));
+        cm.set(R_, hash(++i, color, clip(W + N - NW) / 2, clip(W + p1 - Wp1) / 2));
+        cm.set(R_, hash(++i, clip(N * 2 - NN) / 2, logMeanDiffQt(N, clip(NN * 2 - NNN))));
+        cm.set(R_, hash(++i, clip(W * 2 - WW) / 2, logMeanDiffQt(W, clip(WW * 2 - WWW))));
+        cm.set(R_, hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, NW, N, NE) / 2));
+        cm.set(R_, hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE) / 2));
+        cm.set(R_, hash(++i, color, logMeanDiffQt(W, Wp1), clamp4((p1 * W) / (Wp1 < 1 ? 1 : Wp1), W, N, NE, NEE))); //using max(1,Wp1) results in division by zero in VC2015
+        cm.set(R_, hash(++i, color, clamp4(N + p2 - Np2, W, NW, N, NE)));
+        cm.set(R_, hash(++i, color, clip(W + N - NW), column[0]));
+        cm.set(R_, hash(++i, color, clip(N * 2 - NN), logMeanDiffQt(W, clip(NW * 2 - NNW))));
+        cm.set(R_, hash(++i, color, clip(W * 2 - WW), logMeanDiffQt(N, clip(NW * 2 - NWW))));
+        cm.set(R_, hash(++i, (W + NEE) / 2, logMeanDiffQt(W, (WW + NE) / 2)));
+        cm.set(R_, hash(++i, (clamp4(clip(W * 2 - WW) + clip(N * 2 - NN) - clip(NW * 2 - NNWW), W, NW, N, NE))));
+        cm.set(R_, hash(++i, color, W, p2));
+        cm.set(R_, hash(++i, N, NN & 0x1FU, NNN & 0x1FU));
+        cm.set(R_, hash(++i, W, WW & 0x1FU, WWW & 0x1FU));
+        cm.set(R_, hash(++i, color, N, column[0]));
+        cm.set(R_, hash(++i, color, clip(W + NEE - NE), logMeanDiffQt(W, clip(WW + NE - N))));
+        cm.set(R_, hash(++i, NN, NNNN & 0x1FU, NNNNNN & 0x1FU, column[1]));
+        cm.set(R_, hash(++i, WW, WWWW & 0x1FU, WWWWWW & 0x1FU, column[1]));
+        cm.set(R_, hash(++i, NNN, NNNNNN & 0x1FU, buffer(w * 9) & 0x1FU, column[1]));
+        cm.set(R_, hash(++i, color, column[1]));
 
-        cm.set(hash(++i, color, W, logMeanDiffQt(W, WW)));
-        cm.set(hash(++i, color, W, p1));
-        cm.set(hash(++i, color, W / 4, logMeanDiffQt(W, p1), logMeanDiffQt(W, p2)));
-        cm.set(hash(++i, color, N, logMeanDiffQt(N, NN)));
-        cm.set(hash(++i, color, N, p1));
-        cm.set(hash(++i, color, N / 4, logMeanDiffQt(N, p1), logMeanDiffQt(N, p2)));
-        cm.set(hash(++i, color, (W + N) >> 3U, p1 >> 4U, p2 >> 4U));
-        cm.set(hash(++i, color, p1 / 2, p2 / 2));
-        cm.set(hash(++i, color, W, p1 - Wp1));
-        cm.set(hash(++i, color, W + p1 - Wp1));
-        cm.set(hash(++i, color, N, p1 - Np1));
-        cm.set(hash(++i, color, N + p1 - Np1));
-        cm.set(hash(++i, color, mean, logVar >> 4));
+        cm.set(R_, hash(++i, color, W, logMeanDiffQt(W, WW)));
+        cm.set(R_, hash(++i, color, W, p1));
+        cm.set(R_, hash(++i, color, W / 4, logMeanDiffQt(W, p1), logMeanDiffQt(W, p2)));
+        cm.set(R_, hash(++i, color, N, logMeanDiffQt(N, NN)));
+        cm.set(R_, hash(++i, color, N, p1));
+        cm.set(R_, hash(++i, color, N / 4, logMeanDiffQt(N, p1), logMeanDiffQt(N, p2)));
+        cm.set(R_, hash(++i, color, (W + N) >> 3U, p1 >> 4U, p2 >> 4U));
+        cm.set(R_, hash(++i, color, p1 / 2, p2 / 2));
+        cm.set(R_, hash(++i, color, W, p1 - Wp1));
+        cm.set(R_, hash(++i, color, W + p1 - Wp1));
+        cm.set(R_, hash(++i, color, N, p1 - Np1));
+        cm.set(R_, hash(++i, color, N + p1 - Np1));
+        cm.set(R_, hash(++i, color, mean, logVar >> 4));
 
         ctx[0] = (min(color, 
           stride - 1) << 9U) | 
@@ -329,44 +333,46 @@ void Image24BitModel::update() {
         R2 = (residuals[3] * residuals[0]) / max(1, residuals[4]);
 
         uint64_t i = (filterOn ? filter + 1 : 0) * 1024;
-        cm.set(0);
-        cm.set(hash(++i, color, clip(W + N - NW) - px, clip(W + p1 - Wp1) - px, R1));
-        cm.set(hash(++i, color, clip(W + N - NW) - px, logMeanDiffQt(p1, clip(Wp1 + Np1 - NWp1))));
-        cm.set(hash(++i, color, clip(W + N - NW) - px, logMeanDiffQt(p2, clip(Wp2 + Np2 - NWp2)), R2 / 4));
-        cm.set(hash(++i, color, clip(W + N - NW) - px, clip(N + NE - NNE) - clip(N + NW - NNW)));
-        cm.set(hash(++i, color, clip(W + N - NW + p1 - (Wp1 + Np1 - NWp1)), px, R1));
-        cm.set(hash(++i, color, clamp4(W + N - NW, W, NW, N, NE) - px, column[0]));
-        cm.set(hash(++i, clamp4(W + N - NW, W, NW, N, NE) / 8, px));
-        cm.set(hash(++i, color, N - px, clip(N + p1 - Np1) - px));
-        cm.set(hash(++i, color, clip(W + p1 - Wp1) - px, R1));
-        cm.set(hash(++i, color, clip(N + p1 - Np1) - px));
-        cm.set(hash(++i, color, clip(N + p1 - Np1) - px, clip(N + p2 - Np2) - px));
-        cm.set(hash(++i, color, clip(W + p1 - Wp1) - px, clip(W + p2 - Wp2) - px));
-        cm.set(hash(++i, color, clip(NW + p1 - NWp1) - px));
-        cm.set(hash(++i, color, clip(NW + p1 - NWp1) - px, column[0]));
-        cm.set(hash(++i, color, clip(NE + p1 - NEp1) - px, column[0]));
-        cm.set(hash(++i, color, clip(NE + N - NNE) - px, clip(NE + p1 - NEp1) - px));
-        cm.set(hash(++i, clip(N + NE - NNE) - px, column[0]));
-        cm.set(hash(++i, color, clip(NW + N - NNW) - px, clip(NW + p1 - NWp1) - px));
-        cm.set(hash(++i, clip(N + NW - NNW) - px, column[0]));
-        cm.set(hash(++i, clip(NN + W - NNW) - px, logMeanDiffQt(N, clip(NNN + NW - NNNW))));
-        cm.set(hash(++i, clip(W + NEE - NE) - px, logMeanDiffQt(W, clip(WW + NE - N))));
-        cm.set(hash(++i, color, clip(N + NN - NNN + buffer(1 + static_cast<int>(color == 0)) - clip(buffer(w + 1 + static_cast<int>(color == 0)) + buffer(w * 2 + 1 + static_cast<int>(color == 0)) - buffer(w * 3 + 1 + static_cast<int>(color == 0)))) - px));
-        cm.set(hash(++i, clip(N + NN - NNN) - px, clip(5 * N - 10 * NN + 10 * NNN - 5 * NNNN + NNNNN) - px));
-        cm.set(hash(++i, color, clip(N * 2 - NN) - px, logMeanDiffQt(N, clip(NN * 2 - NNN))));
-        cm.set(hash(++i, color, clip(W * 2 - WW) - px, logMeanDiffQt(W, clip(WW * 2 - WWW))));
-        cm.set(hash(++i, clip(N * 3 - NN * 3 + NNN) - px));
-        cm.set(hash(++i, color, clip(N * 3 - NN * 3 + NNN) - px, logMeanDiffQt(W, clip(NW * 2 - NNW))));
-        cm.set(hash(++i, clip(W * 3 - WW * 3 + WWW) - px));
-        cm.set(hash(++i, color, clip(W * 3 - WW * 3 + WWW) - px, logMeanDiffQt(N, clip(NW * 2 - NWW))));
-        cm.set(hash(++i, clip((35 * N - 35 * NNN + 21 * NNNNN - 5 * buffer(w * 7)) / 16) - px));
-        cm.set(hash(++i, color, (W + clip(NE * 3 - NNE * 3 + NNNE)) / 2 - px, R2));
-        cm.set(hash(++i, color, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2 - px, logMeanDiffQt(N, (NW + NE) / 2)));
-        cm.set(hash(++i, color, (W + NEE) / 2 - px, R1 / 2));
-        cm.set(hash(++i, color, clamp4(clip(W * 2 - WW) + clip(N * 2 - NN) - clip(NW * 2 - NNWW), W, NW, N, NE) - px));
-        cm.set(hash(++i, color, buf(stride + static_cast<int>(x <= stride)), buf(1 + static_cast<int>(x < 2)), buf(2 + static_cast<int>(x < 3))));
-        cm.set(hash(++i, color, buf(1 + static_cast<int>(x < 2)), px));
-        cm.set(hash(++i, buf(w + 1), buf((w + 1) * 2), buf((w + 1) * 3), px));
+        
+        const uint8_t R_ = CM_USE_RUN_STATS;
+        cm.set(R_, 0);
+        cm.set(R_, hash(++i, color, clip(W + N - NW) - px, clip(W + p1 - Wp1) - px, R1));
+        cm.set(R_, hash(++i, color, clip(W + N - NW) - px, logMeanDiffQt(p1, clip(Wp1 + Np1 - NWp1))));
+        cm.set(R_, hash(++i, color, clip(W + N - NW) - px, logMeanDiffQt(p2, clip(Wp2 + Np2 - NWp2)), R2 / 4));
+        cm.set(R_, hash(++i, color, clip(W + N - NW) - px, clip(N + NE - NNE) - clip(N + NW - NNW)));
+        cm.set(R_, hash(++i, color, clip(W + N - NW + p1 - (Wp1 + Np1 - NWp1)), px, R1));
+        cm.set(R_, hash(++i, color, clamp4(W + N - NW, W, NW, N, NE) - px, column[0]));
+        cm.set(R_, hash(++i, clamp4(W + N - NW, W, NW, N, NE) / 8, px));
+        cm.set(R_, hash(++i, color, N - px, clip(N + p1 - Np1) - px));
+        cm.set(R_, hash(++i, color, clip(W + p1 - Wp1) - px, R1));
+        cm.set(R_, hash(++i, color, clip(N + p1 - Np1) - px));
+        cm.set(R_, hash(++i, color, clip(N + p1 - Np1) - px, clip(N + p2 - Np2) - px));
+        cm.set(R_, hash(++i, color, clip(W + p1 - Wp1) - px, clip(W + p2 - Wp2) - px));
+        cm.set(R_, hash(++i, color, clip(NW + p1 - NWp1) - px));
+        cm.set(R_, hash(++i, color, clip(NW + p1 - NWp1) - px, column[0]));
+        cm.set(R_, hash(++i, color, clip(NE + p1 - NEp1) - px, column[0]));
+        cm.set(R_, hash(++i, color, clip(NE + N - NNE) - px, clip(NE + p1 - NEp1) - px));
+        cm.set(R_, hash(++i, clip(N + NE - NNE) - px, column[0]));
+        cm.set(R_, hash(++i, color, clip(NW + N - NNW) - px, clip(NW + p1 - NWp1) - px));
+        cm.set(R_, hash(++i, clip(N + NW - NNW) - px, column[0]));
+        cm.set(R_, hash(++i, clip(NN + W - NNW) - px, logMeanDiffQt(N, clip(NNN + NW - NNNW))));
+        cm.set(R_, hash(++i, clip(W + NEE - NE) - px, logMeanDiffQt(W, clip(WW + NE - N))));
+        cm.set(R_, hash(++i, color, clip(N + NN - NNN + buffer(1 + static_cast<int>(color == 0)) - clip(buffer(w + 1 + static_cast<int>(color == 0)) + buffer(w * 2 + 1 + static_cast<int>(color == 0)) - buffer(w * 3 + 1 + static_cast<int>(color == 0)))) - px));
+        cm.set(R_, hash(++i, clip(N + NN - NNN) - px, clip(5 * N - 10 * NN + 10 * NNN - 5 * NNNN + NNNNN) - px));
+        cm.set(R_, hash(++i, color, clip(N * 2 - NN) - px, logMeanDiffQt(N, clip(NN * 2 - NNN))));
+        cm.set(R_, hash(++i, color, clip(W * 2 - WW) - px, logMeanDiffQt(W, clip(WW * 2 - WWW))));
+        cm.set(R_, hash(++i, clip(N * 3 - NN * 3 + NNN) - px));
+        cm.set(R_, hash(++i, color, clip(N * 3 - NN * 3 + NNN) - px, logMeanDiffQt(W, clip(NW * 2 - NNW))));
+        cm.set(R_, hash(++i, clip(W * 3 - WW * 3 + WWW) - px));
+        cm.set(R_, hash(++i, color, clip(W * 3 - WW * 3 + WWW) - px, logMeanDiffQt(N, clip(NW * 2 - NWW))));
+        cm.set(R_, hash(++i, clip((35 * N - 35 * NNN + 21 * NNNNN - 5 * buffer(w * 7)) / 16) - px));
+        cm.set(R_, hash(++i, color, (W + clip(NE * 3 - NNE * 3 + NNNE)) / 2 - px, R2));
+        cm.set(R_, hash(++i, color, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2 - px, logMeanDiffQt(N, (NW + NE) / 2)));
+        cm.set(R_, hash(++i, color, (W + NEE) / 2 - px, R1 / 2));
+        cm.set(R_, hash(++i, color, clamp4(clip(W * 2 - WW) + clip(N * 2 - NN) - clip(NW * 2 - NNWW), W, NW, N, NE) - px));
+        cm.set(R_, hash(++i, color, buf(stride + static_cast<int>(x <= stride)), buf(1 + static_cast<int>(x < 2)), buf(2 + static_cast<int>(x < 3))));
+        cm.set(R_, hash(++i, color, buf(1 + static_cast<int>(x < 2)), px));
+        cm.set(R_, hash(++i, buf(w + 1), buf((w + 1) * 2), buf((w + 1) * 3), px));
         ctx[0] = (min(color, stride - 1) << 9U) | 
           (static_cast<int>(abs(W - N) > 3) << 8U) | 
           (static_cast<int>(W > N) << 7U) |
@@ -380,11 +386,11 @@ void Image24BitModel::update() {
       }
 
       int i = -1;
-      map[++i].setDirect((W & 0xC0U) | ((N & 0xC0U) >> 2U) | ((WW & 0xC0U) >> 4U) | (NN >> 6U));
-      map[++i].setDirect((N & 0xC0U) | ((NN & 0xC0U) >> 2U) | ((NE & 0xC0U) >> 4U) | (NEE >> 6U));
-      map[++i].setDirect(buf(1 + static_cast<int>((isPNG != 0u) && x < 2)));
-      map[++i].setDirect(min(color, stride - 1));
-      map[++i].setDirect(0);
+      map[++i].set((W & 0xC0U) | ((N & 0xC0U) >> 2U) | ((WW & 0xC0U) >> 4U) | (NN >> 6U));
+      map[++i].set((N & 0xC0U) | ((NN & 0xC0U) >> 2U) | ((NE & 0xC0U) >> 4U) | (NEE >> 6U));
+      map[++i].set(buf(1 + static_cast<int>((isPNG != 0u) && x < 2)));
+      map[++i].set(min(color, stride - 1));
+      map[++i].set(0);
       shared->State.Image.plane = min(color, stride - 1);
       shared->State.Image.pixels.W = W;
       shared->State.Image.pixels.N = N;
@@ -400,33 +406,33 @@ void Image24BitModel::update() {
     uint8_t b = (c0 << (8 - bpos));
     int i = 4;
 
-    map[++i].setDirect(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
+    map[++i].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
                        (logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11));
-    map[++i].setDirect(((static_cast<uint8_t>(clip(N * 2 - NN) - px - b)) * 8 + bpos) | 
+    map[++i].set(((static_cast<uint8_t>(clip(N * 2 - NN) - px - b)) * 8 + bpos) | 
                        (logMeanDiffQt(W, clip(NW * 2 - NNW)) << 11));
-    map[++i].setDirect(((static_cast<uint8_t>(clip(W * 2 - WW) - px - b)) * 8 + bpos) |
+    map[++i].set(((static_cast<uint8_t>(clip(W * 2 - WW) - px - b)) * 8 + bpos) |
                        (logMeanDiffQt(N, clip(NW * 2 - NWW)) << 11));
-    map[++i].setDirect(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
+    map[++i].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
                        (logMeanDiffQt(p1, clip(Wp1 + Np1 - NWp1)) << 11));
-    map[++i].setDirect(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
+    map[++i].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
                        (logMeanDiffQt(p2, clip(Wp2 + Np2 - NWp2)) << 11));
-    map[++i].set(hash(W - px - b, N - px - b) * 8 + bpos);
-    map[++i].set(hash(W - px - b, WW - px - b) * 8 + bpos);
-    map[++i].set(hash(N - px - b, NN - px - b) * 8 + bpos);
-    map[++i].set(hash(clip(N + NE - NNE) - px - b, clip(N + NW - NNW) - px - b) * 8 + bpos);
-    map[++i].setDirect((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(N + p1 - Np1) - px - b)) * 8 + bpos));
-    map[++i].setDirect((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(N + p2 - Np2) - px - b)) * 8 + bpos));
-    map[++i].setDirect((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p1 - Wp1) - px - b)) * 8 + bpos));
-    map[++i].setDirect((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p2 - Wp2) - px - b)) * 8 + bpos));
+    map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(N + p1 - Np1) - px - b)) * 8 + bpos));
+    map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(N + p2 - Np2) - px - b)) * 8 + bpos));
+    map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p1 - Wp1) - px - b)) * 8 + bpos));
+    map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p2 - Wp2) - px - b)) * 8 + bpos));
+    mapL[0].set(hash(W - px - b, N - px - b, bpos));
+    mapL[1].set(hash(W - px - b, WW - px - b, bpos));
+    mapL[2].set(hash(N - px - b, NN - px - b, bpos));
+    mapL[3].set(hash(clip(N + NE - NNE) - px - b, clip(N + NW - NNW) - px - b, bpos));
     ++i;
     assert(i == nSM0);
 
     for( int j = 0; j < nSM1; i++, j++ ) {
-      map[i].setDirect((mapContexts[j] - px - b) * 8 + bpos);
+      map[i].set((mapContexts[j] - px - b) * 8 + bpos);
     }
 
     for( int j = 0; i < nSM; i++, j++ ) {
-      map[i].setDirect((pOLS[j] - px - b) * 8 + bpos);
+      map[i].set((pOLS[j] - px - b) * 8 + bpos);
     }
 
     for( int i = 0; i < nSSM; i++ ) {
@@ -444,8 +450,11 @@ void Image24BitModel::init() {
   columns[0] = max(1, w / max(1, ilog2(w) * 3));
   columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
   if( lastPos > 0 && lastWasPNG != isPNG ) {
+    for (int i = 0; i < nLSM; i++) {
+      mapL[i].reset();
+    }
     for( int i = 0; i < nSM; i++ ) {
-      map[i].reset(0);
+      map[i].reset();
     }
   }
   lastWasPNG = isPNG;
@@ -479,6 +488,10 @@ void Image24BitModel::mix(Mixer &m) {
   // predict next bit
   if( x > 0 || (isPNG == 0u)) {
     cm.mix(m);
+
+    for (int i = 0; i < nLSM; i++) {
+      mapL[i].mix(m);
+    }
 
     for( int i = 0; i < nSM; i++ ) {
       map[i].mix(m);

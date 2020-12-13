@@ -4,6 +4,7 @@
 #include "../Shared.hpp"
 #include "../ContextMap2.hpp"
 #include "../IndirectContext.hpp"
+#include "../LargeStationaryMap.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../StationaryMap.hpp"
 
@@ -19,7 +20,8 @@ private:
     static constexpr int nCM = 2;
     static constexpr int nST = 3;
     static constexpr int nSSM = 2;
-    static constexpr int nSM = 2;
+    static constexpr int nLSM = 1;
+    static constexpr int nSM = 1;
     Shared * const shared;
     enum Parameters : uint32_t {
         MaxExtend = 0, /**< longest allowed match expansion // warning: larger value -> slowdown */
@@ -30,7 +32,8 @@ private:
     StateMap stateMaps[nST];
     ContextMap2 cm;
     SmallStationaryContextMap SCM;
-    StationaryMap maps[nSM];
+    LargeStationaryMap mapL[nLSM];
+    StationaryMap map[nSM];
     IndirectContext<uint8_t> iCtx;
     uint32_t hashes[numHashes] {0};
     uint32_t ctx[nST] {0};
@@ -45,8 +48,13 @@ private:
     Ilog *ilog = &Ilog::getInstance();
 
 public:
-    static constexpr int MIXERINPUTS = 2 + nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) + nST +
-                                       nSSM * SmallStationaryContextMap::MIXERINPUTS + nSM * StationaryMap::MIXERINPUTS; // 23
+    static constexpr int MIXERINPUTS = 
+      2 + // inputs based on expected bit
+      nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) + 
+      nST +
+      nSSM * SmallStationaryContextMap::MIXERINPUTS + 
+      nLSM * LargeStationaryMap::MIXERINPUTS +
+      nSM * StationaryMap::MIXERINPUTS; // 25
     static constexpr int MIXERCONTEXTS = 8;
     static constexpr int MIXERCONTEXTSETS = 1;
     MatchModel(Shared* const sh, const uint64_t buffermemorysize, const uint64_t mapmemorysize);

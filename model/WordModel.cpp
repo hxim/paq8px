@@ -4,7 +4,7 @@
 
 WordModel::WordModel(Shared* const sh, const uint64_t size) : 
   shared(sh),
-  cm(sh, size, nCM, 74, CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY),
+  cm(sh, size, nCM, 74),
   infoNormal(sh, cm), infoPdf(sh, cm), pdfTextParserState(0)
 {}
 
