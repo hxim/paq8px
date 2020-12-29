@@ -3,20 +3,20 @@
 Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) : 
   shared(sh), 
   cm(sh, size, nCM, 64),
-  map { /* StationaryMap : BitsOfContext, InputBits, Scale, AdaptivityRate  */
-    /*nSM0: 0- 1*/ {sh, 0,8,64,16}, {sh,15,1,64,16},
-    /*nSM1: 0- 4*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1: 5- 9*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:10-14*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:15-19*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:20-24*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:25-29*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:30-34*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:35-39*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:40-44*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:45-49*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nSM1:50-54*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16},
-    /*nOLS: 0- 4*/ {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}, {sh,11,1,64,16}
+  map { /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
+    /*nSM0: 0- 1*/ {sh, 0,8}, {sh,15,1},
+    /*nSM1: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1: 5- 9*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:10-14*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:15-19*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:20-24*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:25-29*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:30-34*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:35-39*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:40-44*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:45-49*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nSM1:50-54*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
+    /*nOLS: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}
   },
   pltMap {   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
     {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}
@@ -24,7 +24,7 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   sceneMap { /* IndirectMap: BitsOfContext, InputBits, Scale, Limit */
     {sh,8,8,64,255}, {sh,8,8,64,255}, {sh,22,1,64,255}, {sh,11,1,64,255}, {sh,11,1,64,255}
   },
-  iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
+      iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
     {16,8}, {16,8}, {16,8}, {16,8}
   }
   {}
@@ -46,13 +46,19 @@ void Image8BitModel::mix(Mixer &m) {
       filterOn = false;
       columns[0] = max(1, w / max(1, ilog2(w) * 2));
       columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
-      if( gray != 0u ) {
+      if( gray ) {
         if((lastPos != 0u) && lastWasPNG != isPNG ) {
           for( int i = 0; i < nSM; i++ ) {
             map[i].reset();
           }
         }
         lastWasPNG = isPNG;
+      }
+      else if(frameWidth != w) {
+        for (int i = 0; i < nPltMaps; i++) {
+          iCtx[i].reset();
+          pltMap[i].reset();
+        }
       }
       buffer.fill(0x7F);
       prevFramePos = framePos;
@@ -395,7 +401,7 @@ void Image8BitModel::mix(Mixer &m) {
         pltMap[i].mix(m);
       }
     }
-    for( int i = 0; i < 5; i++ ) {
+    for( int i = 0; i < nIM; i++ ) {
       const int scale = (prevFramePos > 0 && prevFrameWidth == w) ? 64 : 0;
       sceneMap[i].setScale(scale);
       sceneMap[i].mix(m);

@@ -20,7 +20,8 @@ mapped to predictions.
 */
 
 #include "IPredictor.hpp"
-#include "Bucket.hpp"
+#include "Bucket16.hpp"
+#include "HashElementForContextMap.hpp"
 #include "Hash.hpp"
 #include "Ilog.hpp"
 #include "Mixer.hpp"
@@ -45,7 +46,7 @@ private:
     const Shared * const shared;
     Random rnd;
     const uint32_t C; /**< max number of contexts */
-    Array<Bucket, 64> table; /**< bit and byte histories (statistics) */
+    Array<Bucket16<HashElementForContextMap, 7>> table; /**< bit and byte histories (statistics) */
     Array<uint8_t *> bitState; /**< @ref C pointers to current bit history states */
     Array<uint8_t *> bitState0; /**< First element of 7 element array containing bitState[i] */
     Array<uint8_t *> byteHistory; /**< @ref C pointers to run stats plus byte history, 4 bytes, [RunStats,1..3] */

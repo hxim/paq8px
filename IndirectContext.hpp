@@ -25,6 +25,12 @@ public:
       assert(inputBits > 0 && inputBits <= 8);
     }
 
+    void reset() {
+      for (uint64_t i = 0; i < data.size(); ++i) {
+        data[i] = 0;
+      }
+    }
+
     void operator+=(const uint32_t i) {
       assert(i <= inputMask);
       (*ctx) <<= inputBits;

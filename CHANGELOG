@@ -1836,3 +1836,15 @@ paq8px_v198 by Zoltán Gotthardt
 - Tuned some states in StateTable; Enhanced probabilistic increment
 - Separated hashed contexts from StationaryMap into a new map: LargeStationaryMap (with collision detection)
 - Improved StationaryMap: we store exact counts now
+
+
+paq8px_v199 by Zoltán Gotthardt
+2020.12.29
+- MatchModel: removed SmallStationaryContextMap, slightly improved the StateMap-based contexts
+- Set MatchModel CM scale to 64 for a small gain
+- Improvements in IndirectModel; introducing LargeIndirectContext
+- Added 1 (binary) context to SparseBitModel
+- Increased (doubled) memory use of SparseModel and IndirectModel
+- NormalModel now includes the BlockType in its contexts
+- Introducing probabilistic hash replacement strategy for ContextMap, ContextMap2 and LargeStationaryMap
+- Other small fixes and cosmetic changes

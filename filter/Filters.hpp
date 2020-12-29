@@ -126,8 +126,8 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
   uint32_t buf1 = 0;
   uint32_t buf0 = 0;
   
-  static uint64_t start = 0ull;
-  static uint64_t prv_start = 0ull;
+  static uint64_t start = 0;
+  static uint64_t prv_start = 0;
 
   prv_start = start;    // for DEC Alpha detection
   start = in->curPos(); // start of the current block
@@ -378,7 +378,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         if (zlibInflateInit(&strm, zh) == Z_OK) {
           uint64_t blstart = static_cast<uint64_t>(std::max<int64_t>(i - (brute ? 255 : 31), 0));
           for (uint64_t j = blstart; j < n; j += 1 << 16) {
-            uint32_t blsize = static_cast<uint32_t>(min(n - j, 1ull << 16));
+            uint32_t blsize = static_cast<uint32_t>(min(n - j, UINT64_C(1) << 16));
             in->setpos(start + j);
             if (in->blockRead(zin, blsize) != blsize)
               break;
@@ -1289,11 +1289,11 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
       std::uint64_t const absPos = DEC.absPos[absAddrLSB];
       std::uint64_t const relPos = DEC.relPos[relAddrLSB];
       std::uint64_t const curPos = static_cast<std::uint64_t>(i);
-      if ((absPos > relPos) && (curPos < absPos + 0x8000ull) && (absPos > 16u) && (curPos > absPos + 16ull) && (((curPos-absPos) & 3ull) == 0u)) {
+      if ((absPos > relPos) && (curPos < absPos + UINT64_C(0x8000)) && (absPos > 16u) && (curPos > absPos + UINT64_C(16)) && (((curPos-absPos) & UINT64_C(3)) == 0u)) {
         DEC.last = curPos;
         DEC.branches[DEC.idx]++;      
         if ((DEC.offset == 0u) || (DEC.offset > DEC.absPos[absAddrLSB])) {
-          std::uint64_t const addr = curPos - (DEC.count[DEC.idx] - 1u) * 4ull;          
+          std::uint64_t const addr = curPos - (DEC.count[DEC.idx] - 1u) * UINT64_C(4);
           DEC.offset = ((start > 0u) && (start == prv_start)) ? DEC.absPos[absAddrLSB] : std::min<std::uint64_t>(DEC.absPos[absAddrLSB], addr);
         }
       }
@@ -1305,7 +1305,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     if ((type == DEFAULT) && (DEC.branches[DEC.idx] >= 16u))
       return in->setpos(start + DEC.offset - (start + DEC.offset) % 4), DEC_ALPHA;    
    
-    if ((static_cast<std::uint64_t>(i) > DEC.last + (type==DEC_ALPHA ? 0x8000ull : 0x4000ull)) && (DEC.count[DEC.offset & 3] == 0u)) {
+    if ((static_cast<std::uint64_t>(i) > DEC.last + (type==DEC_ALPHA ? UINT64_C(0x8000) : UINT64_C(0x4000))) && (DEC.count[DEC.offset & 3] == 0u)) {
       if (type == DEC_ALPHA)
         return in->setpos(start + DEC.last - (start + DEC.last) % 4), DEFAULT;
       DEC.last = 0u, DEC.offset = 0u;

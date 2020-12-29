@@ -2,7 +2,8 @@
 #define PAQ8PX_CONTEXTMAP_HPP
 
 #include "IPredictor.hpp"
-#include "Bucket.hpp"
+#include "Bucket16.hpp"
+#include "HashElementForContextMap.hpp"
 #include "Hash.hpp"
 #include "Ilog.hpp"
 #include "Mixer.hpp"
@@ -86,7 +87,7 @@ private:
     const Shared * const shared;
     Random rnd;
     const int C; /**< max number of contexts */
-    Array<Bucket, 64> t; /**< bit and byte histories (statistics) */
+    Array<Bucket16<HashElementForContextMap, 7>> t; /**< bit and byte histories (statistics) */
     Array<uint8_t *> cp; /**< c pointers to current bit history */
     Array<uint8_t *> cp0; /**< First element of 7 element array containing cp[i] */
     Array<uint32_t> cxt; /**< c whole byte context hashes */

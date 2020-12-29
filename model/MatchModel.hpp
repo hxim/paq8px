@@ -19,7 +19,6 @@ private:
     static constexpr int numHashes = 3;
     static constexpr int nCM = 2;
     static constexpr int nST = 3;
-    static constexpr int nSSM = 2;
     static constexpr int nLSM = 1;
     static constexpr int nSM = 1;
     Shared * const shared;
@@ -31,7 +30,6 @@ private:
     Array<uint32_t> table;
     StateMap stateMaps[nST];
     ContextMap2 cm;
-    SmallStationaryContextMap SCM;
     LargeStationaryMap mapL[nLSM];
     StationaryMap map[nSM];
     IndirectContext<uint8_t> iCtx;
@@ -43,7 +41,6 @@ private:
     uint32_t indexBak = 0;
     uint8_t expectedByte = 0; /**< prediction is based on this byte (buf[index]), valid only when length>0 */
     bool delta = false; /**< indicates that a match has just failed (delta mode) */
-    const uint32_t mask;
     const int hashBits;
     Ilog *ilog = &Ilog::getInstance();
 
@@ -51,10 +48,9 @@ public:
     static constexpr int MIXERINPUTS = 
       2 + // inputs based on expected bit
       nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) + 
-      nST +
-      nSSM * SmallStationaryContextMap::MIXERINPUTS + 
+      nST * 2 +
       nLSM * LargeStationaryMap::MIXERINPUTS +
-      nSM * StationaryMap::MIXERINPUTS; // 25
+      nSM * StationaryMap::MIXERINPUTS; // 24
     static constexpr int MIXERCONTEXTS = 8;
     static constexpr int MIXERCONTEXTSETS = 1;
     MatchModel(Shared* const sh, const uint64_t buffermemorysize, const uint64_t mapmemorysize);

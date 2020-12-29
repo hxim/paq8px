@@ -1,14 +1,13 @@
 #include "ContextMap.hpp"
 
 ContextMap::ContextMap(const Shared* const sh, uint64_t m, const int contexts) : 
-  shared(sh), C(contexts), t(m >> 6U), cp(contexts), cp0(contexts), cxt(contexts), chk(contexts), runP(contexts),
+  shared(sh), C(contexts), t(m >> 6), cp(contexts), cp0(contexts), cxt(contexts), chk(contexts), runP(contexts),
   sm(sh, contexts, 256, 1023, StateMap::BitHistory), cn(0),
   mask(uint32_t(t.size() - 1)), hashBits(ilog2(mask + 1)), validFlags(0) {
 #ifdef VERBOSE
   printf("Created ContextMap with m = %" PRIu64 ", contexts = %d\n", m, contexts);
 #endif
   assert(m >= 64 && isPowerOf2(m));
-  static_assert(sizeof(Bucket) == 64, "Size of Bucket should be 64!");
   assert(C <= (int) sizeof(validFlags) * 8); // validFlags is 64 bits - it can't support more than 64 contexts
 }
 
@@ -16,16 +15,16 @@ void ContextMap::set(const uint64_t cx) {
   assert(cn >= 0 && cn < C);
   const uint32_t ctx = cxt[cn] = finalize64(cx, hashBits);
   const uint16_t checksum = chk[cn] = checksum16(cx, hashBits);
-  uint8_t* base = cp0[cn] = cp[cn] = t[ctx].find(checksum);
+  uint8_t* base = cp0[cn] = cp[cn] = &t[ctx].find(checksum, &rnd)->byteStats.bit;
   runP[cn] = base + 3;
   // update pending bit histories for bits 2-7
   if( base[3] == 2 ) {
     const int c = base[4] + 256;
-    uint8_t *p = t[(ctx + (c >> 6U)) & mask].find(checksum);
+    uint8_t *p = &t[(ctx + (c >> 6U)) & mask].find(checksum, &rnd)->bitStats.bit;
     p[0] = 1 + ((c >> 5U) & 1U);
     p[1 + ((c >> 5U) & 1U)] = 1 + ((c >> 4U) & 1U);
     p[3 + ((c >> 4U) & 3U)] = 1 + ((c >> 3U) & 1U);
-    p = t[(ctx + (c >> 3U)) & mask].find(checksum);
+    p = &t[(ctx + (c >> 3U)) & mask].find(checksum, &rnd)->bitStats.bit;
     p[0] = 1 + ((c >> 2U) & 1U);
     p[1 + ((c >> 2U) & 1U)] = 1 + ((c >> 1U) & 1U);
     p[3 + ((c >> 1U) & 3U)] = 1 + (c & 1U);
@@ -49,8 +48,6 @@ void ContextMap::update() {
     if(((validFlags >> (cn - 1 - i)) & 1) != 0 ) {
       // update bit history state byte
       if( cp[i] != nullptr ) {
-        assert(cp[i] >= &t[0].bitState[0][0] && cp[i] <= &t[t.size() - 1].bitState[6][6]);
-        assert((uintptr_t(cp[i]) & 63) >= 15);
         StateTable::update(cp[i], y, rnd);
       }
 
@@ -72,7 +69,7 @@ void ContextMap::update() {
           case 5: {
             const uint16_t checksum = chk[i];
             const uint32_t ctx = cxt[i];
-            cp0[i] = cp[i] = t[(ctx + c0) & mask].find(checksum);
+            cp0[i] = cp[i] = &t[(ctx + c0) & mask].find(checksum, &rnd)->bitStats.bit;
             break;
           }
           case 0: {

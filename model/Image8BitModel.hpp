@@ -21,22 +21,24 @@ private:
     static constexpr int nOLS = 5;
     static constexpr int nSM = nSM0 + nSM1 + nOLS;
     static constexpr int nPltMaps = 4;
-    static constexpr int nCM = nPltMaps + 49;
+    static constexpr int nCM = 49 + nPltMaps;
+    static constexpr int nIM = 5;
 
 public:
     static constexpr int MIXERINPUTS =
       nSM * StationaryMap::MIXERINPUTS + 
-      nCM * (ContextMap2::MIXERINPUTS + 
-      ContextMap2::MIXERINPUTS_RUN_STATS); //451
+      nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) + 
+      nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
+      nIM * IndirectMap::MIXERINPUTS; //469
     static constexpr int MIXERCONTEXTS = (2048 + 5) + 6 * 16 + 6 * 32 + 256 + 1024 + 64 + 128 + 256; /**< 4069 */
     static constexpr int MIXERCONTEXTSETS = 8;
 
     Shared * const shared;
     ContextMap2 cm;
     StationaryMap map[nSM];
-    SmallStationaryContextMap pltMap[nPltMaps];
-    IndirectMap sceneMap[5];
-    IndirectContext<uint8_t> iCtx[nPltMaps];
+    SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
+    IndirectMap sceneMap[nIM];
+    IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */
     RingBuffer<uint8_t> buffer {0x100000}; /**< internal rotating buffer for (PNG unfiltered) pixel data (1MB) */
     Array<short> jumps {0x8000};
     //pixel neighborhood

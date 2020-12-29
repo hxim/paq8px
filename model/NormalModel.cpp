@@ -15,8 +15,14 @@ void NormalModel::reset() {
 
 void NormalModel::updateHashes() {
   INJECT_SHARED_c1
-  for( int i = 14; i > 0; --i ) {
-    cxt[i] = combine64(cxt[i - 1], c1 + (i << 10U));
+  INJECT_SHARED_blockType
+  const uint64_t blocktype_c1 = blockType << 8 | c1;
+  /* todo: let blocktype represent simply the blocktype without any transformation used:
+      blockType == AUDIO_LE = AUDIO
+      blockType == TEXT_EOL = TEXT
+  */
+  for( uint64_t i = 14; i > 0; --i ) {
+    cxt[i] = (cxt[i - 1] + blocktype_c1 + i) * PHI64;
   }
 }
 
@@ -25,7 +31,7 @@ void NormalModel::mix(Mixer &m) {
   if( bpos == 0 ) {
     updateHashes();
     const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
-    for( int i = 1; i <= 7; ++i ) {
+    for(uint64_t i = 1; i <= 7; ++i ) {
       cm.set(RH, cxt[i]);
     }
     cm.set(RH, cxt[9]);

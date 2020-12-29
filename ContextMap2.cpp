@@ -1,6 +1,6 @@
 #include "ContextMap2.hpp"
 
-ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), C(contexts), table(size / sizeof(Bucket)),
+ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), C(contexts), table(size >> 6),
         bitState(contexts), bitState0(contexts), byteHistory(contexts), contexts(contexts), checksums(contexts), contextflags(contexts),
         runMap(sh, contexts, (1U << 12U), 127, StateMap::Run),         /* StateMap : s, n, lim, init */ // 63-255
         stateMap(sh, contexts, (1U << 8U), 511, StateMap::BitHistory), /* StateMap : s, n, lim, init */ // 511-1023
@@ -8,32 +8,28 @@ ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint
         bhMap12B(sh, contexts, (1U << 12U), 511, StateMap::Generic),   /* StateMap : s, n, lim, init */ // 255-1023
         index(0), mask(uint32_t(table.size() - 1)), hashBits(ilog2(mask + 1)), scale(scale), contextflagsAll(0) {
 #ifdef VERBOSE
-  printf("Created ContextMap2 with size = %" PRIu64 ", contexts = %d, scale = %d, uw = %d\n", size, contexts, scale, uw);
+  printf("Created ContextMap2 with size = %" PRIu64 ", contexts = %d, scale = %d\n", size, contexts, scale);
 #endif
   assert(size >= 64 && isPowerOf2(size));
-  static_assert(sizeof(Bucket) == 64, "Size of Bucket should be 64!");
-  for( uint32_t i = 0; i < C; i++ ) {
-    bitState[i] = bitState0[i] = &table[i].bitState[0][0];
-    byteHistory[i] = bitState[i] + 3;
-  }
+  static_assert(sizeof(Bucket16 <HashElementForContextMap, 7>) == (sizeof(HashElementForContextMap) + 2) * 7, "Something is wrong, please pack that struct");
 }
 
 void ContextMap2::set(const uint8_t ctxflags, const uint64_t ctx) {
   assert(index >= 0 && index < C);
   const uint32_t ctx0 = contexts[index] = finalize64(ctx, hashBits);
   const uint16_t chk0 = checksums[index] = checksum16(ctx, hashBits);
-  uint8_t *base = bitState[index] = bitState0[index] = table[ctx0].find(chk0);
+  uint8_t *base = bitState[index] = bitState0[index] = &table[ctx0].find(chk0, &rnd)->bitStats.bit;
   byteHistory[index] = &base[3];
   const uint8_t runCount = base[3];
   if( runCount == 255 ) { // pending
     // update pending bit histories for bits 2-7
     // in case of a collision updating (mixing) is slightly better (but slightly slower) then resetting, so we update
     const int c = base[4] + 256;
-    uint8_t *p1A = table[(ctx0 + (c >> 6U)) & mask].find(chk0);
+    uint8_t *p1A = &table[(ctx0 + (c >> 6U)) & mask].find(chk0, &rnd)->bitStats.bit;
     StateTable::update(p1A, ((c >> 5U) & 1), rnd);
     StateTable::update(p1A + 1 + ((c >> 5) & 1), ((c >> 4) & 1), rnd);
     StateTable::update(p1A + 3 + ((c >> 4U) & 3), ((c >> 3) & 1), rnd);
-    uint8_t *p1B = table[(ctx0 + (c >> 3)) & mask].find(chk0);
+    uint8_t *p1B = &table[(ctx0 + (c >> 3)) & mask].find(chk0, &rnd)->bitStats.bit;
     StateTable::update(p1B, (c >> 2) & 1, rnd);
     StateTable::update(p1B + 1 + ((c >> 2) & 1), (c >> 1) & 1, rnd);
     StateTable::update(p1B + 3 + ((c >> 1) & 3), c & 1, rnd);
@@ -59,13 +55,14 @@ void ContextMap2::skipn(const uint8_t ctxflags, int n) {
   for (int i = 0; i < n; i++)
     skip(ctxflags);
 }
+
 void ContextMap2::update() {
   INJECT_SHARED_y
   INJECT_SHARED_bpos
   INJECT_SHARED_c1
   INJECT_SHARED_c0
   for( uint32_t i = 0; i < index; i++ ) {
-    if((contextflags[i]& CM_SKIPPED_CONTEXT) == 0) {
+    if((contextflags[i] & CM_SKIPPED_CONTEXT) == 0) {
       if( bitState[i] != nullptr ) {
         StateTable::update(bitState[i], y, rnd);
       }
@@ -104,7 +101,7 @@ void ContextMap2::update() {
           case 5: {
             const uint32_t ctx = contexts[i];
             const uint16_t chk = checksums[i];
-            bitState[i] = bitState0[i] = table[(ctx + c0) & mask].find(chk);
+            bitState[i] = bitState0[i] = &table[(ctx + c0) & mask].find(chk, &rnd)->bitStats.bit;
             break;
           }
           case 1:

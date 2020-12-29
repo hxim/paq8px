@@ -32,9 +32,9 @@ public:
      * @param bitsOfContext How many bits to use for each context. Higher bits are discarded.
      * @param inputBits How many bits [1..8] of input are to be modelled for each context. New contexts must be set at those intervals.
      * @param scale
-     * @param rate
+     * @param rate Use 16 for near-stationary modelling (default), smaller values may be used for tuning adaptivity
      */
-    StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale, const int rate);
+    StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale = 64, const int rate = 16);
 
     /**
      * ctx must be a direct context (no hash)

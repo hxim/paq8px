@@ -36,7 +36,7 @@
 class DmcModel : protected IPredictor {
 private:
     constexpr static uint64_t dmcNodesBase = (255 * 256); /**< 65280 */
-    constexpr static uint64_t dmcNodesMax = (1ULL << 28); /**< 268'435'456 */
+    constexpr static uint64_t dmcNodesMax = (UINT64_C(1) << 28); /**< 268'435'456 */
     const Shared * const shared;
     Random rnd;
     Array<DMCNode> t; /**< state graph */

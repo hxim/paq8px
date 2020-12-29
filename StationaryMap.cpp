@@ -2,7 +2,7 @@
 
 StationaryMap::StationaryMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int scale, const int rate) : 
   shared(sh),
-  data((1ULL << bitsOfContext) * ((1ULL << inputBits) - 1)),
+  data((UINT64_C(1) << bitsOfContext) * ((UINT64_C(1) << inputBits) - 1)),
   mask((1 << bitsOfContext) - 1), 
   stride((1 << inputBits) - 1), bTotal(inputBits), scale(scale), rate(rate),
   context(0), bCount(0), b(0), cp(nullptr)
@@ -44,7 +44,7 @@ void StationaryMap::update() {
 
   n0 += 1 - y;
   n1 += y;
-  int shift = (n0 | n1) >> rate; //near-stationary: rate=16; adaptive: smaller rate
+  int shift = (n0 | n1) >> rate; // shift: 0 or 1
   n0 >>= shift;
   n1 >>= shift;
 

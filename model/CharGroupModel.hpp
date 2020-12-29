@@ -27,7 +27,7 @@ private:
     uint32_t g3 = 0;
 public:
     static constexpr int MIXERINPUTS =
-            nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 35
+            nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 49
     static constexpr int MIXERCONTEXTS = 0;
     static constexpr int MIXERCONTEXTSETS = 0;
     explicit CharGroupModel(const Shared* const sh, uint64_t size);

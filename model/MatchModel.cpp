@@ -6,17 +6,16 @@ MatchModel::MatchModel(Shared* const sh, const uint64_t buffermemorysize, const 
   stateMaps {{sh, 1, 56 * 256,          1023, StateMap::Generic},
              {sh, 1, 8 * 256 * 256 + 1, 1023, StateMap::Generic},
              {sh, 1, 256 * 256,         1023, StateMap::Generic}},
-  cm(sh, mapmemorysize, nCM, 74),
-  SCM {sh, 6, 1, 6, 64},
-  mapL{ /* LargeStationaryMap : HashMaskBits, Scale, AdaptivityRate  */
-        {sh, 20, 64, 16},
+  cm(sh, mapmemorysize, nCM, 64),
+  mapL{ /* LargeStationaryMap : HashBits, Scale=64, Rate=16  */
+        {sh,20},
   },
-  map { /* StationaryMap : BitsOfContext, InputBits, Scale, AdaptivityRate  */
-        {sh, 15, 1, 64, 16},
+  map { /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
+        {sh,15,1},
   }, 
   iCtx {15, 1}, 
-  mask(uint32_t(buffermemorysize / sizeof(uint32_t) - 1)), 
-  hashBits(ilog2(mask + 1)) {
+  hashBits(ilog2(uint32_t(buffermemorysize / sizeof(uint32_t))))
+{
 #ifdef VERBOSE
   printf("Created MatchModel with size = %" PRIu64 "\n", size);
 #endif
@@ -56,7 +55,7 @@ void MatchModel::update() {
     // recover match after a 1-byte mismatch
     if( length == 0 && !delta && lengthBak != 0 ) { //match failed (2 bytes ago), no new match found, and we have a backup
       indexBak++;
-      if( lengthBak < mask ) {
+      if( lengthBak < 65535 ) {
         lengthBak++;
       }
       INJECT_SHARED_c1
@@ -70,7 +69,7 @@ void MatchModel::update() {
     // extend current match
     if( length != 0 ) {
       index++;
-      if( length < mask ) {
+      if( length < 65535) {
         length++;
       }
     }
@@ -145,8 +144,12 @@ void MatchModel::mix(Mixer &m) {
   for( uint32_t i = 0; i < nST; i++ ) {
     const uint32_t c = ctx[i];
     if( c != 0 ) {
-      m.add(stretch(stateMaps[i].p1(c)) >> 1U);
+      const int p1 = stateMaps[i].p1(c);
+      const int st = stretch(p1);
+      m.add(st >> 2);
+      m.add((p1 - 2048) >> 3);
     } else {
+      m.add(0);
       m.add(0);
     }
   }
@@ -183,14 +186,12 @@ void MatchModel::mix(Mixer &m) {
     mapL[0].set(hash(expectedByte, c0, c4 & 0xffffu, length3Rm)); // max context bits: 8+8+16+3 = 35
     INJECT_SHARED_y
     iCtx += y;
-    const uint8_t c = length3Rm << 1U | expectedBit; // 4 bits
-    iCtx = (bpos << 11U) | (c1 << 3U) | c;
-    map[0].set(iCtx());
-    SCM.set((bpos << 3U) | c);
+    const uint8_t c = length3Rm << 1 | expectedBit; // 4 bits
+    iCtx = (bpos << 12) | (c1 << 4) | c; // 15 bits
+    map[0].set(iCtx()); // 15 bits
   }
   mapL[0].mix(m);
   map[0].mix(m);
-  SCM.mix(m);
 
   const uint32_t lengthC = lengthIlog2 != 0 ? lengthIlog2 + 1 : static_cast<uint32_t>(delta);
   //no match, no delta mode:   lengthC=0

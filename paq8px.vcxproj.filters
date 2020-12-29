@@ -171,9 +171,6 @@
     <ClCompile Include="model\IndirectModel.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="model\Info.cpp">
-      <Filter>model</Filter>
-    </ClCompile>
     <ClCompile Include="model\JpegModel.cpp">
       <Filter>model</Filter>
     </ClCompile>
@@ -248,6 +245,9 @@
     </ClCompile>
     <ClCompile Include="LargeStationaryMap.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="model\Info.cpp">
+      <Filter>model</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -639,6 +639,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Bucket16.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LargeIndirectContext.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashElementForContextMap.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashElementForStationaryMap.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

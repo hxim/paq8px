@@ -1,7 +1,6 @@
 #ifndef PAQ8PX_CONTEXTMODEL_HPP
 #define PAQ8PX_CONTEXTMODEL_HPP
 
-#include "../text/TextModel.hpp"
 #include "../Mixer.hpp"
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"

@@ -13,13 +13,14 @@ void SparseBitModel::mix(Mixer &m) {
     const uint8_t __ = CM_USE_NONE;
     uint64_t i = 0;
     if (isText) {
-      cm.skipn(__, 3);
-      i += 3;
+      cm.skipn(__, 4);
+      i += 4;
     }
     else {
       cm.set(__, hash(++i, c4 & 0x0000f8f8));
       cm.set(__, hash(++i, c4 & 0x00f8f8f8));
       cm.set(__, hash(++i, c4 & 0xf8f8f8f8));
+      cm.set(__, hash(++i, c4 & 0x0f0f0f0f));
     }
     cm.set(__, hash(++i, c4 & 0x00f0f0ff));
     cm.set(__, hash(++i, c4 & 0xdfdfdfe0));

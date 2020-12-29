@@ -5,8 +5,8 @@ SparseMatchModel::SparseMatchModel(const Shared* const sh, const uint64_t size) 
   mapL { /* LargeStationaryMap: HashMaskBits, Scale, AdaptivityRate  */
     {sh,17,64,16}
   },
-  maps{ /* StationaryMap: BitsOfContext, InputBits, Scale, AdaptivityRate  */
-    {sh,17,4,64,16}, {sh,8,1,64,16}, {sh,19,1,64,16}
+  maps{ /* StationaryMap: BitsOfContext, InputBits, Scale=64, Rate=16  */
+    {sh,17,4}, {sh,8,1}, {sh,19,1}
   },
   mask(uint32_t(size / sizeof(uint32_t) - 1)),
   hashBits(ilog2(mask + 1)) {

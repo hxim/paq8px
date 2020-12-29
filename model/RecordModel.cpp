@@ -3,8 +3,8 @@
 RecordModel::RecordModel(Shared* const sh, const uint64_t size) : shared(sh),
     cm(sh,32768,3), cn(sh,32768/2,3), co(sh,32768*2,3), // cm,cn,co: memory pressure is advantageous
     cp(sh,size,16),
-    maps{ /* StationaryMap :  BitsOfContext, InputBits, Scale, AdaptivityRate  */
-      {sh,10,8,64,16},{sh,10,8,64,16},{sh,8,8,64,16},{sh,8,8,64,16},{sh,8,8,64,16},{sh,11,1,64,16}
+    maps{ /* StationaryMap :  BitsOfContext, InputBits, Scale=64, Rate=16  */
+      {sh,10,8},{sh,10,8},{sh,8,8},{sh,8,8},{sh,8,8},{sh,11,1}
     },
     sMap{ /* SmallStationaryContextMap :  BitsOfContext, InputBits, Rate, Scale */
       {sh,11,1,6,86}, {sh,3,1,6,86}, {sh,19,1,5,128},

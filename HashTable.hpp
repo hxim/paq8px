@@ -34,7 +34,7 @@ public:
     explicit HashTable(uint64_t n) : t(n), mask(static_cast<int>(n) - 1), hashBits(ilog2(mask + 1)) {
       assert(B >= 2 && isPowerOf2(B));
       assert(n >= B * 4 && isPowerOf2(n));
-      assert(n < (1ULL << 31U));
+      assert(n < (UINT64_C(1) << 31U));
     }
 
     /**

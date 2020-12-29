@@ -62,7 +62,7 @@ public:
      */
     void processChar(bool isExtendedChar);
     void lineModelPredict();
-    static void lineModelSkip(ContextMap2 &cm);
+    void lineModelSkip();
     void predict(uint8_t pdfTextParserState);
 };
 

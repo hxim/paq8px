@@ -2,7 +2,7 @@
 
 SmallStationaryContextMap::SmallStationaryContextMap(const Shared* const sh, const int bitsOfContext, const int inputBits, const int rate, const int scale) : 
   shared(sh),
-  data((1ULL << bitsOfContext) * ((1ULL << inputBits) - 1)), 
+  data((UINT64_C(1) << bitsOfContext) * ((UINT64_C(1) << inputBits) - 1)),
   mask((1U << bitsOfContext) - 1), 
   stride((1U << inputBits) - 1),
   bTotal(inputBits), rate(rate), scale(scale) {

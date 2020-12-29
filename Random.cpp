@@ -10,6 +10,7 @@ Random::Random() {
 // https://en.wikipedia.org/wiki/Linear_congruential_generator
 
 auto Random::operator()(int numberOfBits) -> uint32_t {
+  assert(numberOfBits > 0 && numberOfBits <= 32);
   _state = (_state + 1) * PHI64;
-  return _state >> (64 - numberOfBits);
+  return static_cast<uint32_t>(_state >> (64 - numberOfBits));
 }

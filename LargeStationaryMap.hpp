@@ -13,23 +13,25 @@
  * The context is a hash. For each bit modelled, the exact counts of 0s and 1s are stored.
  *
  */
+
 class LargeStationaryMap : IPredictor {
 public:
     static constexpr int MIXERINPUTS = 3;
 
 private:
     const Shared * const shared;
-    Array<Bucket16> data;
-    const uint32_t maskBits;
+    Random rnd;
+    Array<Bucket16<HashElementForStationaryMap, 7>> data;
+    const uint32_t hashBits;
     int scale, rate;
     uint64_t context;
-    uint16_t *cp;
+    uint32_t *cp;
 
 public:
     /**
-     * Construct using 2^hashMaskBits * sizeof(Bucket16) bytes of memory for storing a maximum of 2^hashMaskBits * ElementsInBucket
+     * Construct using 2^hashBits * sizeof(Bucket16) bytes of memory for storing a maximum of 2^hashBits * ElementsInBucket
      * That is:
-      *  hashMaskBits |       memory          |   maximum number of contexts
+      *   hashBits    |       memory          |   maximum number of contexts
       *       10      |  2^10 * 42 =   43 KB  |         7 K  (~12 bits)
       *       11      |  2^11 * 42 =   86 KB  |        14 K  (~13 bits)
       *       12      |  2^12 * 42 =  172 KB  |        28 K  (~14 bits)
@@ -43,12 +45,10 @@ public:
       *       20      |  2^20 * 42 = 88.0 MB  |      14.6 M  (~22 bits)
       *      ...              ...                         ...
       * 
-     * @param bitsOfContext How many bits to use for each context. Higher bits are discarded.
-     * @param inputBits How many bits [1..8] of input are to be modelled for each context. New contexts must be set at those intervals.
      * @param scale
-     * @param rate
+     * @param rate use 16 near-stationary modelling (default), smaller values may be used for tuning adaptivity
      */
-    LargeStationaryMap(const Shared* const sh, const int hashMaskBits, const int scale, const int rate);
+    LargeStationaryMap(const Shared* const sh, const int hashBits, const int scale = 64, const int rate = 16);
 
     /**
      * ctx must be a hash

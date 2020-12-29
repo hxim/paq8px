@@ -52,7 +52,7 @@ void WordModel::mix(Mixer &m) {
         infoPdf.processChar(isExtendedChar);
       }
       infoPdf.predict(pdfTextParserState);
-      Info::lineModelSkip(cm);
+      infoPdf.lineModelSkip();
     } else {
       INJECT_SHARED_blockType
       const bool isTextBlock = blockType == TEXT || blockType == TEXT_EOL;

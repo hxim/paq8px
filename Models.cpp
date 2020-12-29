@@ -49,7 +49,7 @@ auto Models::sparseBitModel() -> SparseBitModel& {
 }
 
 auto Models::sparseModel() -> SparseModel & {
-  static SparseModel instance {shared, shared->mem * 2};
+  static SparseModel instance {shared, shared->mem * 4};
   return instance;
 }
 
@@ -64,7 +64,7 @@ auto Models::sparseMatchModel() -> SparseMatchModel & {
 }
 
 auto Models::indirectModel() -> IndirectModel & {
-  static IndirectModel instance {shared, shared->mem};
+  static IndirectModel instance {shared, shared->mem * 2};
   return instance;
 }
 

@@ -1,16 +1,17 @@
 #include "LargeStationaryMap.hpp"
 
-LargeStationaryMap::LargeStationaryMap(const Shared* const sh, const int hashMaskBits, const int scale, const int rate) :
+LargeStationaryMap::LargeStationaryMap(const Shared* const sh, const int hashBits, const int scale, const int rate) :
   shared(sh),
-  data((1ULL << hashMaskBits)),
-  maskBits(hashMaskBits),
+  rnd(),
+  data((UINT64_C(1) << hashBits)),
+  hashBits(hashBits),
   scale(scale),
   rate(rate) {
 #ifdef VERBOSE
-  printf("Created LargeStationaryMap with hashMaskBits = %d, %d, scale = %d, rate = %d\n", hashMaskBits, scale, rate);
+  printf("Created LargeStationaryMap with hashBits = %d, %d, scale = %d, rate = %d\n", hashBits, scale, rate);
 #endif
-  assert(hashMaskBits > 0);
-  assert(hashMaskBits <= 24); // 24 is just a reasonable limit for memory use 
+  assert(hashBits > 0);
+  assert(hashBits <= 24); // 24 is just a reasonable limit for memory use 
   assert(9 <= rate && rate <= 16); // 9 is just a reasonable lower bound, 16 is a hard bound
   reset();
   set(0);
@@ -33,32 +34,33 @@ void LargeStationaryMap::reset() {
 void LargeStationaryMap::update() {
   INJECT_SHARED_y
 
-  uint32_t counts, n0, n1;
-  n0 = cp[0];
-  n1 = cp[1];
+  uint32_t n0, n1, value;
+  value = *cp;
+  n0 = value >> 16;
+  n1 = value & 0xffff;
 
   n0 += 1 - y;
   n1 += y;
-  int shift = (n0 | n1) >> rate; //near-stationary: rate=16; adaptive: smaller rate
+  int shift = (n0 | n1) >> rate; // shift: 0 or 1
   n0 >>= shift;
   n1 >>= shift;
 
-  cp[0] = n0;
-  cp[1] = n1;
+  *cp = n0 << 16 | n1;
 
   context = hash(context, y);
 }
 
 void LargeStationaryMap::mix(Mixer &m) {
   shared->GetUpdateBroadcaster()->subscribe(this);
-  uint32_t n0, n1, sum;
-  int p1, st, bitIsUncertain, p0;
+  uint32_t n0, n1, value, sum;
+  int p1, st, bitIsUncertain;
   
-  uint32_t hashkey = finalize64(context, maskBits);
-  uint16_t checksum = checksum16(context, maskBits);
-  cp = data[hashkey].find(checksum);
-  n0 = cp[0];
-  n1 = cp[1];
+  uint32_t hashkey = finalize64(context, hashBits);
+  uint16_t checksum = checksum16(context, hashBits);
+  cp = &data[hashkey].find(checksum, &rnd)->value;
+  value = *cp;
+  n0 = value >> 16;
+  n1 = value & 0xffff;
 
   sum = n0 + n1;
   p1 = ((n1 * 2 + 1) << 12) / (sum * 2 + 2);

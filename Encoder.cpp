@@ -6,7 +6,7 @@ Encoder::Encoder(Shared* const sh, Mode m, File *f) : shared(sh), predictor(sh),
     uint64_t start = size();
     archive->setEnd();
     uint64_t end = size();
-    if( end >= (1ULL << 31)) {
+    if( end >= (UINT64_C(1) << 31)) {
       quit("Large archives not yet supported.");
     }
     setStatusRange(0.0, static_cast<float>(end));

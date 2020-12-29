@@ -29,3 +29,7 @@ void StateTable::update(uint8_t *const state, const int y, Random &rnd) {
 auto StateTable::group(const uint8_t state) -> uint8_t {
   return stateGroup[state];
 }
+
+auto StateTable::prio(const uint8_t state) -> uint8_t {
+  return statePrio[state];
+}

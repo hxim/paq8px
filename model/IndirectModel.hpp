@@ -3,8 +3,8 @@
 
 #include "../ContextMap.hpp"
 #include "../IndirectContext.hpp"
+#include "../LargeIndirectContext.hpp"
 #include "../Mixer.hpp"
-#include "../RingBuffer.hpp"
 #include "../Shared.hpp"
 #include <cctype>
 
@@ -13,17 +13,19 @@
  */
 class IndirectModel {
 private:
-    static constexpr int nCM = 15;
+    static constexpr int nCM = 27;
     const Shared * const shared;
     ContextMap cm;
-    Array<uint32_t> t1 {256};
-    Array<uint16_t> t2 {0x10000};
-    Array<uint16_t> t3 {0x8000};
-    Array<uint16_t> t4 {0x8000};
-    IndirectContext<uint32_t> iCtx {16, 8};
+    Array<uint32_t> t1 {256}; // 1K
+    Array<uint16_t> t2 {256*256}; // 128K
+    Array<uint16_t> t3 {32*32*32}; // 64K
+    Array<uint16_t> t4 {16*16*16*16}; // 128K
+    Array<uint32_t> t5 {256*256}; // 256K
+    LargeIndirectContext<uint32_t> iCtxLarge{ 18,8 }; // 11MB // hashBits, inputBits
+    uint32_t chars4 {0};
 
 public:
-    static constexpr int MIXERINPUTS = nCM * (ContextMap::MIXERINPUTS); // 75
+    static constexpr int MIXERINPUTS = nCM * (ContextMap::MIXERINPUTS); // 135
     static constexpr int MIXERCONTEXTS = 0;
     static constexpr int MIXERCONTEXTSETS = 0;
     explicit IndirectModel(const Shared* const sh, uint64_t size);

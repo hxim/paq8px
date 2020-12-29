@@ -284,7 +284,7 @@ void Info::lineModelPredict() {
   assert(i == 1024 + nCM1);
 }
 
-void Info::lineModelSkip(ContextMap2 &cm) {
+void Info::lineModelSkip() {
   const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
   cm.skipn(RH, nCM1);
 }
