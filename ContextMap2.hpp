@@ -34,6 +34,7 @@ mapped to predictions.
 #define CM_USE_NONE 0
 #define CM_USE_RUN_STATS 1
 #define CM_USE_BYTE_HISTORY 2
+#define CM_DEFERRED 64
 #define CM_SKIPPED_CONTEXT 128
 
 class ContextMap2 : IPredictor {
@@ -43,16 +44,21 @@ public:
     static constexpr int MIXERINPUTS_BYTE_HISTORY = 2;
 
 private:
+
+  struct ContextInfo {
+    HashElementForContextMap* slot0; /**< pointer to current byte history in slot0 */
+    HashElementForContextMap* slot012; /**< pointer to current bit history states in current slot (either slot0 or slot1 or slot2) */
+    uint32_t tableIndex; /**< @ref C whole byte context hashes */
+    uint16_t tableChecksum; /**< @ref C whole byte context checksums */
+    uint8_t flags;
+    HashElementForContextMap bitStateTmp;
+  };
+
     const Shared * const shared;
     Random rnd;
     const uint32_t C; /**< max number of contexts */
-    Array<Bucket16<HashElementForContextMap, 7>> table; /**< bit and byte histories (statistics) */
-    Array<uint8_t *> bitState; /**< @ref C pointers to current bit history states */
-    Array<uint8_t *> bitState0; /**< First element of 7 element array containing bitState[i] */
-    Array<uint8_t *> byteHistory; /**< @ref C pointers to run stats plus byte history, 4 bytes, [RunStats,1..3] */
-    Array<uint32_t> contexts; /**< @ref C whole byte context hashes */
-    Array<uint16_t> checksums; /**< @ref C whole byte context checksums */
-    Array<uint8_t> contextflags;
+    Array<Bucket16<HashElementForContextMap, 7>> hashTable; /**< bit and byte histories (statistics) */
+    Array<ContextInfo> contextInfoList;
     StateMap runMap;
     StateMap stateMap;
     StateMap bhMap8B;
@@ -62,6 +68,10 @@ private:
     const int hashBits;
     int scale;
     uint8_t contextflagsAll;
+
+    void updatePendingContextsInSlot(HashElementForContextMap* const p, uint32_t c);
+    void updatePendingContexts(uint32_t ctx, uint16_t checksum, uint32_t c);
+    size_t getStateByteLocation(const uint32_t bpos, const uint32_t c0);
 
 public:
     int order = 0; // is set after mix()
@@ -78,11 +88,11 @@ public:
      * Set next whole byte context to @ref ctx.
      * @param ctx
      */
-    void set(const uint8_t ctxflags, uint64_t ctx);
+    void set(uint8_t ctxflags, const uint64_t ctx);
     void skip(const uint8_t ctxflags);
-    void skipn(const uint8_t ctxflags, int n);
+    void skipn(const uint8_t ctxflags, const int n);
     void update() override;
-    void setScale(int Scale);
+    void setScale(const int Scale);
     void mix(Mixer &m);
 };
 

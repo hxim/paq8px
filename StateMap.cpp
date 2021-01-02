@@ -9,9 +9,9 @@ StateMap::StateMap(const Shared* const sh, const int s, const int n, const int l
   assert(limit > 0 && limit < 1024);
   if( mapType == BitHistory ) { // when the context is a bit history byte, we have a-priory for p
     assert((numContextsPerSet & 255) == 0);
-    for( uint32_t cx = 0; cx < numContextsPerSet; ++cx ) {
+    for( uint64_t cx = 0; cx < numContextsPerSet; ++cx ) {
       auto state = uint8_t(cx & 255);
-      for ( uint32_t s = 0; s < numContextSets; ++s ) {
+      for ( uint64_t s = 0; s < numContextSets; ++s ) {
         uint32_t n0 = StateTable::next(state, 2);
         uint32_t n1 = StateTable::next(state, 3);
         uint32_t p;
@@ -39,7 +39,7 @@ StateMap::StateMap(const Shared* const sh, const int s, const int n, const int l
       }
     }
   } else if( mapType == Run ) { // when the context is a run count: we have a-priory for p
-    for( uint32_t cx = 0; cx < numContextsPerSet; ++cx ) {
+    for( uint64_t cx = 0; cx < numContextsPerSet; ++cx ) {
       const int predictedBit = (cx) & 1;
       const int uncertainty = (cx >> 1) & 1;
       //const int bp = (cx>>2)&1; // unused in calculation - a-priory does not seem to depend on bitPosition in the general case
@@ -49,7 +49,7 @@ StateMap::StateMap(const Shared* const sh, const int s, const int n, const int l
       if( predictedBit == 0 ) {
         std::swap(n0, n1);
       }
-      for( uint32_t s = 0; s < numContextSets; ++s ) {
+      for( uint64_t s = 0; s < numContextSets; ++s ) {
         t[s * numContextsPerSet + cx] = ((n1 << 20) / (n0 + n1)) << 12 | min(runCount, limit);
       }
     }

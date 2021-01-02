@@ -41,6 +41,18 @@ static_assert(sizeof(int) == 4, "sizeof(int)");
 #define ALWAYS_INLINE inline
 #endif
 
+
+#if defined(NDEBUG)
+#if defined(_MSC_VER)
+#define assume(cond) __assume(cond)
+#else
+#define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
+#endif
+#else
+#include <cassert>
+#define assume(cond) assert(cond)
+#endif
+
 #include <algorithm>
 #include <cstdio>
 // Determining the proper printf() format specifier for 64 bit unsigned integers:

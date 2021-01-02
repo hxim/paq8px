@@ -47,17 +47,20 @@ public:
   }
 
   T* find(uint16_t checksum, Random* rnd) {
+
     checksum += checksum == 0; //don't allow 0 checksums (0 checksums are used for empty slots)
-    for (size_t i = 0; i < ElementsInBucket; ++i) {
+
+    if (elements[0].checksum == checksum) //there is a high chance that we'll find it in the first slot, so go for it
+      return &elements[0].value;
+
+    for (size_t i = 1; i < ElementsInBucket; ++i) {
       if (elements[i].checksum == checksum) { // found matching checksum
-        if (i != 0) {
-          T value = elements[i].value;
-          //shift elements down
-          memmove(&elements[1], &elements[0], i * sizeof(HashElement<T>));
-          //move element to front (re-create)
-          elements[0].checksum = checksum;
-          elements[0].value = value;
-        }
+        T value = elements[i].value;
+        //shift elements down
+        memmove(&elements[1], &elements[0], i * sizeof(HashElement<T>));
+        //move element to front (re-create)
+        elements[0].checksum = checksum;
+        elements[0].value = value;
         return &elements[0].value;
       }
       if (elements[i].checksum == 0) { // found empty slot

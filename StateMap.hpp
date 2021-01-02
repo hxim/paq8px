@@ -29,8 +29,6 @@ public:
      */
     StateMap(const Shared* const sh, int s, int n, int lim, MAPTYPE mapType);
 
-    void reset(int rate);
-
     void update() override;
 
     /**

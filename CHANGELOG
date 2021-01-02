@@ -1848,3 +1848,10 @@ paq8px_v199 by Zoltán Gotthardt
 - NormalModel now includes the BlockType in its contexts
 - Introducing probabilistic hash replacement strategy for ContextMap, ContextMap2 and LargeStationaryMap
 - Other small fixes and cosmetic changes
+
+
+paq8px_v200 by Zoltán Gotthardt
+2020.12.31
+- Speed improvements in ContextMap and ContextMap2
+- In ContextMap2 updating bit histories for bits 2-7 was deferred for the first byte; now it is deferred for the first 3 bytes (both speed and compression improvement)
+- Small speed improvement in Bucket16

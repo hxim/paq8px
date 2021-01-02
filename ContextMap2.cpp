@@ -1,12 +1,12 @@
 #include "ContextMap2.hpp"
 
-ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), C(contexts), table(size >> 6),
-        bitState(contexts), bitState0(contexts), byteHistory(contexts), contexts(contexts), checksums(contexts), contextflags(contexts),
-        runMap(sh, contexts, (1U << 12U), 127, StateMap::Run),         /* StateMap : s, n, lim, init */ // 63-255
-        stateMap(sh, contexts, (1U << 8U), 511, StateMap::BitHistory), /* StateMap : s, n, lim, init */ // 511-1023
-        bhMap8B(sh, contexts, (1U << 8U), 511, StateMap::Generic),     /* StateMap : s, n, lim, init */ // 511-1023
-        bhMap12B(sh, contexts, (1U << 12U), 511, StateMap::Generic),   /* StateMap : s, n, lim, init */ // 255-1023
-        index(0), mask(uint32_t(table.size() - 1)), hashBits(ilog2(mask + 1)), scale(scale), contextflagsAll(0) {
+ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), 
+        C(contexts), contextInfoList(contexts), hashTable(size >> 6),
+        runMap(sh, contexts, (1 << 12), 127, StateMap::Run),         /* StateMap : s, n, lim, init */ // 63-255
+        stateMap(sh, contexts, (1 << 8), 511, StateMap::BitHistory), /* StateMap : s, n, lim, init */ // 511-1023
+        bhMap8B(sh, contexts, (1 << 8), 511, StateMap::Generic),     /* StateMap : s, n, lim, init */ // 511-1023
+        bhMap12B(sh, contexts, (1 << 12), 511, StateMap::Generic),   /* StateMap : s, n, lim, init */ // 255-1023
+        index(0), mask(uint32_t(hashTable.size() - 1)), hashBits(ilog2(mask + 1)), scale(scale), contextflagsAll(0) {
 #ifdef VERBOSE
   printf("Created ContextMap2 with size = %" PRIu64 ", contexts = %d, scale = %d\n", size, contexts, scale);
 #endif
@@ -14,47 +14,104 @@ ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint
   static_assert(sizeof(Bucket16 <HashElementForContextMap, 7>) == (sizeof(HashElementForContextMap) + 2) * 7, "Something is wrong, please pack that struct");
 }
 
-void ContextMap2::set(const uint8_t ctxflags, const uint64_t ctx) {
+void ContextMap2::updatePendingContextsInSlot(HashElementForContextMap* const p, uint32_t c) {
+  // in case of a collision updating (mixing) is slightly better (but slightly slower) then resetting, so we update
+  StateTable::update(&p->bitState, (c >> 2) & 1, rnd);
+  StateTable::update(&p->bitState0 + ((c >> 2) & 1), (c >> 1) & 1, rnd);
+  StateTable::update(&p->bitStates.bitState00 + ((c >> 1) & 3), c & 1, rnd);
+}
+
+void ContextMap2::updatePendingContexts(uint32_t ctx, uint16_t checksum, uint32_t c) {
+  // update pending bit histories for bits 2, 3, 4
+  HashElementForContextMap* const p1A = hashTable[(ctx + (c >> 6)) & mask].find(checksum, &rnd);
+  updatePendingContextsInSlot(p1A, c >> 3);
+  // update pending bit histories for bits 5, 6, 7
+  HashElementForContextMap* const p1B = hashTable[(ctx + (c >> 3)) & mask].find(checksum, &rnd);
+  updatePendingContextsInSlot(p1B, c);
+}
+
+void ContextMap2::set(uint8_t ctxflags, const uint64_t contexthash) {
   assert(index >= 0 && index < C);
-  const uint32_t ctx0 = contexts[index] = finalize64(ctx, hashBits);
-  const uint16_t chk0 = checksums[index] = checksum16(ctx, hashBits);
-  uint8_t *base = bitState[index] = bitState0[index] = &table[ctx0].find(chk0, &rnd)->bitStats.bit;
-  byteHistory[index] = &base[3];
-  const uint8_t runCount = base[3];
-  if( runCount == 255 ) { // pending
-    // update pending bit histories for bits 2-7
-    // in case of a collision updating (mixing) is slightly better (but slightly slower) then resetting, so we update
-    const int c = base[4] + 256;
-    uint8_t *p1A = &table[(ctx0 + (c >> 6U)) & mask].find(chk0, &rnd)->bitStats.bit;
-    StateTable::update(p1A, ((c >> 5U) & 1), rnd);
-    StateTable::update(p1A + 1 + ((c >> 5) & 1), ((c >> 4) & 1), rnd);
-    StateTable::update(p1A + 3 + ((c >> 4U) & 3), ((c >> 3) & 1), rnd);
-    uint8_t *p1B = &table[(ctx0 + (c >> 3)) & mask].find(chk0, &rnd)->bitStats.bit;
-    StateTable::update(p1B, (c >> 2) & 1, rnd);
-    StateTable::update(p1B + 1 + ((c >> 2) & 1), (c >> 1) & 1, rnd);
-    StateTable::update(p1B + 3 + ((c >> 1) & 3), c & 1, rnd);
-    base[3] = 1; // runCount: flag for having completed storing all the 8 bits of the first byte
-  } else {
-    const uint8_t byteState = base[0];
-    if( byteState == 0 ) { // empty slot, new context
-      base[3] = 255; // runCount: flag for skipping updating bits 2..7
+  ContextInfo *contextInfo = &contextInfoList[index];
+  const uint32_t ctx = contextInfo->tableIndex = finalize64(contexthash, hashBits);
+  const uint16_t chk = contextInfo->tableChecksum = checksum16(contexthash, hashBits);
+  HashElementForContextMap* const slot0 =  hashTable[ctx].find(chk, &rnd);
+  contextInfo->slot0 = slot0;
+  contextInfo->slot012 = slot0;
+
+  if (slot0->bitState <= 6) { // while constructing statistics for the first 3 bytes (states: 0; 1-2; 3-6) defer updating bit statistics in slot1 and slot2
+    ctxflags |= CM_DEFERRED;
+  }
+  else if (slot0->bitState <= 14) { // the first 3 bytes in this context are now known, it's time to update pending bit histories
+    if (slot0->byteStats.runcount == 2) {
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte2 + 256);
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte1 + 256);
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte1 + 256);
+    }
+    else {
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte3 + 256);
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte2 + 256);
+      updatePendingContexts(ctx, chk, slot0->byteStats.byte1 + 256);
     }
   }
-  contextflags[index] = ctxflags;
+  
+  contextInfo->flags = ctxflags;
   contextflagsAll |= ctxflags;
   index++;
 }
 
+
 void ContextMap2::skip(const uint8_t ctxflags) {
   assert(index >= 0 && index < C);
-  contextflags[index] = ctxflags | CM_SKIPPED_CONTEXT;
+  contextInfoList[index].flags = ctxflags | CM_SKIPPED_CONTEXT;
   index++;
 }
 
-void ContextMap2::skipn(const uint8_t ctxflags, int n) {
+void ContextMap2::skipn(const uint8_t ctxflags, const int n) {
   for (int i = 0; i < n; i++)
     skip(ctxflags);
 }
+
+ALWAYS_INLINE
+size_t ContextMap2::getStateByteLocation(const uint32_t bpos, const uint32_t c0) {
+  uint32_t pis = 0; //state byte position in slot
+  if (false) {
+    // this version is for readability
+    switch (bpos) {
+    case 0: //slot0
+      pis = 0;
+      break;
+    case 1: //slot0
+      pis = 1 + (c0 & 1);
+      break;
+    case 2: //slot1
+      pis = 0;
+      break;
+    case 3: //slot1
+      pis = 1 + (c0 & 1);
+      break;
+    case 4: //slot1
+      pis = 3 + (c0 & 3);
+      break;
+    case 5: //slot2
+      break;
+    case 6: //slot2
+      pis = 1 + (c0 & 1);
+      break;
+    case 7: //slot2
+      pis = 3 + (c0 & 3);
+      break;
+    }
+  }
+  else {
+    // this is a speed optimized (branchless) version of the above
+    const uint32_t smask = (UINT32_C(0x31031010) >> (bpos << 2)) & 0x0F;
+    pis = smask + (c0 & smask);
+  }
+
+  return pis;
+}
+
 
 void ContextMap2::update() {
   INJECT_SHARED_y
@@ -62,59 +119,62 @@ void ContextMap2::update() {
   INJECT_SHARED_c1
   INJECT_SHARED_c0
   for( uint32_t i = 0; i < index; i++ ) {
-    if((contextflags[i] & CM_SKIPPED_CONTEXT) == 0) {
-      if( bitState[i] != nullptr ) {
-        StateTable::update(bitState[i], y, rnd);
+    ContextInfo* contextInfo = &contextInfoList[i];
+    if((contextInfo->flags & CM_SKIPPED_CONTEXT) == 0) {
+      uint8_t* pState = &contextInfo->slot012->bitState + getStateByteLocation((bpos - 1) & 7, (bpos == 0 ? c1 + 256u : c0) >> 1);
+      StateTable::update(pState, y, rnd);
+      
+      assume(bpos >= 0 && bpos <= 7);
+      if (bpos == 0) {
+        // update byte history and run statistics
+        if (contextInfo->slot0->bitState < 3) {
+          contextInfo->slot0->byteStats.byte3 = contextInfo->slot0->byteStats.byte2 = contextInfo->slot0->byteStats.byte1 = c1;
+          contextInfo->slot0->byteStats.runcount = 1;
+        }
+        else {
+          const bool isMatch = contextInfo->slot0->byteStats.byte1 == c1;
+          if (isMatch) {
+            uint8_t runCount = contextInfo->slot0->byteStats.runcount;
+            if (runCount < 255) {
+              contextInfo->slot0->byteStats.runcount = runCount + 1;
+            }
+          }
+          else {
+            // shift byte candidates
+            contextInfo->slot0->byteStats.runcount = 1;
+            contextInfo->slot0->byteStats.byte3 = contextInfo->slot0->byteStats.byte2;
+            contextInfo->slot0->byteStats.byte2 = contextInfo->slot0->byteStats.byte1;
+            contextInfo->slot0->byteStats.byte1 = c1; //last byte seen
+          }
+        }
       }
+      else if( bpos==2 || bpos==5 ) {
+        if (contextInfo->flags & CM_DEFERRED) { //when in deferred mode...
+          // ...reconstruct bit states in temporary location from last seen bytes 
 
-      auto byteHistoryPtr = byteHistory[i];
-      const auto runCount = byteHistoryPtr[0];
-
-      if( runCount == 255 && bpos >= 2 ) {
-        bitState[i] = nullptr; // shadow non-reserved slots for bits 2..7 and skip update temporarily
-      } else {
-        switch( bpos ) {
-          case 0: {
-            // update byte history
-            const auto byteState = byteHistoryPtr[-3];
-            if (byteState < 3) { // 1st byte has just become known
-              byteHistoryPtr[1] = byteHistoryPtr[2] = byteHistoryPtr[3] = c1; // set all byte candidates to c1
+          memset(&contextInfo->bitStateTmp, 0, 7);
+          contextInfo->slot012 = &contextInfo->bitStateTmp;
+          
+          const uint8_t bit0state = contextInfo->slot0->bitState;
+          if (bit0state >= 3) { // at least 1 byte was seen
+            const uint8_t byte2 = bit0state >= 7 ? contextInfo->slot0->byteStats.byte2 : contextInfo->slot0->byteStats.byte1;
+            const uint8_t mask = ((1 << bpos) - 1);
+            const int shift = 8 - bpos;
+            if (((c0 ^ (byte2 >> shift)) & mask) == 0) { // last 2/5 bits must match otherwise it's not the current slot location
+              updatePendingContextsInSlot(&contextInfo->bitStateTmp, byte2 >> (shift - 3)); // simulate the current states at the temporary location
             }
-            else { // 2nd byte is known
-              const auto isMatch = byteHistoryPtr[1] == c1;
-              if (isMatch) {
-                if (runCount < 253) {
-                  byteHistoryPtr[0] = runCount + 1;
-                }
-              }
-              else {
-                byteHistoryPtr[0] = 1; //runCount
-                // scroll byte candidates
-                byteHistoryPtr[3] = byteHistoryPtr[2];
-                byteHistoryPtr[2] = byteHistoryPtr[1];
-                byteHistoryPtr[1] = c1;
+            if (bit0state >= 7) { // at least 2 bytes were seen
+              const uint8_t byte1 = contextInfo->slot0->byteStats.byte1;
+              if (((c0 ^ (byte1 >> shift)) & mask) == 0) { // last 2/5 bits must match otherwise it's not the current slot location
+                updatePendingContextsInSlot(&contextInfo->bitStateTmp, byte1 >> (shift - 3)); // simulate the current states at the temporary location
               }
             }
-            break;
           }
-          case 2:
-          case 5: {
-            const uint32_t ctx = contexts[i];
-            const uint16_t chk = checksums[i];
-            bitState[i] = bitState0[i] = &table[(ctx + c0) & mask].find(chk, &rnd)->bitStats.bit;
-            break;
-          }
-          case 1:
-          case 3:
-          case 6:
-            bitState[i] = bitState0[i] + 1 + y;
-            break;
-          case 4:
-          case 7:
-            bitState[i] = bitState0[i] + 3 + (c0 & 3U);
-            break;
-          default:
-            assert(false);
+        }
+        else {
+          const uint32_t ctx = contextInfo->tableIndex;
+          const uint16_t chk = contextInfo->tableChecksum;
+          contextInfo->slot012 = hashTable[(ctx + c0) & mask].find(chk, &rnd);
         }
       }
     }
@@ -141,35 +201,34 @@ void ContextMap2::mix(Mixer &m) {
   INJECT_SHARED_bpos
   INJECT_SHARED_c0
   for( uint32_t i = 0; i < index; i++ ) {
-    if((contextflags[i] & CM_SKIPPED_CONTEXT) == 0 ) {
-      const int state = bitState[i] != nullptr ? *bitState[i] : 0;
+    ContextInfo* contextInfo = &contextInfoList[i];
+    if((contextInfo->flags & CM_SKIPPED_CONTEXT) == 0 ) {
+
+      uint8_t* pState = &contextInfo->slot012->bitState + getStateByteLocation(bpos, c0);
+      const int state = *pState;
       const int n0 = StateTable::next(state, 2);
       const int n1 = StateTable::next(state, 3);
       const int bitIsUncertain = int(n0 != 0 && n1 != 0);
 
       // predict from last byte(s) in context
-      auto byteHistoryPtr = byteHistory[i];
-      uint8_t byteState = byteHistoryPtr[-3];
-      const uint8_t byte1 = byteHistoryPtr[1];
-      const uint8_t byte2 = byteHistoryPtr[2];
-      const uint8_t byte3 = byteHistoryPtr[3];
+      uint8_t byteState = contextInfo->slot0->bitState;
       const bool complete1 = (byteState >= 3) || (byteState >= 1 && bpos == 0);
       const bool complete2 = (byteState >= 7) || (byteState >= 3 && bpos == 0);
       const bool complete3 = (byteState >= 15) || (byteState >= 7 && bpos == 0);
-      if((contextflags[i] & CM_USE_RUN_STATS) != 0 ) {
-        const int bp = (0xFEA4U >> (bpos << 1U)) & 3U; // {0}->0  {1}->1  {2,3,4}->2  {5,6,7}->3
+      if((contextInfo->flags & CM_USE_RUN_STATS) != 0 ) {
+        const int bp = (UINT32_C(0x33322210) >> (bpos << 2)) & 0xF; // {bpos:0}->0  {bpos:1}->1  {bpos:2,3,4}->2  {bpos:5,6,7}->3
         bool skipRunMap = true;
         if( complete1 ) {
-          if(((byte1 + 256) >> (8 - bpos)) == c0 ) { // 1st candidate (last byte seen) matches
-            const int predictedBit = (byte1 >> (7 - bpos)) & 1U;
-            const int byte1IsUncertain = static_cast<const int>(byte2 != byte1);
-            const int runCount = byteHistoryPtr[0]; // 1..254
-            m.add(stretch(runMap.p2(i, runCount << 4U | bp << 2U | byte1IsUncertain << 1 | predictedBit)) >> (1 + byte1IsUncertain));
+          if(((contextInfo->slot0->byteStats.byte1 + 256u) >> (8 - bpos)) == c0 ) { // 1st candidate (last byte seen) matches
+            const int predictedBit = (contextInfo->slot0->byteStats.byte1 >> (7 - bpos)) & 1;
+            const int byte1IsUncertain = static_cast<const int>(contextInfo->slot0->byteStats.byte2 != contextInfo->slot0->byteStats.byte1);
+            const int runCount = contextInfo->slot0->byteStats.runcount; // 1..255
+            m.add(stretch(runMap.p2(i, runCount << 4 | bp << 2 | byte1IsUncertain << 1 | predictedBit)) >> (1 + byte1IsUncertain));
             skipRunMap = false;
-          } else if( complete2 && ((byte2 + 256) >> (8 - bpos)) == c0 ) { // 2nd candidate matches
-            const int predictedBit = (byte2 >> (7 - bpos)) & 1U;
-            const int byte2IsUncertain = static_cast<const int>(byte3 != byte2);
-            m.add(stretch(runMap.p2(i, bitIsUncertain << 1U | predictedBit)) >> (2 + byte2IsUncertain));
+          } else if( complete2 && ((contextInfo->slot0->byteStats.byte2 + 256u) >> (8 - bpos)) == c0 ) { // 2nd candidate matches
+            const int predictedBit = (contextInfo->slot0->byteStats.byte2 >> (7 - bpos)) & 1;
+            const int byte2IsUncertain = static_cast<const int>(contextInfo->slot0->byteStats.byte3 != contextInfo->slot0->byteStats.byte2);
+            m.add(stretch(runMap.p2(i, bitIsUncertain << 1 | predictedBit)) >> (2 + byte2IsUncertain));
             skipRunMap = false;
           }
           // remark: considering the 3rd byte is not beneficial in most cases, except for some 8bpp images
@@ -191,38 +250,39 @@ void ContextMap2::mix(Mixer &m) {
         const int st = (stretch(p1) * scale) >> 8;
         const int contextIsYoung = int(state <= 2);
         m.add(st >> contextIsYoung);
-        m.add(((p1 - 2048) * scale) >> 9U);
+        m.add(((p1 - 2048) * scale) >> 9);
         m.add((bitIsUncertain - 1) & st); // when both counts are nonzero add(0) otherwise add(st)
         const int p0 = 4095 - p1;
-        m.add((((p1 & (-!n0)) - (p0 & (-!n1))) * scale) >> 10U);
+        m.add((((p1 & (-!n0)) - (p0 & (-!n1))) * scale) >> 10);
         order++;
       }
 
-      if((contextflags[i] & CM_USE_BYTE_HISTORY) != 0 ) {
-        const int bhBits = (((byte1 >> (7 - bpos)) & 1)) | (((byte2 >> (7 - bpos)) & 1) << 1) |
-                            (((byte3 >> (7 - bpos)) & 1) << 2);
+      if((contextInfo->flags & CM_USE_BYTE_HISTORY) != 0 ) {
+        const int bhBits = 
+          (((contextInfo->slot0->byteStats.byte1 >> (7 - bpos)) & 1)) |
+          (((contextInfo->slot0->byteStats.byte2 >> (7 - bpos)) & 1) << 1) |
+          (((contextInfo->slot0->byteStats.byte3 >> (7 - bpos)) & 1) << 2);
 
         int bhState = 0; // 4 bit
         if( complete3 ) {
-          bhState = 8U | (bhBits); //we have seen 3 bytes (at least)
+          bhState = 8 | (bhBits); //we have seen 3 bytes (at least)
         } else if( complete2 ) {
-          bhState = 4U | (bhBits & 3U); //we have seen 2 bytes
+          bhState = 4 | (bhBits & 3); //we have seen 2 bytes
         } else if( complete1 ) {
-          bhState = 2U | (bhBits & 1U); //we have seen 1 byte only
+          bhState = 2 | (bhBits & 1); //we have seen 1 byte only
         }
         //else new context (bhState=0)
 
         const uint8_t stateGroup = StateTable::group(state); //0..31
-        m.add(stretch(bhMap8B.p2(i, bitIsUncertain << 7U | (bhState << 3U) | bpos))
-                      >> 2); // using bitIsUncertain is generally beneficial except for some 8bpp image (noticeable loss)
-        m.add(stretch(bhMap12B.p2(i, stateGroup << 7U | (bhState << 3U) | bpos)) >> 2U);
+        m.add(stretch(bhMap8B.p2(i, bitIsUncertain << 7 | (bhState << 3) | bpos)) >> 2); // using bitIsUncertain is generally beneficial except for some 8bpp image (noticeable loss)
+        m.add(stretch(bhMap12B.p2(i, stateGroup << 7 | (bhState << 3) | bpos)) >> 2);
       }
     } else { //skipped context
-      if((contextflags[i] & CM_USE_RUN_STATS) != 0 ) {
+      if((contextInfo->flags & CM_USE_RUN_STATS) != 0 ) {
         runMap.skip(i);
         m.add(0);
       }
-      if((contextflags[i] & CM_USE_BYTE_HISTORY) != 0 ) {
+      if((contextInfo->flags & CM_USE_BYTE_HISTORY) != 0 ) {
         bhMap8B.skip(i);
         m.add(0);
         bhMap12B.skip(i);

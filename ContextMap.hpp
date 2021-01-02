@@ -88,8 +88,7 @@ private:
     Random rnd;
     const int C; /**< max number of contexts */
     Array<Bucket16<HashElementForContextMap, 7>> t; /**< bit and byte histories (statistics) */
-    Array<uint8_t *> cp; /**< c pointers to current bit history */
-    Array<uint8_t *> cp0; /**< First element of 7 element array containing cp[i] */
+    Array<uint8_t *> cp; /**< @ref C pointers to current bit history */
     Array<uint32_t> cxt; /**< c whole byte context hashes */
     Array<uint16_t> chk; /**< c whole byte context checksums */
     Array<uint8_t *> runP; /**< c [0..3] = count, value, unused, unused */

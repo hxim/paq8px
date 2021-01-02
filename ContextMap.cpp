@@ -1,7 +1,7 @@
 #include "ContextMap.hpp"
 
 ContextMap::ContextMap(const Shared* const sh, uint64_t m, const int contexts) : 
-  shared(sh), C(contexts), t(m >> 6), cp(contexts), cp0(contexts), cxt(contexts), chk(contexts), runP(contexts),
+  shared(sh), C(contexts), t(m >> 6), cp(contexts), cxt(contexts), chk(contexts), runP(contexts),
   sm(sh, contexts, 256, 1023, StateMap::BitHistory), cn(0),
   mask(uint32_t(t.size() - 1)), hashBits(ilog2(mask + 1)), validFlags(0) {
 #ifdef VERBOSE
@@ -15,16 +15,16 @@ void ContextMap::set(const uint64_t cx) {
   assert(cn >= 0 && cn < C);
   const uint32_t ctx = cxt[cn] = finalize64(cx, hashBits);
   const uint16_t checksum = chk[cn] = checksum16(cx, hashBits);
-  uint8_t* base = cp0[cn] = cp[cn] = &t[ctx].find(checksum, &rnd)->byteStats.bit;
+  uint8_t* base = cp[cn] = &t[ctx].find(checksum, &rnd)->bitState;
   runP[cn] = base + 3;
   // update pending bit histories for bits 2-7
   if( base[3] == 2 ) {
     const int c = base[4] + 256;
-    uint8_t *p = &t[(ctx + (c >> 6U)) & mask].find(checksum, &rnd)->bitStats.bit;
+    uint8_t *p = &t[(ctx + (c >> 6U)) & mask].find(checksum, &rnd)->bitState;
     p[0] = 1 + ((c >> 5U) & 1U);
     p[1 + ((c >> 5U) & 1U)] = 1 + ((c >> 4U) & 1U);
     p[3 + ((c >> 4U) & 3U)] = 1 + ((c >> 3U) & 1U);
-    p = &t[(ctx + (c >> 3U)) & mask].find(checksum, &rnd)->bitStats.bit;
+    p = &t[(ctx + (c >> 3U)) & mask].find(checksum, &rnd)->bitState;
     p[0] = 1 + ((c >> 2U) & 1U);
     p[1 + ((c >> 2U) & 1U)] = 1 + ((c >> 1U) & 1U);
     p[3 + ((c >> 1U) & 3U)] = 1 + (c & 1U);
@@ -46,47 +46,32 @@ void ContextMap::update() {
   INJECT_SHARED_c0
   for( int i = 0; i < cn; ++i ) {
     if(((validFlags >> (cn - 1 - i)) & 1) != 0 ) {
+
       // update bit history state byte
       if( cp[i] != nullptr ) {
-        StateTable::update(cp[i], y, rnd);
+        const uint32_t pis = (0b0100110100010011 >> (bpos << 1)) & 0x03;
+        StateTable::update(cp[i] + pis + (((bpos == 0 ? c1 : c0) >> 1) & pis), y, rnd);
       }
 
       // update context pointers
-      if( bpos > 1 && runP[i][0] == 0 ) {
-        cp[i] = nullptr;
-      } else {
-        switch( bpos ) {
-          case 1:
-          case 3:
-          case 6:
-            cp[i] = cp0[i] + 1 + (c0 & 1U);
-            break;
-          case 4:
-          case 7:
-            cp[i] = cp0[i] + 3 + (c0 & 3U);
-            break;
-          case 2:
-          case 5: {
-            const uint16_t checksum = chk[i];
-            const uint32_t ctx = cxt[i];
-            cp0[i] = cp[i] = &t[(ctx + c0) & mask].find(checksum, &rnd)->bitStats.bit;
-            break;
-          }
-          case 0: {
-            // update run count of previous context
-            if( runP[i][0] == 0 ) { // new context
-              runP[i][0] = 2, runP[i][1] = c1;
-            } else if( runP[i][1] != c1 ) { // different byte in context
-              runP[i][0] = 1, runP[i][1] = c1;
-            } else if( runP[i][0] < 254 ) { // same byte in context
-              runP[i][0] += 2;
-            } else if( runP[i][0] == 255 ) {
-              runP[i][0] = 128;
-            }
-            break;
-          }
-          default:
-            assert(false);
+      if ((bpos == 2 && runP[i][0] == 0) || (cp[i] == nullptr)) {
+        cp[i] = nullptr; //defer updating in 2nd and 3rd slots (i.e. bits 2,3,4 and 5,6,7) when context is seen for the first time
+      } 
+      else if( bpos == 2 || bpos == 5 ) {
+        const uint16_t checksum = chk[i];
+        const uint32_t ctx = cxt[i];
+        cp[i] = &t[(ctx + c0) & mask].find(checksum, &rnd)->bitState;
+      }
+      if (bpos==0) {
+        // update run count of previous context
+        if( runP[i][0] == 0 ) { // new context
+          runP[i][0] = 2, runP[i][1] = c1;
+        } else if( runP[i][1] != c1 ) { // different byte in context
+          runP[i][0] = 1, runP[i][1] = c1;
+        } else if( runP[i][0] < 254 ) { // same byte in context
+          runP[i][0] += 2;
+        } else if( runP[i][0] == 255 ) {
+          runP[i][0] = 128;
         }
       }
     }
@@ -115,7 +100,8 @@ void ContextMap::mix(Mixer &m) {
       }
 
       // predict from bit context
-      const int s = cp[i] != nullptr ? *cp[i] : 0;
+      const uint32_t pis = (0b1101001101000100 >> (bpos << 1)) & 0x03;
+      const int s = cp[i] != nullptr ? *(cp[i]+ pis+(c0&pis)) : 0;
       if( s == 0 ) { //skip context
         sm.skip(i);
         m.add(0);
