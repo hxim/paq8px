@@ -54,7 +54,7 @@ auto Models::sparseModel() -> SparseModel & {
 }
 
 auto Models::matchModel() -> MatchModel & {
-  static MatchModel instance {shared, shared->mem * 4 /*buffermemorysize*/, shared->mem / 32 /*mapmemorysize*/ };
+  static MatchModel instance {shared, shared->mem / 4 /*hashtablesize*/, shared->mem /*mapmemorysize*/ }; /**< Not the actual memory use - see in the model */
   return instance;
 }
 

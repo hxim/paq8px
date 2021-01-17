@@ -39,12 +39,12 @@ auto SSE::p(int pr0) -> int {
       int limit = 0x3FFU >> (static_cast<int>(blockPos < 0xFFF) * 2);
       pr = Text.APMs[0].p(pr0, (c0 << 8U) | (shared->State.Text.mask & 0xFU) | ((shared->State.misses & 0xFU) << 4U), limit);
       pr1 = Text.APMs[1].p(pr0, finalize64(hash(bpos, shared->State.misses & 3U, c4 & 0xffffU, shared->State.Text.mask >> 4U), 16), limit);
-      pr2 = Text.APMs[2].p(pr0, finalize64(hash(c0, shared->State.Match.expectedByte, shared->State.Match.length3), 16), limit);
+      pr2 = Text.APMs[2].p(pr0, finalize64(hash(c0, shared->State.Match.expectedByte << 2 | shared->State.Match.length3), 16), limit);
       pr3 = Text.APMs[3].p(pr0, finalize64(hash(c0, c4 & 0xffffU, shared->State.Text.firstLetter), 16), limit);
 
       pr0 = (pr0 + pr1 + pr2 + pr3 + 2) >> 2U;
 
-      pr1 = Text.APM1s[0].p(pr0, finalize64(hash(shared->State.Match.expectedByte, shared->State.Match.length3, c4 & 0xffU), 16));
+      pr1 = Text.APM1s[0].p(pr0, finalize64(hash(shared->State.Match.expectedByte << 2 | shared->State.Match.length3, c4 & 0xffU), 16));
       pr2 = Text.APM1s[1].p(pr, finalize64(hash(c0, c4 & 0x00ffffffU), 16));
       pr3 = Text.APM1s[2].p(pr, finalize64(hash(c0, c4 & 0xffffff00U), 16));
 

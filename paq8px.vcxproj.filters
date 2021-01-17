@@ -650,6 +650,9 @@
     <ClInclude Include="HashElementForStationaryMap.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="HashElementForMatchPositions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

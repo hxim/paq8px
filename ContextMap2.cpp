@@ -64,6 +64,7 @@ void ContextMap2::set(uint8_t ctxflags, const uint64_t contexthash) {
 void ContextMap2::skip(const uint8_t ctxflags) {
   assert(index >= 0 && index < C);
   contextInfoList[index].flags = ctxflags | CM_SKIPPED_CONTEXT;
+  contextflagsAll |= ctxflags;
   index++;
 }
 
@@ -172,6 +173,8 @@ void ContextMap2::update() {
           }
         }
         else {
+          //when pbos==2: switch from slot 0 to slot 1
+          //when bpos==5: switch from slot 1 to slot 2
           const uint32_t ctx = contextInfo->tableIndex;
           const uint16_t chk = contextInfo->tableChecksum;
           contextInfo->slot012 = hashTable[(ctx + c0) & mask].find(chk, &rnd);

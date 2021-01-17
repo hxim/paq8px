@@ -1677,7 +1677,7 @@ paq8px_v187fix2 by Zoltán Gotthardt
 - Enabled compression levels up to 12 (10 => 7-8 GB, 11 => 14-16 GB, 12 => ~ 28-32 GB depending on the models loaded)
 
 
-paq8px_v187fix3 by Zoltán Gotthardt
+paq8px_v187fix3 by Moisés Cardona
 2020.06.09
 - Restored compilation on ARM processors using GCC (Must use -DNATIVECPU=ON on cmake).
 
@@ -1855,3 +1855,15 @@ paq8px_v200 by Zoltán Gotthardt
 - Speed improvements in ContextMap and ContextMap2
 - In ContextMap2 updating bit histories for bits 2-7 was deferred for the first byte; now it is deferred for the first 3 bytes (both speed and compression improvement)
 - Small speed improvement in Bucket16
+
+
+paq8px_v201 by Zoltán Gotthardt
+2021.01.16
+- IndirectContext improvement: using a leading bit to distinguish context bits from empty (unused) bits
+- LSTM model: Applied the new IndirectContext improvements
+- MatchModel improvements: 
+  - moved context hashes from NormalModel to Shared so MatchModel can also use them
+  - using more candidates in hashtable (3 instead of 1)
+  - using the improved IndirectContext
+  - refined contexts
+  - tuned NormalModel contexts wrt MatchModel context lengths

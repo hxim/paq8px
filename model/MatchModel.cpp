@@ -1,112 +1,70 @@
 #include "MatchModel.hpp"
 
-MatchModel::MatchModel(Shared* const sh, const uint64_t buffermemorysize, const uint64_t mapmemorysize) : 
+MatchModel::MatchModel(Shared* const sh, const uint64_t hashtablesize, const uint64_t mapmemorysize) : 
   shared(sh),
-  table(buffermemorysize / sizeof(uint32_t)),
-  stateMaps {{sh, 1, 56 * 256,          1023, StateMap::Generic},
+  hashtable(hashtablesize),
+  stateMaps {{sh, 1, 28 * 512,          1023, StateMap::Generic},
              {sh, 1, 8 * 256 * 256 + 1, 1023, StateMap::Generic},
              {sh, 1, 256 * 256,         1023, StateMap::Generic}},
   cm(sh, mapmemorysize, nCM, 64),
   mapL{ /* LargeStationaryMap : HashBits, Scale=64, Rate=16  */
-        {sh,20},
+        {sh, 20}, // effective bits: ~22
   },
   map { /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
-        {sh,15,1},
+        {sh, 1 /*< leading bit */ + iCtxBits + 3 /*< length3Rm */, 1}
   }, 
-  iCtx {15, 1}, 
-  hashBits(ilog2(uint32_t(buffermemorysize / sizeof(uint32_t))))
+  iCtx{15, 1, iCtxBits},
+  hashBits(ilog2(uint32_t(hashtable.size())))
 {
-#ifdef VERBOSE
-  printf("Created MatchModel with size = %" PRIu64 "\n", size);
-#endif
+  assert(isPowerOf2(hashtablesize));
   assert(isPowerOf2(mapmemorysize));
+  iCtx.reset();
 }
 
 void MatchModel::update() {
-  INJECT_SHARED_buf
-  INJECT_SHARED_bpos
-  if( length != 0 ) {
-    const int expectedBit = (expectedByte >> ((8 - bpos) & 7U)) & 1U;
-    INJECT_SHARED_y
-    if( y != expectedBit ) {
-      if( lengthBak != 0 && length - lengthBak < MinLen ) { // mismatch too soon in recovery mode -> give up
-        lengthBak = 0;
-        indexBak = 0;
-      } else { //backup match information: maybe we can recover it just after this mismatch
-        lengthBak = length;
-        indexBak = index;
-      }
-      delta = true;
-      length = 0;
+
+  size_t n = max(numberOfActiveCandidates, 1);
+  for (size_t i = 0; i < n; i++) {
+    MatchInfo* matchInfo = &matchCandidates[i];
+    matchInfo->update(shared);
+    if (numberOfActiveCandidates != 0 && matchInfo->length == 0 && !matchInfo->delta && matchInfo->lengthBak==0) {
+      numberOfActiveCandidates--;
+      if (numberOfActiveCandidates == i)
+        break;
+      memmove(&matchCandidates[i], &matchCandidates[i + 1], (numberOfActiveCandidates - i) * sizeof(MatchInfo));
+      i--;
     }
   }
 
-  //bytewise contexts
+  INJECT_SHARED_bpos
   if( bpos == 0 ) {
-    // update hashes
-    for( uint32_t i = 0, minLen = MinLen + (numHashes - 1) * StepSize; i < numHashes; i++, minLen -= StepSize ) {
-      uint64_t hash = 0;
-      for( uint32_t j = minLen; j > 0; j-- ) {
-        hash = combine64(hash, buf(j));
-      }
-      hashes[i] = finalize64(hash, hashBits);
-    }
-
-    // recover match after a 1-byte mismatch
-    if( length == 0 && !delta && lengthBak != 0 ) { //match failed (2 bytes ago), no new match found, and we have a backup
-      indexBak++;
-      if( lengthBak < 65535 ) {
-        lengthBak++;
-      }
-      INJECT_SHARED_c1
-      if( buf[indexBak] == c1 ) { // match continues -> recover
-        length = lengthBak;
-        index = indexBak;
-      } else { // still mismatch
-        lengthBak = indexBak = 0; // purge backup
-      }
-    }
-    // extend current match
-    if( length != 0 ) {
-      index++;
-      if( length < 65535) {
-        length++;
-      }
-    }
-    delta = false;
-
-    // find a new match, starting with the highest order hash and falling back to lower ones
-    if( length == 0 ) {
-      uint32_t minLen = MinLen + (numHashes - 1) * StepSize;
-      uint32_t bestLen = 0;
-      uint32_t bestIndex = 0;
-      for( uint32_t i = 0; i < numHashes && length < minLen; i++, minLen -= StepSize ) {
-        index = table[hashes[i]];
-        if( index > 0 ) {
-          length = 0;
-          while( length < (minLen + MaxExtend) && buf(length + 1) == buf[index - length - 1] ) {
-            length++;
-          }
-          if( length > bestLen ) {
-            bestLen = length;
-            bestIndex = index;
-          }
-        }
-      }
-      if( bestLen >= MinLen ) {
-        length = bestLen - (MinLen - 1); // rebase, a length of 1 actually means a length of MinLen
-        index = bestIndex;
-        lengthBak = indexBak = 0; // purge any backup
-      } else {
-        length = index = 0;
-      }
-    }
-    // update position information in hashtable
+    
     INJECT_SHARED_pos
-    for( uint32_t i = 0; i < numHashes; i++ ) {
-      table[hashes[i]] = pos;
+    uint64_t hash;
+    HashElementForMatchPositions* matches;
+
+    hash = shared->State.cxt[LEN9];
+    matches = &hashtable[finalize64(hash, hashBits)];
+    if (numberOfActiveCandidates < N)
+      AddCandidates(matches, LEN9); //note: this length is *not* modelled by NormalModel
+    matches->Add(pos);
+
+    hash = shared->State.cxt[LEN7];
+    matches = &hashtable[finalize64(hash, hashBits)];
+    if (numberOfActiveCandidates < N)
+      AddCandidates(matches, LEN7); //note: this length is *not* modelled by NormalModel
+    matches->Add(pos);
+
+    hash = shared->State.cxt[LEN5];
+    matches = &hashtable[finalize64(hash, hashBits)];
+    if (numberOfActiveCandidates < N)
+      AddCandidates(matches, LEN5); //note: this length is modelled by NormalModel
+    matches->Add(pos);
+
+    INJECT_SHARED_buf
+    for (size_t i = 0; i < numberOfActiveCandidates; i++) {
+      matchCandidates[i].expectedByte = buf[matchCandidates[i].index];
     }
-    shared->State.Match.expectedByte = expectedByte = (length != 0 ? buf[index] : 0);
   }
 }
 
@@ -116,29 +74,43 @@ void MatchModel::mix(Mixer &m) {
   for( uint32_t i = 0; i < nST; i++ ) { // reset contexts
     ctx[i] = 0;
   }
+  
+  size_t bestCandidateIdx = 0; //default item is the first candidate, let's see if any other candidate is better
+  for (int i = 1; i < numberOfActiveCandidates; i++) {
+    if (matchCandidates[i].isBetterThan(&matchCandidates[bestCandidateIdx]))
+      bestCandidateIdx = i;
+  }
+
+  const uint32_t length = matchCandidates[bestCandidateIdx].length;
+  const uint8_t expectedByte = matchCandidates[bestCandidateIdx].expectedByte;
+  const bool isInNoMatchMode= matchCandidates[bestCandidateIdx].isInNoMatchMode();
+  const bool isInDeltaMode = matchCandidates[bestCandidateIdx].delta;
+  const bool isInPreRecoveryMode = matchCandidates[bestCandidateIdx].isInPreRecoveryMode();
+  const bool isInRecoveryMode = matchCandidates[bestCandidateIdx].isInRecoveryMode();
 
   INJECT_SHARED_bpos
   INJECT_SHARED_c0
   INJECT_SHARED_c1
-  const int expectedBit = length != 0 ? (expectedByte >> (7 - bpos)) & 1U : 0;
-  if( length != 0 ) {
-    if( length <= 16 ) {
-      ctx[0] = (length - 1) * 2 + expectedBit; // 0..31
+  const int expectedBit = length != 0 ? (expectedByte >> (7 - bpos)) & 1 : 0;
+  uint32_t denselength = 0; // 0..27
+  if (length != 0) {
+    if (length <= 16) {
+      denselength = length - 1; // 0..15
     } else {
-      ctx[0] = 24 + (min(length - 1, 63) >> 2U) * 2 + expectedBit; // 32..55
+      denselength = 12 + (min(length - 1, 63) >> 2); // 16..27
     }
-    ctx[0] = ((ctx[0] << 8U) | c0);
-    ctx[1] = ((expectedByte << 11U) | (bpos << 8U) | c1) + 1;
+    ctx[0] = (denselength << 9) | (expectedBit << 8) | c0; // 1..28*512
+    ctx[1] = ((expectedByte << 11) | (bpos << 8) | c1) + 1;
     const int sign = 2 * expectedBit - 1;
-    m.add(sign * (min(length, 32) << 5U)); // +/- 32..1024
-    m.add(sign * (ilog->log(min(length, 65535)) << 2U)); // +/-  0..1024
+    m.add(sign * (min(length, 32) << 5)); // +/- 32..1024
+    m.add(sign * (ilog->log(min(length, 65535)) << 2)); // +/-  0..1024
   } else { // no match at all or delta mode
     m.add(0);
     m.add(0);
   }
 
-  if( delta ) { // delta mode: helps predicting the remaining bits of a character when a mismatch occurs
-    ctx[2] = (expectedByte << 8U) | c0;
+  if( isInDeltaMode ) { // delta mode: helps predicting the remaining bits of a character when a mismatch occurs
+    ctx[2] = (expectedByte << 8) | c0;
   }
 
   for( uint32_t i = 0; i < nST; i++ ) {
@@ -155,52 +127,51 @@ void MatchModel::mix(Mixer &m) {
   }
 
   const uint32_t lengthIlog2 = ilog2(length + 1);
-  //no match:      lengthIlog2=0
+  //length=0:      lengthIlog2=0
   //length=1..2:   lengthIlog2=1
   //length=3..6:   lengthIlog2=2
   //length=7..14:  lengthIlog2=3
   //length=15..30: lengthIlog2=4
 
-  const uint8_t length3 = min(lengthIlog2, 3); // 2 bits
-  const auto rm = static_cast<const uint8_t>(lengthBak != 0 &&
-                                             length - lengthBak == 1); // predicting the first byte in recovery mode is still uncertain
-  const uint8_t length3Rm = length3 << 1U | rm; // 3 bits
-
+  const uint8_t mode = 
+    isInNoMatchMode ? 0 :
+    isInDeltaMode ? 1 :
+    isInPreRecoveryMode ? 2 :
+    isInRecoveryMode ? 3 :
+    3 + lengthIlog2;
+  uint8_t mode3 = min(mode, 7); // 3 bits
+  
   //bytewise contexts
   INJECT_SHARED_c4
   if( bpos == 0 ) {
     const uint8_t R_ = CM_USE_RUN_STATS;
-    if( length != 0 ) {
-      cm.set(R_, hash(0, expectedByte, length3Rm));
-      cm.set(R_, hash(1, expectedByte, length3Rm, c1));
-    } else {
-      // when there is no match it is still slightly beneficial not to skip(), but set some low-order contexts
-      cm.set(R_, hash(2, c4 & 0xffu)); // order 1
-      cm.set(R_, hash(3, c4 & 0xffffu)); // order 2
-    }
+    cm.set(R_, hash((length != 0 ? expectedByte : c1)<<3 | mode3)); //max context bits: 8+8+3 = 19
+    cm.set(R_, hash(length != 0 ? expectedByte : ((c4 >> 8) & 0xff), (c1<<3)| mode3)); //max context bits: 8+8+8+3=27
   }
   cm.mix(m);
 
   //bitwise contexts
-  {
-    mapL[0].set(hash(expectedByte, c0, c4 & 0xffffu, length3Rm)); // max context bits: 8+8+16+3 = 35
-    INJECT_SHARED_y
-    iCtx += y;
-    const uint8_t c = length3Rm << 1 | expectedBit; // 4 bits
-    iCtx = (bpos << 12) | (c1 << 4) | c; // 15 bits
-    map[0].set(iCtx()); // 15 bits
-  }
+  mapL[0].set(hash(expectedByte, c0, c4 & 0x00ffffff, mode3)); // max context bits: 8+8+24+3 = 43 bits -> hashed into ~22 bits
   mapL[0].mix(m);
+
+  const uint32_t mCtx =
+    isInNoMatchMode ? 0 :
+    isInDeltaMode ? 1 :
+    isInPreRecoveryMode ? 2 :
+    isInRecoveryMode ? 3 :
+    4 + ((lengthIlog2 - 1) << 1 | expectedBit);
+
+  INJECT_SHARED_y
+  iCtx += y;
+  iCtx = (bpos << 12) | (c1 << 4) | min(mCtx,15); // 15 bits
+  map[0].set(iCtx() << 3 | mode3); // (max 7 bits + 1 leading bit) + 3 bits
   map[0].mix(m);
 
-  const uint32_t lengthC = lengthIlog2 != 0 ? lengthIlog2 + 1 : static_cast<uint32_t>(delta);
-  //no match, no delta mode:   lengthC=0
-  //failed match, delta mode:  lengthC=1
-  //length=1..2:   lengthC=2
-  //length=3..6:   lengthC=3
-  //length=7..14:  lengthC=4
-  //length=15..30: lengthC=5
+  m.set(min(mCtx, 11),12);
+  shared->State.Match.length3 =
+    length == 0 ? 0 :
+    isInDeltaMode ? 1 :
+    length <= 7 ? 2 : 3;
+  shared->State.Match.expectedByte = length != 0 ? expectedByte : 0;
 
-  m.set(min(lengthC, 7), 8);
-  shared->State.Match.length3 = min(lengthC, 3);
 }

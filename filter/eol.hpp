@@ -14,7 +14,7 @@ public:
     void encode(File *in, File *out, uint64_t size, int /*info*/, int & /*headerSize*/) override {
       uint8_t b = 0;
       uint8_t pB = 0;
-      for( int i = 0; i < static_cast<int>(size); i++ ) {
+      for( uint64_t i = 0; i < size; i++ ) {
         b = in->getchar();
         if( pB == CARRIAGE_RETURN && b != NEW_LINE ) {
           out->putChar(pB);
@@ -32,7 +32,7 @@ public:
     auto decode(File * /*in*/, File *out, FMode fMode, uint64_t size, uint64_t &diffFound) -> uint64_t override {
       uint8_t b = 0;
       uint64_t count = 0;
-      for( int i = 0; i < static_cast<int>(size); i++, count++ ) {
+      for( uint64_t i = 0; i < size; i++, count++ ) {
         if((b = encoder->decompressByte()) == NEW_LINE ) {
           if( fMode == FDECOMPRESS ) {
             out->putChar(CARRIAGE_RETURN);

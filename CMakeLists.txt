@@ -11,7 +11,6 @@ option(DISABLE_AUDIOMODEL "Whether to disable AudioModels" OFF)
 option(DISABLE_ZLIB "Whether to disable zlib" OFF)
 option(NDEBUG "Whether to suppress asserts and array bound checks" ON)
 option(VERBOSE "Whether to print verbose debug information to screen" OFF)
-option(HASHCONFIGCMD "Whether to support custom hash configuration" OFF)
 
 if (NATIVECPU)
     add_definitions(-march=native -mtune=native)
@@ -38,10 +37,6 @@ endif (NDEBUG)
 if (VERBOSE)
     add_definitions(-DVERBOSE)
 endif (VERBOSE)
-
-if (HASHCONFIGCMD)
-    add_definitions(-DHASHCONFIGCMD)
-endif (HASHCONFIGCMD)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)

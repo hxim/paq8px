@@ -10,7 +10,7 @@ NormalModel::NormalModel(Shared* const sh, const uint64_t cmSize) :
 }
 
 void NormalModel::reset() {
-  memset(&cxt[0], 0, sizeof(cxt));
+  memset(&shared->State.cxt[0], 0, sizeof(shared->State.cxt));
 }
 
 void NormalModel::updateHashes() {
@@ -21,6 +21,7 @@ void NormalModel::updateHashes() {
       blockType == AUDIO_LE = AUDIO
       blockType == TEXT_EOL = TEXT
   */
+  uint64_t* cxt = shared->State.cxt;
   for( uint64_t i = 14; i > 0; --i ) {
     cxt[i] = (cxt[i - 1] + blocktype_c1 + i) * PHI64;
   }
@@ -30,11 +31,13 @@ void NormalModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
     updateHashes();
+    uint64_t* cxt = shared->State.cxt;
     const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
-    for(uint64_t i = 1; i <= 7; ++i ) {
+    for(uint64_t i = 1; i <= 6; ++i ) {
       cm.set(RH, cxt[i]);
     }
-    cm.set(RH, cxt[9]);
+    cm.set(RH, cxt[8]); 
+    cm.set(RH, cxt[11]);
     cm.set(RH, cxt[14]);
   }
   cm.mix(m);

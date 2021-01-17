@@ -76,10 +76,10 @@ auto ContextModel::p() -> int {
 
   m->add(256); //network bias
 
+  NormalModel& normalModel = models.normalModel();
+  normalModel.mix(*m);
   MatchModel &matchModel = models.matchModel();
   matchModel.mix(*m);
-  NormalModel &normalModel = models.normalModel();
-  normalModel.mix(*m);
   if ((shared->options & OPTION_LSTM) != 0u) {
     LstmModel<>& lstmModel = models.lstmModel();
     lstmModel.mix(*m);

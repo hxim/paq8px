@@ -119,6 +119,9 @@ For the help screen just launch PAQ8PX from the command line without any options
 HOW TO COMPILE
 --------------
 
+Building PAQ8PX requires a C++17 capable C++ compiler:
+https://en.cppreference.com/w/cpp/compiler_support#cpp17
+
 Windows 
 If you are a Windows user you don't need to compile the source. Just grab the latest
 executable bundled with the source from the https://encode.su/threads/342-paq8px thread.
@@ -130,7 +133,6 @@ Linux/macOS
 gcc/clang users on Linux/macOS may use the following commands to build:
 
  sudo apt-get install build-essential zlib1g-dev cmake make
- mkdir build
  cd build
  cmake ..
  make

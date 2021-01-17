@@ -24,7 +24,7 @@ void Shared::init(uint8_t level) {
   this->level = level;
   mem = UINT64_C(65536) << level;
   buf.setSize(static_cast<uint32_t>(min(mem * 8, UINT64_C(1) << 30))); /**< no reason to go over 1 GB */
-  toScreen = !isOutputDirected();
+  toScreen = !isOutputRedirected();
 }
 
 void Shared::update(int y) {
@@ -56,7 +56,7 @@ UpdateBroadcaster *Shared::GetUpdateBroadcaster() const {
   return updater;
 }
 
-auto Shared::isOutputDirected() -> bool {
+auto Shared::isOutputRedirected() -> bool {
 #ifdef WINDOWS
   DWORD FileType = GetFileType(GetStdHandle(STD_OUTPUT_HANDLE));
   return (FileType == FILE_TYPE_PIPE) || (FileType == FILE_TYPE_DISK);

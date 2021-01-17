@@ -18,7 +18,7 @@ protected:
   const Shared* const shared;
   std::valarray<float> probs;
   APM apm1, apm2, apm3;
-  IndirectContext<std::uint32_t> iCtx;
+  IndirectContext<std::uint16_t> iCtx;
   std::size_t top, mid, bot;
   std::uint8_t expected;
 public:
@@ -31,11 +31,13 @@ public:
     float const gradient_clip) :
     shared(sh),
     probs(1.f / Size, Size),
-    apm1{ sh, 0x10000u, 24 }, apm2{ sh, 0x800u, 24 }, apm3{ sh, 0x20000u, 24 },
-    iCtx{ 11, 2 },
+    apm1{ sh, 0x10000u, 24 }, apm2{ sh, 0x800u, 24 }, apm3{ sh, 1024, 24 },
+    iCtx{ 11, 1, 9 },
     top(Size - 1), mid(0), bot(0),
     expected(0)
-  {}
+  {
+    iCtx.reset();
+  }
   virtual ~LstmModel() = default;
   virtual void mix(Mixer& m) = 0;
 };

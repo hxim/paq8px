@@ -59,12 +59,14 @@ public:
 
       //MatchModel
       struct {
-        uint32_t length3; //used by SSE stage and RecordModel
-        uint8_t expectedByte; //used by SSE stage
+        uint32_t length3;     //used by SSE stage and RecordModel
+        uint8_t expectedByte; //used by SSE stage and RecordModel
       } Match{};
 
       //NormalModel
       int order{};
+      uint64_t cxt[15]{}; // context hashes
+
 
       //image models
       struct {
@@ -118,7 +120,7 @@ public:
     } State{};
 
     Shared() {
-      toScreen = !isOutputDirected();
+      toScreen = !isOutputRedirected();
     }
     void init(uint8_t level);
     void update(int y);
@@ -140,7 +142,7 @@ private:
      * Determine if output is redirected
      * @return
      */
-    static auto isOutputDirected() -> bool;
+    static auto isOutputRedirected() -> bool;
 
     static Shared *mPInstance;
 };

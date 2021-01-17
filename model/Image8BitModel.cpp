@@ -24,7 +24,7 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   sceneMap { /* IndirectMap: BitsOfContext, InputBits, Scale, Limit */
     {sh,8,8,64,255}, {sh,8,8,64,255}, {sh,22,1,64,255}, {sh,11,1,64,255}, {sh,11,1,64,255}
   },
-      iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
+  iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
     {16,8}, {16,8}, {16,8}, {16,8}
   }
   {}

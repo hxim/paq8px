@@ -105,10 +105,9 @@ public:
       }
     }
 
-    this->iCtx += 2+y, this->iCtx = (bpos << 8) | this->expected;
-    std::uint32_t mask = 0u, i = 0u;
-    for (std::uint32_t ctx = this->iCtx(); ctx > 0u; mask |= (ctx & 1u) << i, i++, ctx >>= 2);
-    mask |= 1u << i;
+    this->iCtx += y;
+    this->iCtx = (bpos << 8) | this->expected;
+    std::uint32_t ctx = this->iCtx();
 
     int const p = min(max(std::lround(prediction * 4096.0f), 1), 4095);
     m.promote(stretch(p)/2);
@@ -116,7 +115,7 @@ public:
     m.add((p - 2048) >> 2);
     int const pr1 = this->apm1.p(p, (c0 << 8) | (this->shared->State.misses & 0xFF), 0xFF);
     int const pr2 = this->apm2.p(p, (bpos << 8) | this->expected, 0xFF);
-    int const pr3 = this->apm3.p(pr2, mask, 0xFF);
+    int const pr3 = this->apm3.p(pr2, ctx, 0xFF);
     m.add(stretch(pr1) >> 1);
     m.add(stretch(pr2) >> 1);
     m.add(stretch(pr3) >> 1);

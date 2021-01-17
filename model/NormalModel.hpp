@@ -18,7 +18,6 @@ private:
     StateMap smOrder0Slow;
     StateMap smOrder1Slow;
     StateMap smOrder1Fast;
-    uint64_t cxt[15] {}; // context hashes
 public:
     static constexpr int MIXERINPUTS =
             nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY) + nSM; //66

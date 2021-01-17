@@ -24,8 +24,8 @@ void SparseBitModel::mix(Mixer &m) {
     }
     cm.set(__, hash(++i, c4 & 0x00f0f0ff));
     cm.set(__, hash(++i, c4 & 0xdfdfdfe0));
-    cm.set(__, hash(++i, c4 & 0xffc0ffc0));
-    cm.set(__, hash(++i, c4 & 0xe0ffffe0));
+    cm.set(__, hash(++i, c4 & 0xffc0ffc0)); //note: silesia/osdb does not like this context
+    cm.set(__, hash(++i, c4 & 0xe0ffffe0)); //note: silesia/osdb does not like this context
     cm.set(__, hash(++i, c4 & 0x00e0e0e0));
     cm.set(__, hash(++i, c4 & 0xe0e0e0e0));
     assert(i == nCM);
