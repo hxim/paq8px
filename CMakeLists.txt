@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(paq8px)
 
+SET(CMAKE_FIND_LIBRARY_SUFFIXES ".a")
 find_package(ZLIB)
+
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
 
@@ -62,4 +64,4 @@ endif ()
 #        $<$<CXX_COMPILER_ID:GNU>:
 #        -Wall -Wextra>)
 
-target_link_libraries(paq8px ${ZLIB_LIBRARIES})
+target_link_libraries(paq8px ${ZLIB_LIBRARIES} -static)
