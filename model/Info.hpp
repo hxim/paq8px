@@ -40,7 +40,7 @@ private:
     uint16_t chk {}; /**< checksum of last partially processed word */
     int firstChar {}; /**< category of first character of the current line (or -1 when in first column) */
     int lineMatch {}; /**< the length of match of the current line vs the previous line */
-    int nl1 {}, nl2 {}; /**< current newline position, previous newline position */
+    uint32_t nl1 {}, nl2 {}; /**< current newline position, previous newline position */
     uint64_t groups {}; /**< 8 last character categories */
     uint64_t text0 {}; /**< uninterrupted stream of letters */
     uint32_t lastLetter {}, lastUpper {}, wordGap {};

@@ -47,7 +47,7 @@ public:
       uint8_t bitPosition = 0; /**< Bits in c0 (0 to 7), in other words the position of the bit to be predicted (0=MSB) */
       uint32_t c4 = 0; /**< Last 4 whole bytes (buf(4)..buf(1)), packed.  Last byte is bits 0-7. */
       uint32_t c8 = 0; /**< Another 4 bytes (buf(8)..buf(5)) */
-      uint64_t misses{}; //updated by the Predictor, used by SSE stage
+      uint32_t misses{}; //updated by the Predictor, used by SSE stage
 
       BlockType blockType{}; //used by wordModel, recordModel, SSE stage
       uint32_t blockPos{}; //relative position in block, used by many models
@@ -59,14 +59,17 @@ public:
 
       //MatchModel
       struct {
-        uint32_t length3;     //used by SSE stage and RecordModel
+        uint8_t length2;      //used by SSE stage and RecordModel
+        uint8_t mode3;        //used by SSE stage 
+        uint8_t mode5;        //used by SSE stage 
         uint8_t expectedByte; //used by SSE stage and RecordModel
       } Match{};
 
       //NormalModel
-      int order{};
-      uint64_t cxt[15]{}; // context hashes
-
+      struct {
+        uint8_t order;
+        uint64_t cxt[15]; // context hashes used by NormalModel and MatchModel
+      } NormalModel{};
 
       //image models
       struct {
@@ -78,7 +81,6 @@ public:
       } Image{};
 
       //AudioModel
-      uint32_t wav{}; //used by recordModel
       uint8_t Audio{};
 
       //JpegModel
@@ -98,9 +100,14 @@ public:
         uint8_t characterGroup; //used by RecordModel, TextModel - Quantized partial byte as ASCII group
         uint8_t firstLetter; //used by SSE stage
         uint8_t mask; //used by SSE stage
+        uint8_t order; //used by SSE stage
       } Text{};
 
       //WordModel
+      struct {
+        uint8_t order; //used by SSE stage
+      } WordModel{};
+
       //IndirectModel
       //Dmcforest
       //NestModel

@@ -39,4 +39,6 @@ void Image1BitModel::mix(Mixer &m) {
     const uint8_t s = t[cxt[i]];
     m.add(stretch(sm.p2(i, s)));
   }
+
+  m.set(y << 1 | ((buf(w - 1) >> (7 - bpos)) & 1U), 4);
 }

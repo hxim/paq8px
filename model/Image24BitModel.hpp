@@ -2,7 +2,6 @@
 #define PAQ8PX_IMAGE24BITMODEL_HPP
 
 #include "../ContextMap2.hpp"
-#include "../HashTable.hpp"
 #include "../OLS.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../LargeStationaryMap.hpp"
@@ -36,7 +35,7 @@ public:
     Shared * const shared;
     ContextMap2 cm;
     SmallStationaryContextMap SCMap[nSSM];
-    LargeStationaryMap mapL[nLSM];
+    LargeStationaryMap mapL;
     StationaryMap map[nSM];
     RingBuffer<uint8_t> buffer {0x100000}; // internal rotating buffer for (PNG unfiltered) pixel data (1 MB)
     //pixel neighborhood

@@ -63,6 +63,11 @@ void WordModel::mix(Mixer &m) {
     }
   }
   cm.mix(m);
+
+  const int order = max(0, cm.order - (nCM - 31)); //0-31
+  assert(0 <= order && order <= 31);
+  m.set((order >> 1) << 3 | bpos, 16 * 8);
+  shared->State.WordModel.order = order;
 }
 
 #endif //DISABLE_TEXTMODEL

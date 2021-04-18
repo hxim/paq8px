@@ -1,7 +1,7 @@
 #include "StateMap.hpp"
 
 StateMap::StateMap(const Shared* const sh, const int s, const int n, const int lim, const StateMap::MAPTYPE mapType) :
-  AdaptiveMap(sh, n * s, lim), numContextSets(s), numContextsPerSet(n), numContexts(0), cxt(s) {
+  AdaptiveMap(sh, n * s, lim), numContextSets(s), numContextsPerSet(n), currentContextSetIndex(0), cxt(s) {
 #ifdef VERBOSE
   printf("Created StateMap with s = %d, n = %d, lim = %d, maptype = %d\n", s, n, lim, mapType);
 #endif
@@ -61,33 +61,35 @@ StateMap::StateMap(const Shared* const sh, const int s, const int n, const int l
 }
 
 void StateMap::update() {
-  assert(numContexts <= numContextSets);
-  while( numContexts > 0 ) {
-    numContexts--;
-    const uint32_t idx = cxt[numContexts];
+  assert(currentContextSetIndex <= numContextSets);
+  while( currentContextSetIndex > 0 ) {
+    currentContextSetIndex--;
+    const uint32_t idx = cxt[currentContextSetIndex];
     if( idx == UINT32_MAX) {
       continue; // skipped context
     }
-    assert(numContexts * numContextsPerSet <= idx && idx < (numContexts + 1) * numContextsPerSet);
+    assert(currentContextSetIndex * numContextsPerSet <= idx && idx < (currentContextSetIndex + 1) * numContextsPerSet);
     AdaptiveMap::update(&t[idx]);
   }
 }
 
 auto StateMap::p1(const uint32_t cx) -> int {
-  shared->GetUpdateBroadcaster()->subscribe(this);
+  assert(numContextSets == 1);
+  assert(currentContextSetIndex == 0);
   assert(cx >= 0 && cx < numContextsPerSet);
+  shared->GetUpdateBroadcaster()->subscribe(this);
   cxt[0] = cx;
-  numContexts++;
+  currentContextSetIndex++;
   return t[cx] >> 20;
 }
 
 auto StateMap::p2(const uint32_t s, const uint32_t cx) -> int {
-  assert(s >= 0 && s < numContextSets);
-  assert(cx >= 0 && cx < numContextsPerSet);
-  assert(s == numContexts);
-  const uint32_t idx = numContexts * numContextsPerSet + cx;
-  cxt[numContexts] = idx;
-  numContexts++;
+  assert(s < numContextSets);
+  assert(cx < numContextsPerSet);
+  assert(s == currentContextSetIndex);
+  const uint32_t idx = currentContextSetIndex * numContextsPerSet + cx;
+  cxt[currentContextSetIndex] = idx;
+  currentContextSetIndex++;
   return t[idx] >> 20;
 }
 
@@ -95,11 +97,11 @@ void StateMap::subscribe() {
   shared->GetUpdateBroadcaster()->subscribe(this);
 }
 
-void StateMap::skip(const uint32_t s) {
-  assert(s >= 0 && s < numContextSets);
-  assert(s == numContexts);
-  cxt[numContexts] = UINT32_MAX; // mark for skipping
-  numContexts++;
+void StateMap::skip(const uint32_t contextSetIndex) {
+  assert(contextSetIndex < numContextSets);
+  assert(contextSetIndex == currentContextSetIndex);
+  cxt[currentContextSetIndex] = UINT32_MAX; // mark for skipping
+  currentContextSetIndex++;
 }
 
 void StateMap::print() const {

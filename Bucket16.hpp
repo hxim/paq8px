@@ -7,6 +7,7 @@
 #include "Random.hpp"
 #include "HashElementForContextMap.hpp"
 #include "HashElementForStationaryMap.hpp"
+#include "HashElementForBitHistoryState.hpp"
 
 /**
  * Hash bucket to be used in a hash table
@@ -92,7 +93,9 @@ public:
     //   The the 2 most recently accessed elements are always protected from overwriting.
     {
       size_t minElementIdx = ElementsInBucket - 1;
-      if constexpr (std::is_same<T, HashElementForContextMap>::value || std::is_same<T, HashElementForStationaryMap>::value)
+      if constexpr (std::is_same<T, HashElementForContextMap>::value ||
+                    std::is_same<T, HashElementForStationaryMap>::value || 
+                    std::is_same<T, HashElementForBitHistoryState>::value)
       {
         uint32_t RND = rnd->operator()(32);
         if ((RND & 63) >= 1) {

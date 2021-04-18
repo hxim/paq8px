@@ -4,9 +4,9 @@
 #include "../Array.hpp"
 #include <cstdint>
 
-#define TEXT_MIN_SIZE 1500 /**< size of minimum allowed text block (in bytes) */
-#define TEXT_MAX_MISSES 2 /**< threshold: max allowed number of invalid UTF8 sequences seen recently before reporting "fail" */
-#define TEXT_ADAPT_RATE 256 /**< smaller (like 32) = illegal sequences are allowed to come more often, larger (like 1024) = more rigorous detection */
+#define TEXT_MIN_SIZE 1024 /**< size of minimum allowed text block (in bytes) */
+#define TEXT_MAX_MISSES 8 /**< threshold: max allowed number of invalid UTF8 sequences seen recently before reporting "fail" */
+#define TEXT_ADAPT_RATE 1024 /**< smaller (like 32) = illegal sequences are allowed to come more often, larger (like 1024) = more rigorous detection */
 
 struct TextParserStateInfo {
 public:

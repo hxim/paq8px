@@ -18,7 +18,6 @@ void Audio16BitModel::setParam(int info) {
     stereo = (info & 1U);
     lsb = static_cast<int>(info < 4);
     mask = 0;
-    shared->State.wav = (stereo + 1) * 2;
     wMode = info;
     for( int i = 0; i < nLMS; i++ ) {
       lms[i][0].reset(), lms[i][1].reset();

@@ -23,6 +23,8 @@ private:
 
 public:
     static constexpr int MIXERINPUTS = s;
+    static constexpr int MIXERCONTEXTS = 4;
+    static constexpr int MIXERCONTEXTSETS = 1;
     Image1BitModel(const Shared* const sh);
     void setParam(int info0);
     void mix(Mixer &m);

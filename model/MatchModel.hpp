@@ -25,18 +25,18 @@ private:
     Array<HashElementForMatchPositions> hashtable;
     StateMap stateMaps[nST];
     ContextMap2 cm;
-    LargeStationaryMap mapL[nLSM];
+    LargeStationaryMap mapL;
     StationaryMap map[nSM];
-    static constexpr uint32_t iCtxBits = 7;
+    static constexpr uint32_t iCtxBits = 6;
     IndirectContext<uint8_t> iCtx;
     uint32_t ctx[nST] {0};
     const int hashBits;
     Ilog *ilog = &Ilog::getInstance();
 
-    static constexpr int MINLEN_RM = 5; //minimum length in recovery mode before we "fully recover"
-    static constexpr int LEN5 = 5;
-    static constexpr int LEN7 = 7;
-    static constexpr int LEN9 = 9;
+    static constexpr int MINLEN_RM = 3; //minimum length in recovery mode before we "fully recover"
+    static constexpr int LEN1 = 5;  //note: this length is modelled by NormalModel
+    static constexpr int LEN2 = 7;  //note: this length is *not* modelled by NormalModel
+    static constexpr int LEN3 = 9;  //note: this length is *not* modelled by NormalModel
 
     struct MatchInfo {
 
@@ -47,21 +47,20 @@ private:
       uint8_t expectedByte = 0; /**< prediction is based on this byte (buf[index]), valid only when length>0 */
       bool delta = false; /**< indicates that a match has just failed (delta mode) */
 
-      bool isInNoMatchMode() {
+      bool isInNoMatchMode() const {
         return length == 0 && !delta && lengthBak == 0;
       }
 
-      bool isInPreRecoveryMode() {
+      bool isInPreRecoveryMode() const {
         return length == 0 && !delta && lengthBak != 0;
       }
 
-      bool isInRecoveryMode() {
+      bool isInRecoveryMode() const {
         return length != 0 && lengthBak != 0;
       }
 
-      uint32_t recoveryModePos() {
+      uint32_t recoveryModePos() const {
         assert(isInRecoveryMode()); //must be in recovery mode
-        assert(length - lengthBak <= MINLEN_RM);
         return length - lengthBak;
       }
 
@@ -69,7 +68,7 @@ private:
         return
           static_cast<uint64_t>(length != 0) << 49 | //normal mode (match)
           static_cast<uint64_t>(delta) << 48 | //delta mode
-          static_cast<uint64_t>(delta ? lengthBak : length) << 32 | //the lnger wins
+          static_cast<uint64_t>(delta ? lengthBak : length) << 32 | //the longer wins
           static_cast<uint64_t>(index); //the more recent wins
       }
       bool isBetterThan(MatchInfo* other) {
@@ -126,7 +125,7 @@ private:
             if (length < 65535) {
               length++;
             }
-            if (isInRecoveryMode() && recoveryModePos() >= MINLEN_RM) { // strong recovery -> exit tecovery mode (finalize)
+            if (isInRecoveryMode() && recoveryModePos() >= MINLEN_RM) { // recovery seems to be successful and stable -> exit recovery mode
               lengthBak = indexBak = 0; // purge backup
             }
           }
@@ -142,7 +141,7 @@ private:
 
       void registerMatch(const uint32_t pos, const uint32_t LEN) {
         assert(pos != 0);
-        length = LEN - LEN5 + 1; // rebase
+        length = LEN - LEN1 + 1; // rebase
         index = pos;
         lengthBak = indexBak = 0;
         expectedByte = 0;
@@ -184,7 +183,7 @@ private:
       }
     }
 
-    static constexpr size_t N = 4;
+    static constexpr size_t N = 4; // maximum number of match candidates
     Array<MatchInfo> matchCandidates{ N };
     uint32_t numberOfActiveCandidates = 0;
 

@@ -16,7 +16,6 @@ void Audio8BitModel::setParam(int info) {
     assert((info & 2) == 0);
     stereo = (info & 1U);
     mask = 0;
-    shared->State.wav = stereo + 1;
     wMode = info;
     for( int i = 0; i < nLMS; i++ ) {
       lms[i][0].reset(), lms[i][1].reset();

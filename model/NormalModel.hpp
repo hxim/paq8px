@@ -20,10 +20,13 @@ private:
     StateMap smOrder1Fast;
 public:
     static constexpr int MIXERINPUTS =
-            nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY) + nSM; //66
-    static constexpr int MIXERCONTEXTS = 64 /* <- pre , pos -> */ + 1024 + 256 + 512 + 256 + 256 + 1536; //3904
-    static constexpr int MIXERCONTEXTSETS = 7;
-    NormalModel(Shared* const sh, uint64_t cmSize);
+      nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY) + 
+      nSM; //66
+    static constexpr int MIXERCONTEXTS_PRE = 64;
+    static constexpr int MIXERCONTEXTS_POST = 1024 + 256 + 512 + 256 + 256 + 1536; //3840
+    static constexpr int MIXERCONTEXTSETS_PRE = 1;
+    static constexpr int MIXERCONTEXTSETS_POST = 6;
+    NormalModel(Shared* const sh, const uint64_t cmSize);
     void reset();
 
     /**
@@ -34,7 +37,7 @@ public:
     void mix(Mixer &m);
 
     /**
-     * setting more mixer contexts after skipping the special blockTypes
+     * setting more mixer contexts in the generic case (i.e. not using the special models such as image, audio, jpeg models)
      * @param m
      */
     void mixPost(Mixer &m);

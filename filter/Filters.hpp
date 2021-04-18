@@ -217,12 +217,12 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
   uint64_t cdi = 0;
   int cda = 0;
   int cdm = 0; 
-  
   uint32_t cdf = 0;
+
+  // For ZLIB stream detection
   uint8_t zBuf[256 + 32] = {0};
   uint8_t zin[1U << 16] = {0};
-  uint8_t zout[1U << 16] = {0}; // For ZLIB stream detection
-
+  uint8_t zout[1U << 16] = {0};
 
   int zBufPos = 0;
   uint64_t zZipPos = UINT64_MAX;
@@ -239,6 +239,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
   uint64_t b64I = 0;
   uint64_t b64Line = 0;
   uint64_t b64Nl = 0;
+  uint64_t b64End = 0;
 
   // For GIF detection
   uint64_t gifi = 0;
@@ -248,7 +249,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
   int gifc = 0;
   int gifb = 0;
   int gifplt = 0;
-  static int gifGray = 0;
+  static bool gifGray = false;
   
   // For PNG detection
   uint64_t png = 0;
@@ -1175,7 +1176,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         gif = 2, gifi = 2;
       }
       else {
-        gifGray = 0;
+        gifGray = false;
       }
     }
     if ((gif == 0) && (buf1 & 0xffff) == 0x4749 && (buf0 == 0x46383961 || buf0 == 0x46383761)) {
@@ -1186,7 +1187,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         gif = 2, gifi = i + 5 + (gifplt = (c & 128) != 0 ? (3 * (2 << (c & 7))) : 0);
       }
       if (gif == 2 && (gifplt != 0) && i == gifi - gifplt - 3) {
-        gifGray = static_cast<int>(isGrayscalePalette(in, gifplt / 3)), gifplt = 0;
+        gifGray = isGrayscalePalette(in, gifplt / 3), gifplt = 0;
       }
       if (gif == 2 && i == gifi) {
         if ((buf0 & 0xff0000) == 0x210000) {
@@ -1206,7 +1207,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         gif = 4, gifc = gifb = 0, gifa = gifi = i + 2 + (gifplt = ((c & 128) != 0 ? (3 * (2 << (c & 7))) : 0));
       }
       if (gif == 4 && (gifplt != 0)) {
-        gifGray = static_cast<int>(isGrayscalePalette(in, gifplt / 3)), gifplt = 0;
+        gifGray = isGrayscalePalette(in, gifplt / 3), gifplt = 0;
       }
       if (gif == 4 && i == gifi) {
         if (c > 0 && (gifb != 0) && gifc != gifb) {
@@ -1221,7 +1222,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         else {
           in->setpos(start + gifa - 1);
           detd = i - gifa + 2;
-          info = ((gifGray != 0 ? IMAGE8GRAY : IMAGE8) << 24) | gifw;
+          info = ((gifGray ? IMAGE8GRAY : IMAGE8) << 24) | gifw;
           return dett = GIF;
         }
       }
@@ -1305,7 +1306,7 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
     if ((type == DEFAULT) && (DEC.branches[DEC.idx] >= 16u))
       return in->setpos(start + DEC.offset - (start + DEC.offset) % 4), DEC_ALPHA;    
    
-    if ((static_cast<std::uint64_t>(i) > DEC.last + (type==DEC_ALPHA ? UINT64_C(0x8000) : UINT64_C(0x4000))) && (DEC.count[DEC.offset & 3] == 0u)) {
+    if ((i + 1 == n) || (static_cast<std::uint64_t>(i) > DEC.last + (type == DEC_ALPHA ? UINT64_C(0x8000) : UINT64_C(0x4000))) && (DEC.count[DEC.offset & 3] == 0u)) {
       if (type == DEC_ALPHA)
         return in->setpos(start + DEC.last - (start + DEC.last) % 4), DEFAULT;
       DEC.last = 0u, DEC.offset = 0u;
@@ -1326,16 +1327,16 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         b64Line = i + 1 - b64I; b64Nl = i;
       } else if( b64S == 2 && (buf0 & 0xffff) == 0x0d0a && b64Line > 0 && (buf0 & 0xffffff) != 0x3d0d0a ) {
         if( i - b64Nl < b64Line && buf0 != 0x0d0a0d0a ) {
-          i -= 1; b64S = 5;
+          b64End = i - 1; b64S = 5;
         } else if( buf0 == 0x0d0a0d0a ) {
-          i -= 3; b64S = 5;
+          b64End = i - 3 /*remove the last 0d0a*/; b64S = 5;
         } else if( i - b64Nl == b64Line ) {
           b64Nl = i;
         } else {
           b64S = 0;
         }
       } else if( b64S == 2 && (buf0 & 0xffffff) == 0x3d0d0a ) {
-        i -= 1; b64S = 5; // '=' or '=='
+        b64End = i - 1; b64S = 5; // '=' or '=='
       } else if( b64S == 2 && !(isalnum(c) || c == '+' || c == '/' || c == 10 || c == 13 || c == '=')) {
         b64S = 0;
       }
@@ -1343,11 +1344,12 @@ static auto detect(File *in, uint64_t blockSize, BlockType type, int &info, Tran
         b64S = 0;
       }
       if( b64S == 3 && i >= b64I && !(isalnum(c) || c == '+' || c == '/' || c == '=')) {
+        b64End = i;
         b64S = 4;
       }
-      if((b64S == 4 && i - b64I > 128) || (b64S == 5 && i - b64I > 512 && i - b64I < (1 << 27))) {
+      if((b64S == 4 && b64End - b64I > 32) || (b64S == 5 && b64End - b64I > 32 && b64End - b64I < (1 << 27))) {
         in->setpos(start + b64I);
-        detd = i - b64I;
+        detd = b64End - b64I;
         return BASE64;
       }
       if( b64S > 3 ) {
@@ -1612,7 +1614,7 @@ static void compressRecursive(File *in, const uint64_t blockSize, Encoder &en, S
     if( textEnd > nextBlockStart - 1 ) {
       textEnd = nextBlockStart - 1;
     }
-    if( type == DEFAULT && textStart < textEnd ) { // only DEFAULT blocks may be overridden
+    if( type == DEFAULT && textStart < textEnd && textEnd != UINT64_MAX) { // only DEFAULT blocks may be overridden
       if( textStart == begin && textEnd == nextBlockStart - 1 ) { // whole first block is text
         type = (textParser->_EOLType[0] == 1) ? TEXT_EOL : TEXT; // DEFAULT -> TEXT
       } else if( textEnd - textStart + 1 >= TEXT_MIN_SIZE ) { // we have one (or more) large enough text portion that splits DEFAULT

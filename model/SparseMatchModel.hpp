@@ -31,7 +31,7 @@ private:
                                             {0, 2, 0, 4, 0xDF},
                                             {0, 1, 0, 5, 0x0F}};
     Array<uint32_t> table;
-    LargeStationaryMap mapL[nLSM];
+    LargeStationaryMap mapL;
     StationaryMap maps[nSM];
     IndirectContext<uint8_t> iCtx8 {19, 1}; // BitsPerContext, InputBits
     IndirectContext<uint16_t> iCtx16 {16, 8}; // BitsPerContext, InputBits

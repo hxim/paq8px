@@ -12,9 +12,7 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
     {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74}, {sh,11,1,9,74},
     {sh,11,1,9,74}, {sh,11,1,9,74}, {sh, 0,8,9,74}
   },
-  mapL{ /* LargeStationaryMap : HashBits, Scale=64, Rate=16 */
-    {sh,17,74}, {sh,17,74}, {sh,17,74}, {sh,17,74}
-  },
+  mapL {sh,nLSM,19,74}, /* LargeStationaryMap : Contexts, HashBits, Scale=64, Rate=16 */
   map{ /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
     /*nSM0: 0- 8*/ {sh,8,8,74},  {sh,8,8,74},  {sh,8,8,74},  {sh,2,8,74}, {sh,0,8,74}, {sh,15,1,74}, {sh,15,1,74}, {sh,15,1,74}, {sh,15,1,74},
     /*nSM0: 9-13*/ {sh,15,1,74}, {sh,13,1,74}, {sh,13,1,74}, {sh,13,1,74}, {sh,13,1,74},
@@ -420,10 +418,10 @@ void Image24BitModel::update() {
     map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(N + p2 - Np2) - px - b)) * 8 + bpos));
     map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p1 - Wp1) - px - b)) * 8 + bpos));
     map[++i].set((min(color, stride - 1) << 11U) | ((static_cast<uint8_t>(clip(W + p2 - Wp2) - px - b)) * 8 + bpos));
-    mapL[0].set(hash(W - px - b, N - px - b, bpos));
-    mapL[1].set(hash(W - px - b, WW - px - b, bpos));
-    mapL[2].set(hash(N - px - b, NN - px - b, bpos));
-    mapL[3].set(hash(clip(N + NE - NNE) - px - b, clip(N + NW - NNW) - px - b, bpos));
+    mapL.set(hash(0 << 3 | bpos, W - px - b, N - px - b));
+    mapL.set(hash(1 << 3 | bpos, W - px - b, WW - px - b));
+    mapL.set(hash(2 << 3 | bpos, N - px - b, NN - px - b));
+    mapL.set(hash(3 << 3 | bpos, clip(N + NE - NNE) - px - b, clip(N + NW - NNW) - px - b));
     ++i;
     assert(i == nSM0);
 
@@ -451,7 +449,7 @@ void Image24BitModel::init() {
   columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
   if( lastPos > 0 && lastWasPNG != isPNG ) {
     for (int i = 0; i < nLSM; i++) {
-      mapL[i].reset();
+      mapL.reset();
     }
     for( int i = 0; i < nSM; i++ ) {
       map[i].reset();
@@ -489,9 +487,7 @@ void Image24BitModel::mix(Mixer &m) {
   if( x > 0 || (isPNG == 0u)) {
     cm.mix(m);
 
-    for (int i = 0; i < nLSM; i++) {
-      mapL[i].mix(m);
-    }
+    mapL.mix(m);
 
     for( int i = 0; i < nSM; i++ ) {
       map[i].mix(m);
@@ -504,7 +500,7 @@ void Image24BitModel::mix(Mixer &m) {
     if( ++col >= stride * 8 ) {
       col = 0;
     }
-    m.set(5 + (((line & 0x7u) << 5u) | col), 5 + 256, 5);
+    m.set(5 + (((line & 0x7u) << 5u) | col), 5 + 256);
     m.set(min(63, column[0]) + ((ctx[0] >> 3U) & 0xC0U), 256);
     m.set(min(127, column[1]) + ((ctx[0] >> 2U) & 0x180U), 512);
     m.set((ctx[0] & 0x7FCU) | (bpos >> 1), 2048);

@@ -35,9 +35,7 @@ public:
     iCtx{ 11, 1, 9 },
     top(Size - 1), mid(0), bot(0),
     expected(0)
-  {
-    iCtx.reset();
-  }
+  {}
   virtual ~LstmModel() = default;
   virtual void mix(Mixer& m) = 0;
 };

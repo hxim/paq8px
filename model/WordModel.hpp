@@ -21,8 +21,8 @@ private:
     static constexpr int nCM = nCM1 + nCM2; // 58
 public:
     static constexpr int MIXERINPUTS = nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 406
-    static constexpr int MIXERCONTEXTS = 0;
-    static constexpr int MIXERCONTEXTSETS = 0;
+    static constexpr int MIXERCONTEXTS = 16 * 8;
+    static constexpr int MIXERCONTEXTSETS = 1;
 
 private:
     Shared * const shared;

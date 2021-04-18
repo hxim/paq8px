@@ -97,8 +97,8 @@ private:
 public:
     static constexpr int MIXERINPUTS =
             nCM2 * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 196
-    static constexpr int MIXERCONTEXTS = 2048 + 2048 + 4096 + 4096 + 2048 + 2048 + 4096 + 8192 + 2048; //30720
-    static constexpr int MIXERCONTEXTSETS = 9;
+    static constexpr int MIXERCONTEXTS = 2048 + 2048 + 4096 + 4096 + 2048 + 2048 + 4096 + 8192 + 2048 + (16 * 8); //30848
+    static constexpr int MIXERCONTEXTSETS = 10;
 
     TextModel(Shared* const sh, uint64_t size);
     ~TextModel();

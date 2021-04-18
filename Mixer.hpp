@@ -174,6 +174,11 @@ static void trainSimdNone(const short *const t, short *const w, int n, const int
 
 class Mixer : protected IPredictor {
 protected:
+    static constexpr int MAX_LEARNING_RATE = 8 * 65536 - 1;
+    static constexpr int MIN_LEARNING_RATE_S1 = 2 * 65536 - 1; 
+    static constexpr int MIN_LEARNING_RATE_SN = 6 * 65536 - 1;
+    
+
     const Shared * const shared;
     const uint32_t n; /**< max inputs */
     const uint32_t m; /**< max contexts */
@@ -194,12 +199,12 @@ public:
      * @ref n inputs each, of which up to @ref s may be selected.  If s > 1 then
      * the outputs of these neural networks are combined using another
      * neural network (with arguments s, 1, 1). If s = 1 then the
-     * output is direct. The weights are initially w (+-32K).
+     * output is direct.
      * @param n
      * @param m
      * @param s
      */
-    Mixer(const Shared* const sh, int n, int m, int s);
+    Mixer(const Shared* sh, int n, int m, int s);
 
     ~Mixer() override = default;
     /**
@@ -228,7 +233,7 @@ public:
      * @param range
      * @param rate
      */
-    void set(uint32_t cx, uint32_t range, int rate = DEFAULT_LEARNING_RATE);
+    void set(uint32_t cx, uint32_t range);
     void skip(uint32_t range);
     void reset();
 };

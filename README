@@ -46,6 +46,11 @@ compression ratio (although at the expense of speed and memory usage).
 
 PAQ8PX (this branch) is one of the longest living branch of the PAQ series started 
 by Jan Ondrus in 2009.
+
+PAQ8PX is suitable and recommended for file entropy estimation. However - being an 
+experimental compressor - it is not recommended for production use or for file 
+archival purposes.
+
 For history and current state of development visit https://encode.su/threads/342-paq8px
 
 -----------------
@@ -60,11 +65,11 @@ explanation see the DOC file.
 PAQ8PX ARCHIVES
 ---------------
 
-A PAQ8PX archive contains files in a highly compressed format.
+A PAQ8PX archive stores a file or multiple files in a highly compressed format.
 
 You can recognize a PAQ8PX archive from its file extension. The file extension reflects 
 the exact PAQ8PX version that created the archive. You may also examine the first few
-bytes of the file. If it reads "paq8px" than it is (most probably) a PAQ8PX archive. 
+bytes of the file. If it reads "paq8px" then it is (most probably) a PAQ8PX archive. 
 Exact version information cannot be inferred from the archive content.
 
 A PAQ8PX archive may contain multiple files, but once created, you cannot
@@ -141,10 +146,11 @@ The following compilers were tested and verified to compile/work correctly
 in this release  or in an earlier release:
 
   - Visual Studio 2017 Community Edition (Windows)
-  - Visual Studio 2019 Community Edition (Windows) verified @v187fix1
+  - Visual Studio 2019 Community Edition (Windows) verified @v201
   - MinGW-w64 7.1.0 (Windows)
   - MinGW-w64 7.2.0 (Windows)
   - MinGW-w64 8.1.0 (Windows) verified @v187fix1
+  - MinGW-w64 9.3.0 (Windows) verified @v201
   - GCC 7.3.0 (macOS)
   - GCC 7.2.0 (Ubuntu)
   - GCC 8.3.0 (Lubuntu) verified @v187fix1

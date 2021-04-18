@@ -249,6 +249,39 @@
     <ClCompile Include="model\Info.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="APMPost.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelGeneric.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelAudio8.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelAudio16.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelJpeg.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelImage1.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelImage4.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelImage8.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelImage24.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelText.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelDec.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -264,9 +297,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BH.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Bucket.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ContextMap.hpp">
@@ -285,9 +315,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Hash.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="HashTable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Ilog.hpp">
@@ -651,6 +678,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="HashElementForMatchPositions.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HashElementForBitHistoryState.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="APMPost.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

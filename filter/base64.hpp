@@ -48,7 +48,7 @@ public:
       uint64_t inLen = 0;
       int i = 0;
       int b = 0;
-      uint64_t lfp = 0;
+      int lineSize = 0;
       int tlf = 0;
       char src[4];
       uint64_t b64Mem = (size >> 2U) * 3 + 10;
@@ -57,8 +57,8 @@ public:
 
       while( b = in->getchar(), inLen++, (b != '=') && isBase64(b) && inLen <= size ) {
         if( b == 13 || b == 10 ) {
-          if( lfp == 0 ) {
-            lfp = inLen;
+          if(lineSize == 0 ) {
+            lineSize = inLen;
             tlf = b;
           }
           if( tlf != b ) {
@@ -99,7 +99,7 @@ public:
           ptr[olen++] = src[j];
         }
       }
-      ptr[0] = lfp & 255U; //nl length
+      ptr[0] = lineSize & 255U;
       ptr[1] = size & 255U;
       ptr[2] = (size >> 8U) & 255U;
       ptr[3] = (size >> 16U) & 255U;

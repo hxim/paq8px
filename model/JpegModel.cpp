@@ -74,6 +74,11 @@ auto JpegModel::mix(Mixer &m) -> int {
     images[idx].nextJpeg = static_cast<uint32_t>(images[idx].jpeg > 1);
   }
   if( bpos != 0 && (images[idx].jpeg == 0u)) {
+    m.add(0);
+    m.set(0, 1 + 8);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
     return images[idx].nextJpeg;
   }
   if( bpos == 0 && images[idx].app > 0 ) {
@@ -84,6 +89,11 @@ auto JpegModel::mix(Mixer &m) -> int {
     }
   }
   if( images[idx].app > 0 ) {
+    m.add(0);
+    m.set(0, 1 + 8);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
     return images[idx].nextJpeg;
   }
   if( bpos == 0 ) {
@@ -144,6 +154,11 @@ auto JpegModel::mix(Mixer &m) -> int {
     }
     lastPos = pos;
     if( images[idx].jpeg == 0u ) {
+      m.add(0);
+      m.set(0, 1 + 8);
+      m.set(0, 1 + 1024);
+      m.set(0, 1 + 1024);
+      m.set(0, 1 + 1024);
       return images[idx].nextJpeg;
     }
 
@@ -298,6 +313,11 @@ auto JpegModel::mix(Mixer &m) -> int {
       // Build Huffman table selection table (indexed by mcuPos).
       // Get image width.
       if((images[idx].sof == 0u) && (images[idx].sos != 0u)) {
+        m.add(0);
+        m.set(0, 1 + 8);
+        m.set(0, 1 + 1024);
+        m.set(0, 1 + 1024);
+        m.set(0, 1 + 1024);
         return images[idx].nextJpeg;
       }
       int ns = buf[images[idx].sos + 4];
@@ -608,26 +628,33 @@ auto JpegModel::mix(Mixer &m) -> int {
 
   // Estimate next bit probability
   if((images[idx].jpeg == 0u) || (images[idx].data == 0u)) {
+    m.add(0);
+    m.set(0, 1 + 8);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
     return images[idx].nextJpeg;
   }
   if( buf(1 + static_cast<int>(bpos == 0)) == FF ) {
-    m.add(128); //network bias
+    m.add(0);
     // note: the number and size of these mixer contexts must reflect the ones used at the bottom of this file
     m.set(0, 1 + 8);
     m.set(0, 1 + 1024);
-    m.set(buf(1), 1024);
-    m.set(0, 1024);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
     return 1;
   }
   if( resetLen > 0 && resetLen == column + row * width - resetPos && mcuPos == 0 && static_cast<int>(huffcode) == (1U << huffBits) - 1 ) {
-    m.add(2047); //network bias (for predicting bit=1)
+    m.add(2047); //we are predicting bit=1
     // note: the number and size of these mixer contexts must reflect the ones used at the bottom of this file
     m.set(0, 1 + 8);
     m.set(0, 1 + 1024);
-    m.set(buf(1), 1024);
-    m.set(0, 1024);
+    m.set(0, 1 + 1024);
+    m.set(0, 1 + 1024);
     return 1;
   }
+
+  m.add(0);
 
   // update model
   if( cp[N - 1] != nullptr ) {
@@ -811,9 +838,15 @@ auto JpegModel::mix(Mixer &m) -> int {
    
   m.set(1 + (static_cast<int>(zu + zv < 5) | (static_cast<int>(huffBits > 8) << 1U) | (static_cast<int>(firstCol) << 2U)), 1 + 8);
   m.set(1 + ((hc & 0xFFU) | (min(3, (zu + zv) / 3)) << 8), 1 + 1024);
-  m.set(coef | (min(3, huffBits / 2) << 8), 1024);
-  m.set(colCtx, 1024);
+  m.set(1 + (coef | (min(3, huffBits / 2) << 8)), 1 + 1024);
+  m.set(1 + (colCtx), 1 + 1024);
 
-  shared->State.JPEG.state = 0x1000u | ((hc2 & 0xFF) << 4) | (static_cast<int>(advPred[1] > 0) << 3) | (static_cast<int>(huffBits > 4) << 2) | (static_cast<int>(comp == 0) << 1) | static_cast<int>(zu + zv < 5);
+  shared->State.JPEG.state = 1 + (
+    (hc2 & 0xFF) << 4 |
+    static_cast<int>(advPred[1] > 0) << 3 |
+    static_cast<int>(huffBits > 4) << 2 |
+    static_cast<int>(comp == 0) << 1 |
+    static_cast<int>(zu + zv < 5)
+  ); // 1 + (0..4095)
   return 1;
 }

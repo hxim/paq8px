@@ -29,10 +29,10 @@ static constexpr uint64_t hashes[14] = {UINT64_C(0x9E3779B97F4A7C15), UINT64_C(0
                                        UINT64_C(0xF501F1D0944B2385), UINT64_C(0xE3E4E8AA829AB9B5)};
                                        
 
-// Golden ratio of 2^64 (not a prime)
+// Golden ratio of 2^64
 #define PHI64 hashes[0] // 11400714819323198485
 
-// Some more arbitrary magic (prime) numbers
+// Some more arbitrary magic numbers
 #define MUL64_1 hashes[1]
 #define MUL64_2 hashes[2]
 #define MUL64_3 hashes[3]

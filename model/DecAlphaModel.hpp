@@ -54,8 +54,9 @@ private:
   IndirectMap maps0[State::Count], maps1[18], maps2[12], maps3[9], maps4[6], maps5[3], maps6[3], maps7[2], maps8[1], maps9[1], maps10[1];
   IndirectMap* const maps[nMaps - 1] = { &maps1[0], &maps2[0], &maps3[0], &maps4[0], &maps5[0], &maps6[0], &maps7[0], &maps8[0], &maps9[0], &maps10[0] };
   constexpr std::int32_t map_state(std::uint32_t const map, State const state) {
+    assert(map < 10);
     std::int32_t r = -1;
-    if ((map < nMaps) && (((maps_mask[map] >> state) & 1u) != 0u))     
+    if (((maps_mask[map] >> state) & 1u) != 0u)     
       for (std::int32_t i = state; i >= 0; r += (maps_mask[map] >> i) & 1, i--);
     return r;
   }

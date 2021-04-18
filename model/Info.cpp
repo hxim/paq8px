@@ -234,7 +234,7 @@ void Info::lineModelPredict() {
   line0 = combine64(line0, c1);
   cm.set(RH, hash(++i, line0));
 
-  int col = pos - nl1;
+  uint32_t col = pos - nl1;
   if( col == 1 ) {
     firstChar = groups & 0xffU;
   }
@@ -266,13 +266,13 @@ void Info::lineModelPredict() {
   cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, groups & 0xffu)); // english_mc
   cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, c1)); // english_mc
 
-  // modeling line content per column (and NEW_LINE is some extent)
-  cm.set(RH, hash(++i, col, static_cast<uint64_t>(c1 == SPACE))); // after space vs after other char in this column // world95.txt
-  cm.set(RH, hash(++i, col, c1));
+  // modeling line content per column (and NEW_LINE in some extent)
+  cm.set(RH, hash(++i, static_cast<uint64_t>(col << 1 | (c1 == SPACE)))); // after space vs after other char in this column // world95.txt
+  cm.set(RH, hash(++i, col << 8 | c1));
   cm.set(RH, hash(++i, col, mask & 0x1ffU));
   cm.set(RH, hash(++i, col, lineLength)); // the length of the previous line may foretell the content of columns
 
-  cm.set(RH, hash(++i, col, firstChar, static_cast<int>(static_cast<int>(lastUpper) < col) << 8U | (groups & 0xffu))); // book1 book2 news
+  cm.set(RH, hash(++i, col, firstChar, static_cast<uint64_t>(lastUpper < col) << 8 | (groups & 0xffu))); // book1 book2 news
 
   // content of lines, paragraphs
   cm.set(RH, hash(++i, nl1)); //chars occurring in this paragraph (order 0)
@@ -300,7 +300,7 @@ void Info::predict(const uint8_t pdfTextParserState) {
   const bool isTextBlock = blockType == TEXT || blockType == TEXT_EOL;
 
   const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
-  uint64_t i = 2048 * static_cast<int>(isTextBlock);
+  uint64_t i = 2048 * static_cast<uint64_t>(isTextBlock);
 
   cm.set(RH, hash(++i, text0)); //strong
 

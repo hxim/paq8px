@@ -10,18 +10,23 @@ NormalModel::NormalModel(Shared* const sh, const uint64_t cmSize) :
 }
 
 void NormalModel::reset() {
-  memset(&shared->State.cxt[0], 0, sizeof(shared->State.cxt));
+  memset(&shared->State.NormalModel.cxt[0], 0, sizeof(shared->State.NormalModel.cxt));
 }
 
 void NormalModel::updateHashes() {
   INJECT_SHARED_c1
   INJECT_SHARED_blockType
-  const uint64_t blocktype_c1 = blockType << 8 | c1;
+  BlockType normalizedBlockType = blockType;
   /* todo: let blocktype represent simply the blocktype without any transformation used:
       blockType == AUDIO_LE = AUDIO
       blockType == TEXT_EOL = TEXT
   */
-  uint64_t* cxt = shared->State.cxt;
+  if (blockType == TEXT || blockType == TEXT_EOL)
+    normalizedBlockType = DEFAULT;
+  else if (blockType == AUDIO_LE)
+    normalizedBlockType = AUDIO;
+  const uint64_t blocktype_c1 = normalizedBlockType << 8 | c1;
+  uint64_t* cxt = shared->State.NormalModel.cxt;
   for( uint64_t i = 14; i > 0; --i ) {
     cxt[i] = (cxt[i - 1] + blocktype_c1 + i) * PHI64;
   }
@@ -31,7 +36,7 @@ void NormalModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
     updateHashes();
-    uint64_t* cxt = shared->State.cxt;
+    uint64_t* cxt = shared->State.NormalModel.cxt;
     const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
     for(uint64_t i = 1; i <= 6; ++i ) {
       cm.set(RH, cxt[i]);
@@ -50,7 +55,7 @@ void NormalModel::mix(Mixer &m) {
   const int order = max(0, cm.order - (nCM - 7)); //0-7
   assert(0 <= order && order <= 7);
   m.set(order << 3U | bpos, 64);
-  shared->State.order = order;
+  shared->State.NormalModel.order = order;
 }
 
 void NormalModel::mixPost(Mixer &m) {
@@ -66,7 +71,7 @@ void NormalModel::mixPost(Mixer &m) {
   m.set((c1 | static_cast<int>(bpos > 5) << 8U | static_cast<int>(((c0 & ((1U << bpos) - 1)) == 0) || (c0 == ((2 << bpos) - 1))) << 9U), 1024);
   m.set(c0, 256);
   uint32_t bt = blockType == DEFAULT ? 0 : blockType == TEXT || blockType == TEXT_EOL ? 1 : blockType == EXE || blockType == DEC_ALPHA ? 2 : 3;
-  m.set(shared->State.order | ((c1 >> 6U) & 3U) << 3U | static_cast<int>(bpos == 0) << 5U | static_cast<int>(c1 == c2) << 6U | bt << 7U, 512);
+  m.set(shared->State.NormalModel.order | ((c1 >> 6U) & 3U) << 3U | static_cast<int>(bpos == 0) << 5U | static_cast<int>(c1 == c2) << 6U | bt << 7U, 512);
   m.set(c2, 256);
   m.set(c3, 256);
   if( bpos != 0 ) {

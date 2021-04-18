@@ -524,6 +524,11 @@ void TextModel::mix(Mixer &m) {
   }
   cm.mix(m);
 
+  const int order = max(0, cm.order - (nCM2 - 15)); //0-15
+  assert(0 <= order && order <= 15);
+  m.set(order << 3 | bpos, 16 * 8); // 16*8
+  shared->State.Text.order = order;
+
   INJECT_SHARED_c0
   INJECT_SHARED_c1
   const uint8_t characterGroup = shared->State.Text.characterGroup;

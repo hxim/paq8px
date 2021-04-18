@@ -1867,3 +1867,25 @@ paq8px_v201 by Zoltán Gotthardt
   - using the improved IndirectContext
   - refined contexts
   - tuned NormalModel contexts wrt MatchModel context lengths
+
+
+paq8px_v202 by Zoltán Gotthardt
+2021.04.18
+- Model-related changes
+  - applied some MatchModel improvements from paq8gen
+  - Normalized blocktypes for NormalModel context hashes (it fixes some text-pretraining problems)
+  - Fixed recordmodel detection for audio; enabled 1-byte rLength in RecordModel in favor of 8-bit mono audio
+- Mixer-, SSE- and encoding-realted changes
+  - merged high precision arithmetic encoder implementation from paq8gen; switched to 31-bit precision (instead of 12 bits)
+  - SSE stage improvements (new case: AUDIO/AUDIO_LE); removed blockpos dependent learning rate from SSE
+  - APMPost from paq8gen
+  - Created a separate ContextModel (with a separate mixer) for each special block type
+  - New mixercontext for TextModel (order) and WordModel (order)
+  - Added a mixer context to Image1BitModel
+  - Small fixes for JpegModel contexts
+  - Linear learning rate decay for Mixer
+  - Tuned some mixer scaling factors
+- Detection-realted changes
+  - fixed DEC Alpha detection (block-end)
+  - fixed b64base detection bug; tuned b64base detection parameters
+  - slightly tuned Text detection parameters

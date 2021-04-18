@@ -10,8 +10,7 @@
  */
 class ContextModel {
     Shared * const shared;
-    Models models;
-    Mixer *m;
+    Models * const models;
     BlockType nextBlockType = DEFAULT;
     BlockType blockType = DEFAULT;
     int blockSize = 1;
@@ -20,9 +19,8 @@ class ContextModel {
     bool readSize = false;
 
 public:
-    ContextModel(Shared* const sh, Models &models);
+    ContextModel(Shared* const sh, Models* const models);
     auto p() -> int;
-    ~ContextModel();
 };
 
 #endif //PAQ8PX_CONTEXTMODEL_HPP

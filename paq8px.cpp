@@ -8,8 +8,8 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "201"  //update version here before publishing your changes
-#define PROGYEAR     "2020"
+#define PROGVERSION  "202"  //update version here before publishing your changes
+#define PROGYEAR     "2021"
 
 
 #include "utils.hpp"
@@ -36,9 +36,9 @@ static void printHelp() {
          "  " PROGNAME " -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]\n"
          "\n"
          "    -LEVEL:\n"
-         "      -0 = no compression, only transformations when applicable (uses 517 MB)\n"
-         "      -1 -2 -3 = compress using less memory (623, 637, 665 MB)\n"
-         "      -4 -5 -6 -7 -8 -9 = use more memory (722, 834, 1059, 1509, 2410, 4210 MB)\n"
+         "      -0 = no compression, only transformations when applicable (uses 167 MB)\n"
+         "      -1 -2 -3 = compress using less memory (623, 637, 666 MB)\n"
+         "      -4 -5 -6 -7 -8 -9 = use more memory (722, 834, 1059, 1510, 2410, 4210 MB)\n"
          "      -10  -11  -12     = use even more memory (7811, 15013, 28392 MB)\n"
          "    The listed memory requirements are indicative, actual usage may vary\n"
          "    depending on several factors including need for temporary files,\n"

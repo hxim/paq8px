@@ -78,8 +78,8 @@ class JpegModel {
 private:
     static constexpr int N = 49; // number of contexts
 public:
-    static constexpr int MIXERINPUTS = 2 * N + 17;
-    static constexpr int MIXERCONTEXTS = (1 + 8) + (1 + 1024) + 1024 + 1024;
+    static constexpr int MIXERINPUTS = 1 + 2 * N + 17;
+    static constexpr int MIXERCONTEXTS = (1 + 8) + (1 + 1024) + (1 + 1024) + (1 + 1024);
     static constexpr int MIXERCONTEXTSETS = 4;
 
 private:

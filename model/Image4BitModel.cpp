@@ -2,27 +2,40 @@
 #include "../Stretch.hpp"
 
 
-Image4BitModel::Image4BitModel(const Shared* const sh, const uint64_t size) : shared(sh), t(size), 
+Image4BitModel::Image4BitModel(const Shared* const sh, const uint64_t size) : shared(sh),
+  rnd(),
+  hashTable(size >> 6),
+  mask(uint32_t(hashTable.size() - 1)),
+  hashBits(ilog2(mask + 1)),
+  hashes(S),
   sm {sh, S, 256, 1023, StateMap::BitHistory},
-  map {sh, 1, 16, 1023, StateMap::Generic}
+  mapL (sh, S, 22)
 {}
 
-void Image4BitModel::setParam(int info0) {
-  w = info0;
+void Image4BitModel::setParam(int width) {
+  w = width;
+}
+
+void Image4BitModel::update() {
+  INJECT_SHARED_y
+  for( int i = 0; i < S; i++ ) {
+    StateTable::update(cp[i], y, rnd);
+  }
+  INJECT_SHARED_bpos
+  if (bpos == 0 || bpos == 4) {
+    col++;
+    if (col == w * 2) {
+      col = 0;
+      line++;
+    }
+  }
 }
 
 void Image4BitModel::mix(Mixer &m) {
-  if( cp[0] == nullptr ) {
-    for( int i = 0; i < S; i++ ) {
-      cp[i] = t[263 * i]; //set the initial context to an arbitrary slot in the hashtable
-    }
-  }
-  INJECT_SHARED_y
-  for( int i = 0; i < S; i++ ) {
-    StateTable::update(cp[i], y, rnd); //update hashtable item priorities using predicted counts
-  }
+  shared->GetUpdateBroadcaster()->subscribe(this);
 
   INJECT_SHARED_bpos
+  INJECT_SHARED_c0
   if( bpos == 0 || bpos == 4 ) {
     WW = W;
     NWW = NW;
@@ -36,73 +49,63 @@ void Image4BitModel::mix(Mixer &m) {
     INJECT_SHARED_buf
     if( bpos == 0 ) {
       INJECT_SHARED_c1
-      W = c1 & 0xFU;
-      NEE = buf(w - 1) >> 4U;
-      NNEE = buf(w * 2 - 1) >> 4U;
+      W = c1 & 0xF;
+      NEE = buf(w - 1) >> 4;
+      NNEE = buf(w * 2 - 1) >> 4;
     } else {
-      INJECT_SHARED_c0
-      W = c0 & 0xFU;
-      NEE = buf(w - 1) & 0xFU;
-      NNEE = buf(w * 2 - 1) & 0xFU;
+      W = c0 & 0xF;
+      NEE = buf(w - 1) & 0xF;
+      NNEE = buf(w * 2 - 1) & 0xF;
     }
     run = (W != WW || col == 0) ? (prevColor = WW, 0) : min(0xFFF, run + 1);
-    px = 1; //partial pixel (4 bits) with a leading "1"
-    uint64_t i = 0;
-    cp[i] = t[hash(i, W, NW, N)];
-    i++;
-    cp[i] = t[hash(i, N, min(0xFFF, col / 8))];
-    i++;
-    cp[i] = t[hash(i, W, NW, N, NN, NE)];
-    i++;
-    cp[i] = t[hash(i, W, N, NE + NNE * 16, NEE + NNEE * 16)];
-    i++;
-    cp[i] = t[hash(i, W, N, NW + NNW * 16, NWW + NNWW * 16)];
-    i++;
-    cp[i] = t[hash(i, W, ilog2(run + 1), prevColor, col / max(1, w / 2))];
-    i++;
-    cp[i] = t[hash(i, NE, min(0x3FF, (col + line) / max(1, w * 8)))];
-    i++;
-    cp[i] = t[hash(i, NW, (col - line) / max(1, w * 8))];
-    i++;
-    cp[i] = t[hash(i, WW * 16 + W, NN * 16 + N, NNWW * 16 + NW)];
-    i++;
-    cp[i] = t[hash(i, N, NN)];
-    i++;
-    cp[i] = t[hash(i, W, WW)];
-    i++;
-    cp[i] = t[hash(i, W, NE)];
-    i++;
-    cp[i] = t[hash(i, WW, NN, NEE)];
-    i++;
-    cp[i] = t[-1];
-    assert(++i == S);
-    col++;
-    if( col == w * 2 ) {
-      col = 0;
-      line++;
-    }
-  } else {
-    INJECT_SHARED_y
-    px += px + y;
-    int j = (y + 1) << (bpos & 3U);
-    for( int i = 0; i < S; i++ ) {
-      cp[i] += j;
-    }
   }
 
-  // predict
+  const uint32_t msb = 1 << (bpos & 3); //bpos = {0,1,2,3 / 4,5,6,7} -> 1,2,4,8
+  const uint32_t px = msb | (c0 & (msb - 1)); // 0001, 001x, 01xx, 1xxx
+
+  uint64_t i = 0;
+  uint64_t j = static_cast<uint64_t>(px * 256);
+
+  hashes[i++] = hash(++j, W, NW, N);
+  hashes[i++] = hash(++j, N, min(0xFFF, col / 8));
+  hashes[i++] = hash(++j, W, NW, N, NN, NE);
+  hashes[i++] = hash(++j, W, N, NE + NNE * 16, NEE + NNEE * 16);
+  hashes[i++] = hash(++j, W, N, NW + NNW * 16, NWW + NNWW * 16);
+  hashes[i++] = hash(++j, W, ilog2(run + 1), prevColor, col / max(1, w / 2));
+  hashes[i++] = hash(++j, NE, min(0x3FF, (col + line) / max(1, w * 8)));
+  hashes[i++] = hash(++j, NW, (col - line) / max(1, w * 8));
+  hashes[i++] = hash(++j, WW * 16 + W, NN * 16 + N, NNWW * 16 + NW);
+  hashes[i++] = hash(++j, N, NN);
+  hashes[i++] = hash(++j, W, WW);
+  hashes[i++] = hash(++j, W, NE);
+  hashes[i++] = hash(++j, WW, NN, NEE);
+  hashes[i++] = hash(++j);
+
+  assert(i == S);
+  assert(j == px * 256 + S);
+     
+  for (size_t i = 0; i < S; i++) {
+    uint64_t contexthash = hashes[i];
+    mapL.set(contexthash);
+    const uint32_t ctx = finalize64(contexthash, hashBits);
+    const uint16_t chk = checksum16(contexthash, hashBits);
+    cp[i] = &hashTable[ctx].find(chk, &rnd)->bitState;
+  }
+
+  mapL.mix(m);
+
   sm.subscribe();
   for( int i = 0; i < S; i++ ) {
-    const uint8_t s = *cp[i];
-    const int n0 = static_cast<const int>(-static_cast<int>(StateTable::next(s, 2)) == 0u);
-    const int n1 = static_cast<const int>(-static_cast<int>(StateTable::next(s, 3)) == 0u);
-    const int p1 = sm.p2(i, s);
-    const int st = stretch(p1) >> 1U;
+    const uint8_t state = *cp[i];
+    const int n0 = StateTable::next(state, 2);
+    const int n1 = StateTable::next(state, 3);
+    const int p1 = sm.p2(i, state);
+    const int st = stretch(p1) >> 1;
     m.add(st);
-    m.add((p1 - 2048) >> 2U);
-    m.add(st * abs(n1 - n0));
+    m.add((p1 - 2048) >> 2);
+    const int bitIsUncertain = int(n0 != 0 && n1 != 0);
+    m.add((bitIsUncertain - 1) & st); // when both counts are nonzero add(0) otherwise add(st)
   }
-  m.add(stretch(map.p1(px)) >> 1U);
 
   m.set((W << 4U) | px, 256);
   m.set(min(31, col / max(1, w / 16)) | (N << 5U), 512);

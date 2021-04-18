@@ -20,8 +20,8 @@
 class Predictor {
 private:
     Shared *shared;
-    Models models;
-    ContextModel contextModel;
+    Models *models;
+    ContextModel *contextModel;
     SSE sse;
     int pr; // next prediction, scaled by 12 bits (0-4095)
     void trainText(const char *dictionary, int iterations);
@@ -29,6 +29,7 @@ private:
 
 public:
   Predictor(Shared* const sh);
+  ~Predictor();
 
     /**
      * Returns P(1) as a 12 bit number (0-4095).

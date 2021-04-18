@@ -150,7 +150,7 @@ public:
     float const learning_rate,
     std::uint64_t const time_step) const
   {
-    if (simd == SIMD_AVX2)
+    if constexpr (simd == SIMD_AVX2)
       RunSimdAVX2(g, m, v, w, learning_rate, time_step);
     else
       RunSimdNone(g, m, v, w, learning_rate, time_step);

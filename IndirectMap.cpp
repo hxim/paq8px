@@ -37,9 +37,15 @@ void IndirectMap::mix(Mixer &m) {
   shared->GetUpdateBroadcaster()->subscribe(this);
   cp = &data[context + b];
   const uint8_t state = *cp;
-  const int p1 = sm.p1(state);
-  m.add((stretch(p1) * scale) >> 8);
-  m.add(((p1 - 2048) * scale) >> 9);
+  if (state == 0) {
+    m.add(0);
+    m.add(0);
+  }
+  else {
+    const int p1 = sm.p1(state);
+    m.add((stretch(p1) * scale) >> 8);
+    m.add(((p1 - 2048) * scale) >> 9);
+  }
   bCount++;
   b += b + 1;
   assert(bCount <= bTotal);

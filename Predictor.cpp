@@ -1,7 +1,9 @@
 #include "Predictor.hpp"
 
-Predictor::Predictor(Shared* const sh) : shared(sh), models(sh), contextModel(sh, models), sse(sh), pr(2048) {
+Predictor::Predictor(Shared* const sh) : shared(sh), sse(sh), pr(2048) {
   shared->reset();
+  models = new Models(sh);
+  contextModel = new ContextModel(sh, models);
   //initiate pre-training
   if((shared->options & OPTION_TRAINTXT) != 0U ) {
     trainText("english.dic", 3);
@@ -12,9 +14,14 @@ Predictor::Predictor(Shared* const sh) : shared(sh), models(sh), contextModel(sh
   }
 }
 
+Predictor::~Predictor() {
+  delete models;
+  delete contextModel;
+}
+
 auto Predictor::p() -> int { 
   // predict
-  pr = contextModel.p();
+  pr = contextModel->p();
   // SSE Stage
   pr = sse.p(pr);
   return pr;
@@ -23,16 +30,16 @@ auto Predictor::p() -> int {
 void Predictor::update(uint8_t y) {
   // update global context: y, pos, bitPosition, c0, c4, c8, buf
   shared->update(y);
-  shared->State.misses = shared->State.misses<<1 | static_cast<uint64_t>((pr >> 11U) != y);
+  shared->State.misses = shared->State.misses << 1 | ((pr >> 11U) != y);
 }
 
 void Predictor::trainText(const char *const dictionary, int iterations) {
-  NormalModel &normalModel = models.normalModel();
-  WordModel &wordModel = models.wordModel();
+  NormalModel &normalModel = models->normalModel();
+  WordModel &wordModel = models->wordModel();
   DummyMixer mDummy(shared, 
     NormalModel::MIXERINPUTS + WordModel::MIXERINPUTS, 
-    NormalModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS,
-    NormalModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS);
+    NormalModel::MIXERCONTEXTS_PRE + WordModel::MIXERCONTEXTS,
+    NormalModel::MIXERCONTEXTSETS_PRE + WordModel::MIXERCONTEXTSETS);
   shared->State.blockType = TEXT;
   INJECT_SHARED_pos
   INJECT_SHARED_blockPos
@@ -89,7 +96,7 @@ void Predictor::trainText(const char *const dictionary, int iterations) {
 }
 
 void Predictor::trainExe() {
-  ExeModel &exeModel = models.exeModel();
+  ExeModel &exeModel = models->exeModel();
   DummyMixer dummyM(shared, ExeModel::MIXERINPUTS, ExeModel::MIXERCONTEXTS, ExeModel::MIXERCONTEXTSETS);
   INJECT_SHARED_pos
   INJECT_SHARED_blockPos
