@@ -1,7 +1,7 @@
 #ifndef PAQ8PX_POSIT_HPP
 #define PAQ8PX_POSIT_HPP
 
-#include "../clz.hpp"
+#include "../Clz.hpp"
 
 template<std::int32_t n, std::int32_t es>
 class Posit {

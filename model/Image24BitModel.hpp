@@ -14,12 +14,12 @@
  */
 class Image24BitModel {
 private:
-    static constexpr int nSM0 = 14;
+    static constexpr int nSM0 = 13;
     static constexpr int nSM1 = 76;
     static constexpr int nOLS = 6;
     static constexpr int nSM = nSM0 + nSM1 + nOLS;
     static constexpr int nLSM = 4;
-    static constexpr int nSSM = 59;
+    static constexpr int nSSM = 58;
     static constexpr int nCM = 45;
     Ilog *ilog = &Ilog::getInstance();
 
@@ -28,9 +28,9 @@ public:
       nSSM * SmallStationaryContextMap::MIXERINPUTS + 
       nLSM * LargeStationaryMap::MIXERINPUTS +
       nSM * StationaryMap::MIXERINPUTS +
-      nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); //643
-    static constexpr int MIXERCONTEXTS = (5 + 256) + 256 + 512 + 2048 + 8 * 32 + 6 * 64 + 256 * 2 + 1024 + 8192 + 8192 + 8192 + 8192 + 256; //38277
-    static constexpr int MIXERCONTEXTSETS = 13;
+      nCM * (ContextMap2::MIXERINPUTS); //593
+    static constexpr int MIXERCONTEXTS = (16 * 8) +(5 + 256) + 256 + 512 + 2048 + (8 * 32) + (6 * 64) + (256 * 2) + 1024 + 8192 + 8192 + 8192 + 8192 + 256; //38405
+    static constexpr int MIXERCONTEXTSETS = 15;
 
     Shared * const shared;
     ContextMap2 cm;
@@ -58,7 +58,8 @@ public:
     uint32_t lastPos = 0, lastWasPNG = 0;
     bool filterOn = false;
     int columns[2] = {1, 1}, column[2] {};
-    uint8_t mapContexts[nSM1] = {0}, scMapContexts[nSSM] = {0}, pOLS[nOLS] = {0};
+    short mapContexts[nSM1] = { 0 }, scMapContexts[nSSM] = { 0 };
+    uint8_t pOLS[nOLS] = {0};
     static constexpr double lambda[nOLS] = {0.98, 0.87, 0.9, 0.8, 0.9, 0.7};
     static constexpr int num[nOLS] = {32, 12, 15, 10, 14, 8};
     OLS<double, uint8_t> ols[nOLS][4] = {{{shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}},

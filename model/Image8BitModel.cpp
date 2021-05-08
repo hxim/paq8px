@@ -331,21 +331,21 @@ void Image8BitModel::mix(Mixer &m) {
         cm.set(R_, hash(++i, NE, NNEE, px));
         cm.set(R_, hash(++i, NW, NNWW, px));
         cm.set(R_, hash(++i, W, NEE, px));
-        cm.set(R_, hash(++i, (clamp4(W + N - NW, W, NW, N, NE) - px) / 2, logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
+        cm.set(R_, hash(++i, (clamp4(W + N - NW, W, NW, N, NE) - px) / 2, DiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
         cm.set(R_, hash(++i, (W - px) / 4, (NE - px) / 4, column[0]));
         cm.set(R_, hash(++i, (clip(W * 2 - WW) - px) / 4, (clip(N * 2 - NN) - px) / 4));
         cm.set(R_, hash(++i, (clamp4(N + NE - NNE, W, N, NE, NEE) - px) / 4, column[0]));
         cm.set(R_, hash(++i, (clamp4(N + NW - NNW, W, NW, N, NE) - px) / 4, column[0]));
         cm.set(R_, hash(++i, (W + NEE) / 4, px, column[0]));
         cm.set(R_, hash(++i, clip(W + N - NW) - px, column[0]));
-        cm.set(R_, hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, N, NN, NE), px, logMeanDiffQt(W, clip(NW * 2 - NNW))));
-        cm.set(R_, hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE), px, logMeanDiffQt(N, clip(NW * 2 - NWW))));
-        cm.set(R_, hash(++i, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2, px, logMeanDiffQt(N, (NW + NE) / 2)));
+        cm.set(R_, hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, N, NN, NE), px, DiffQt(W, clip(NW * 2 - NNW))));
+        cm.set(R_, hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE), px, DiffQt(N, clip(NW * 2 - NWW))));
+        cm.set(R_, hash(++i, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2, px, DiffQt(N, (NW + NE) / 2)));
         cm.set(R_, hash(++i, (N + NNN) / 8, clip(N * 3 - NN * 3 + NNN) / 4, px));
         cm.set(R_, hash(++i, (W + WWW) / 8, clip(W * 3 - WW * 3 + WWW) / 4, px));
         cm.set(R_, hash(++i, clip((-buffer(4) + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + buffer(w * 3 - 1) * 4 - buffer(w * 4 - 1), N, NE, buffer(w - 2), buffer(w - 3))) / 5) - px));
-        cm.set(R_, hash(++i, clip(N * 2 - NN) - px, logMeanDiffQt(N, clip(NN * 2 - NNN))));
-        cm.set(R_, hash(++i, clip(W * 2 - WW) - px, logMeanDiffQt(NE, clip(N * 2 - NW))));
+        cm.set(R_, hash(++i, clip(N * 2 - NN) - px, DiffQt(N, clip(NN * 2 - NNN))));
+        cm.set(R_, hash(++i, clip(W * 2 - WW) - px, DiffQt(NE, clip(N * 2 - NW))));
 
         if( isPNG ) {
           ctx = (static_cast<int>(abs(W - N) > 8) << 10U) | (static_cast<int>(W > N) << 9U) | (static_cast<int>(abs(N - NW) > 8) << 8U) |
@@ -373,7 +373,7 @@ void Image8BitModel::mix(Mixer &m) {
       int i = 0;
       map[i++].set(0);
       map[i++].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
-                         (logMeanDiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11U));
+                         (DiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11U));
 
       for( int j = 0; j < nSM1; i++, j++ ) {
         map[i].set((mapContexts[j] - px - b) * 8 + bpos);
