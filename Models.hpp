@@ -5,6 +5,7 @@
 #include "model/Audio16BitModel.hpp"
 #include "model/Audio8BitModel.hpp"
 #include "model/CharGroupModel.hpp"
+#include "model/ChartModel.hpp"
 #include "model/DmcForest.hpp"
 #include "model/ExeModel.hpp"
 #include "model/Image1BitModel.hpp"
@@ -39,6 +40,7 @@ public:
   auto normalModel() -> NormalModel &;
   auto dmcForest() -> DmcForest &;
   auto charGroupModel() -> CharGroupModel &;
+  auto chartModel()->ChartModel&;
   auto recordModel() -> RecordModel &;
   auto sparseBitModel()->SparseBitModel&;
   auto sparseModel() -> SparseModel &;

@@ -1894,3 +1894,11 @@ paq8px_v202 by Zoltán Gotthardt
 paq8px_v203 by Zoltán Gotthardt
 2021.05.08
 - Parameter tunig in Image24BitModel; added cm order as mixer context
+
+
+paq8px_v204 by Zoltán Gotthardt
+2021.08.04
+- Fixed calculating "misses" in Predictor.
+- Improved usage of "misses" in SSE stage.
+- Ported ChartModel from paq8kx7.
+

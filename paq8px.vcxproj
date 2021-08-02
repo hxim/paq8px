@@ -269,6 +269,7 @@
     <ClCompile Include="model\Audio8BitModel.cpp" />
     <ClCompile Include="model\AudioModel.cpp" />
     <ClCompile Include="model\CharGroupModel.cpp" />
+    <ClCompile Include="model\ChartModel.cpp" />
     <ClCompile Include="model\ContextModel.cpp" />
     <ClCompile Include="model\ContextModelAudio16.cpp" />
     <ClCompile Include="model\ContextModelAudio8.cpp" />
@@ -399,6 +400,7 @@
     <ClInclude Include="model\Audio8BitModel.hpp" />
     <ClInclude Include="model\AudioModel.hpp" />
     <ClInclude Include="model\CharGroupModel.hpp" />
+    <ClInclude Include="model\ChartModel.hpp" />
     <ClInclude Include="model\ContextModel.hpp" />
     <ClInclude Include="model\DecAlphaModel.hpp" />
     <ClInclude Include="model\DmcForest.hpp" />

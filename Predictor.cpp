@@ -1,6 +1,7 @@
 #include "Predictor.hpp"
+#include "ArithmeticEncoder.hpp"
 
-Predictor::Predictor(Shared* const sh) : shared(sh), sse(sh), pr(2048) {
+Predictor::Predictor(Shared* const sh) : shared(sh), sse(sh), pr(1<<(ArithmeticEncoder::PRECISION-1)) {
   shared->reset();
   models = new Models(sh);
   contextModel = new ContextModel(sh, models);
@@ -30,7 +31,7 @@ auto Predictor::p() -> int {
 void Predictor::update(uint8_t y) {
   // update global context: y, pos, bitPosition, c0, c4, c8, buf
   shared->update(y);
-  shared->State.misses = shared->State.misses << 1 | ((pr >> 11U) != y);
+  shared->State.misses = shared->State.misses << 1 | ((pr >> (ArithmeticEncoder::PRECISION-1)) != y);
 }
 
 void Predictor::trainText(const char *const dictionary, int iterations) {

@@ -282,6 +282,9 @@
     <ClCompile Include="model\ContextModelDec.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="model\ChartModel.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -685,6 +688,9 @@
     </ClInclude>
     <ClInclude Include="APMPost.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\ChartModel.hpp">
+      <Filter>model</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -15,21 +15,21 @@ public:
       sh,
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + SparseMatchModel::MIXERINPUTS +
-      SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + RecordModel::MIXERINPUTS +
+      SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + ChartModel::MIXERINPUTS + RecordModel::MIXERINPUTS +
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS + IndirectModel::MIXERINPUTS +
       ExeModel::MIXERINPUTS +
       DECAlphaModel::MIXERINPUTS +
       (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + NormalModel::MIXERCONTEXTS_POST + SparseMatchModel::MIXERCONTEXTS +
-      SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + RecordModel::MIXERCONTEXTS + 
+      SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + ChartModel::MIXERCONTEXTS + RecordModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
       DECAlphaModel::MIXERCONTEXTS +
       ExeModel::MIXERCONTEXTS +
       (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + NormalModel::MIXERCONTEXTSETS_POST + SparseMatchModel::MIXERCONTEXTSETS +
-      SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + RecordModel::MIXERCONTEXTSETS +
+      SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + ChartModel::MIXERCONTEXTSETS + RecordModel::MIXERCONTEXTSETS +
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
       DECAlphaModel::MIXERCONTEXTSETS +
       ExeModel::MIXERCONTEXTSETS +
@@ -61,6 +61,8 @@ public:
     sparseBitModel.mix(*m);
     SparseModel& sparseModel = models->sparseModel();
     sparseModel.mix(*m);
+    ChartModel& chartModel = models->chartModel();
+    chartModel.mix(*m);
     shared->State.rLength = 16;
     RecordModel& recordModel = models->recordModel();
     recordModel.mix(*m);

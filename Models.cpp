@@ -68,6 +68,11 @@ auto Models::indirectModel() -> IndirectModel & {
   return instance;
 }
 
+auto Models::chartModel() -> ChartModel& {
+  static ChartModel instance{ shared, shared->mem * 4, shared->mem };
+  return instance;
+}
+
 #ifndef DISABLE_TEXTMODEL
 
 auto Models::textModel() -> TextModel & {
