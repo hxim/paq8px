@@ -1,5 +1,6 @@
 #include "APMPost.hpp"
 #include "ArithmeticEncoder.hpp"
+#include "UpdateBroadcaster.hpp"
 
 APMPost::APMPost(const Shared* const sh, const uint32_t n) : shared(sh), index(0), n(n), t(n* UINT64_C(4096)) {
   assert(n > 0);

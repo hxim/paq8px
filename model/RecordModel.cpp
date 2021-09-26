@@ -1,4 +1,5 @@
 #include "RecordModel.hpp"
+#include "../CharacterNames.hpp"
 
 RecordModel::RecordModel(Shared* const sh, const uint64_t size) : shared(sh),
     cm(sh,32768,3), cn(sh,32768/2,3), co(sh,32768*2,3), // cm,cn,co: memory pressure is advantageous
@@ -18,6 +19,10 @@ RecordModel::RecordModel(Shared* const sh, const uint64_t size) : shared(sh),
     }
   {} 
 
+void RecordModel::setParam(uint32_t fixedRecordLenght) {
+  this->fixedRecordLength = fixedRecordLenght;
+}
+
 void RecordModel::mix(Mixer &m) {
   // find record length
   INJECT_SHARED_bpos
@@ -28,38 +33,11 @@ void RecordModel::mix(Mixer &m) {
     int w = c4 & 0xffffU;
     int c = w & 255U;
     int d = w >> 8U;
-    if((shared->State.rLength) != 0) {
-      rLength[0] = shared->State.rLength;
+    if(fixedRecordLength != 0) {
+      rLength[0] = fixedRecordLength;
       rCount[0] = rCount[1] = rLength[1] = rLength[2] = 0;
-      shared->State.rLength = 0;
     } else {
-
-      // detect dBASE tables
-      INJECT_SHARED_blockPos
-      if( blockPos == 0 || (dbase.version > 0 && blockPos >= dbase.end)) {
-        dbase.version = 0;
-      } else if( dbase.version == 0 && shared->State.blockType == DEFAULT && blockPos >= 31 ) {
-        uint8_t b = buf(32);
-        if(((b & 7U) == 3 || (b & 7U) == 4 || (b >> 4U) == 3 || b == 0xF5) && ((b = buf(30)) > 0 && b < 13) &&
-           ((b = buf(29)) > 0 && b < 32) &&
-           ((dbase.nRecords = buf(28) | (buf(27) << 8U) | (buf(26) << 16U) | (buf(25) << 24U)) > 0 && dbase.nRecords < 0xFFFFF) &&
-           ((dbase.headerLength = buf(24) | (buf(23) << 8U)) > 32 && (((dbase.headerLength - 32 - 1) % 32) == 0 ||
-                                                                      (dbase.headerLength > 255 + 8 &&
-                                                                       (((dbase.headerLength -= 255 + 8) - 32 - 1) % 32) == 0))) &&
-           ((dbase.recordLength = buf(22) | (buf(21) << 8U)) > 8) && (buf(20) == 0 && buf(19) == 0 && buf(17) <= 1 && buf(16) <= 1)) {
-          dbase.version = (((b = buf(32)) >> 4U) == 3) ? 3 : b & 7U;
-          dbase.start = blockPos - 32 + dbase.headerLength;
-          dbase.end = dbase.start + dbase.nRecords * dbase.recordLength;
-          if( dbase.version == 3 ) {
-            rLength[0] = 32;
-            rCount[0] = rCount[1] = 0;
-          }
-        }
-      } else if( dbase.version > 0 && blockPos == dbase.start ) {
-        rLength[0] = dbase.recordLength;
-        rCount[0] = rCount[1] = 0;
-      }
-      
+      //detect record length
       uint32_t r = pos - cPos1[c];
       if( r > 1 && r == cPos1[c] - cPos2[c] && r == cPos2[c] - cPos3[c] && (r > 32 || r == cPos3[c] - cPos4[c]) &&
           (r > 10 || ((c == buf(r * 5 + 1)) && c == buf(r * 6 + 1)))) {
@@ -260,4 +238,5 @@ void RecordModel::mix(Mixer &m) {
   m.set(((N ^ B) >> 4U) | (x << 4U), 512);
   m.set(((shared->State.Text.characterGroup) << 5U) | x, 11 * 32);
  
+  shared->State.rLength = rLength[0];
 }

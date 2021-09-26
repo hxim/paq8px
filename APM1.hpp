@@ -4,9 +4,6 @@
 #include <cstdint>
 #include <cassert>
 #include "Shared.hpp"
-#include "UpdateBroadcaster.hpp"
-#include "Squash.hpp"
-#include "Stretch.hpp"
 
 /**
  * APM1 maps a probability and a context into a new probability that bit y will next be 1.

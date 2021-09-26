@@ -85,7 +85,7 @@ public:
      * New image.
      */
     void init();
-    void setParam(int info0, uint32_t alpha0, uint32_t isPNG0);
+    void setParam(int width, uint32_t alpha0, uint32_t isPNG0);
     void mix(Mixer &m);
 };
 

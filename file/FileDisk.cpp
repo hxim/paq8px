@@ -1,4 +1,5 @@
 #include "FileDisk.hpp"
+#include "../SystemDefines.hpp"
 
 auto FileDisk::makeTmpFile() -> FILE * {
 #if defined(WINDOWS)

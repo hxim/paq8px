@@ -1,6 +1,6 @@
 #include "NestModel.hpp"
 
-NestModel::NestModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM) {}
+NestModel::NestModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM, 64) {}
 
 void NestModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
@@ -149,19 +149,20 @@ void NestModel::mix(Mixer &m) {
     if( bc > 300 ) {
       bc = ic = pc = qc = uc = 0;
     }
+    const uint8_t R_ = CM_USE_RUN_STATS;
     uint64_t i = 0;
-    cm.set(hash(++i, (vv > 0 && vv < 3) ? 0 : (lc | 0x100U), ic & 0x3FFU, ec & 0x7U, ac & 0x7U, uc));
-    cm.set(hash(++i, ic, w, ilog2(bc + 1)));
-    cm.set(hash(++i, (3 * vc + 77 * pc + 373 * ic + qc) & 0xffffu));
-    cm.set(hash(++i, (31 * vc + 27 * pc + 281 * qc) & 0xffffu));
-    cm.set(hash(++i, (13 * vc + 271 * ic + qc + bc) & 0xffffu));
-    cm.set(hash(++i, (17 * pc + 7 * ic) & 0xffffu));
-    cm.set(hash(++i, (13 * vc + ic) & 0xffffu));
-    cm.set(hash(++i, (vc / 3 + pc) & 0xffffu));
-    cm.set(hash(++i, (7 * wc + qc) & 0xffffu));
-    cm.set(hash(++i, vc & 0xffffu, c4 & 0xffu));
-    cm.set(hash(++i, (3 * pc) & 0xffffu, c4 & 0xffu));
-    cm.set(hash(++i, ic & 0xffffu, c4 & 0xffu));
+    cm.set(R_, hash(++i, (vv > 0 && vv < 3) ? 0 : (lc | 0x100U), ic & 0x3FFU, ec & 0x7U, ac & 0x7U, uc));
+    cm.set(R_, hash(++i, ic, w, ilog2(bc + 1)));
+    cm.set(R_, hash(++i, (3 * vc + 77 * pc + 373 * ic + qc) & 0xffffu));
+    cm.set(R_, hash(++i, (31 * vc + 27 * pc + 281 * qc) & 0xffffu));
+    cm.set(R_, hash(++i, (13 * vc + 271 * ic + qc + bc) & 0xffffu));
+    cm.set(R_, hash(++i, (17 * pc + 7 * ic) & 0xffffu));
+    cm.set(R_, hash(++i, (13 * vc + ic) & 0xffffu));
+    cm.set(R_, hash(++i, (vc / 3 + pc) & 0xffffu));
+    cm.set(R_, hash(++i, (7 * wc + qc) & 0xffffu));
+    cm.set(R_, hash(++i, vc & 0xffffu, c4 & 0xffu));
+    cm.set(R_, hash(++i, (3 * pc) & 0xffffu, c4 & 0xffu));
+    cm.set(R_, hash(++i, ic & 0xffffu, c4 & 0xffu));
   }
   cm.mix(m);
 }

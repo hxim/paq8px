@@ -5,9 +5,6 @@ IndirectMap::IndirectMap(const Shared* const sh, const int bitsOfContext, const 
   shared(sh), data((UINT64_C(1) << bitsOfContext) * ((UINT64_C(1) << inputBits) - 1)),
   sm {sh, 1, 256, 1023, StateMap::BitHistory}, mask((1U << bitsOfContext) - 1),
   maskBits(bitsOfContext), stride((1U << inputBits) - 1), bTotal(inputBits), scale(scale) {
-#ifdef VERBOSE
-  printf("Created IndirectMap with bitsOfContext = %d, inputBits = %d, scale = %d, limit = %d\n", bitsOfContext, inputBits, scale, limit);
-#endif
   assert(inputBits > 0 && inputBits <= 8);
   assert(bitsOfContext + inputBits <= 24);
   cp = nullptr;

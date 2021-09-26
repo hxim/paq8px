@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelDec {
+class ContextModelDec : public IContextModel {
 
 private:
   Shared* const shared;
@@ -16,7 +16,7 @@ public:
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + ChartModel::MIXERINPUTS + RecordModel::MIXERINPUTS +
-      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS + IndirectModel::MIXERINPUTS +
+      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       ExeModel::MIXERINPUTS +
       DECAlphaModel::MIXERINPUTS +
       (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERINPUTS : 0)
@@ -63,7 +63,6 @@ public:
     sparseModel.mix(*m);
     ChartModel& chartModel = models->chartModel();
     chartModel.mix(*m);
-    shared->State.rLength = 16;
     RecordModel& recordModel = models->recordModel();
     recordModel.mix(*m);
     TextModel& textModel = models->textModel();
@@ -74,6 +73,8 @@ public:
     indirectModel.mix(*m);
     DECAlphaModel& decAlphaModel = models->decAlphaModel();
     decAlphaModel.mix(*m);
+
+    //exemodel must be the last one
     ExeModel& exeModel = models->exeModel();
     exeModel.mix(*m);
 

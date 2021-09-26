@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelAudio16 {
+class ContextModelAudio16 : public IContextModel {
 
 private:
   Shared* const shared;
@@ -32,8 +32,15 @@ public:
     m->setScaleFactor(1024, 128);
   }
 
+  void setParam(int blockInfo) {
+    Audio16BitModel& audio16BitModel = models->audio16BitModel();
+    audio16BitModel.setParam(blockInfo);
+    uint32_t fixedRecordLenght = (audio16BitModel.stereo + 1) * 2;
+    RecordModel& recordModel = models->recordModel();
+    recordModel.setParam(fixedRecordLenght); // 2 or 4
+  }
 
-  int p(int blockInfo) {
+  int p() {
 
     m->add(256); //network bias
 
@@ -50,11 +57,8 @@ public:
     }
 
     Audio16BitModel& audio16BitModel = models->audio16BitModel();
-    audio16BitModel.setParam(blockInfo);
     audio16BitModel.mix(*m);
 
-    int isStereo = (blockInfo & 1);
-    shared->State.rLength = (isStereo + 1) * 2;
     RecordModel& recordModel = models->recordModel();
     recordModel.mix(*m);
 

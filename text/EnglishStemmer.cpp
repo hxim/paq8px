@@ -1,4 +1,5 @@
 #include "EnglishStemmer.hpp"
+#include "../CharacterNames.hpp"
 
 auto EnglishStemmer::isConsonant(const char c) -> bool {
   return !isVowel(c);

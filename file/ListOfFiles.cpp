@@ -1,4 +1,5 @@
 #include "ListOfFiles.hpp"
+#include "../CharacterNames.hpp"
 
 ListOfFiles::ListOfFiles() : state(IN_HEADER), names(0) {}
 

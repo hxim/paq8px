@@ -1,4 +1,5 @@
 #include "TextModel.hpp"
+#include "../CharacterNames.hpp"
 
 TextModel::TextModel(Shared* const sh, const uint64_t size) : shared(sh),
     cm(sh, size, nCM2, 64),
@@ -130,29 +131,30 @@ void TextModel::update() {
       words[Language::Unknown]++;
 
       if( Lang.id != Lang.pId ) {
-#ifdef VERBOSE
-        if( shared->toScreen ) {
-          printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
-}       INJECT_SHARED_blockPos
-        switch( Lang.id ) {
-          case Language::Unknown: {
-            printf("[language: Unknown, blPos: %d]\n", blockPos);
-            break;
-          }
-          case Language::English: {
-            printf("[language: English, blPos: %d]\n", blockPos);
-            break;
-          }
-          case Language::French: {
-            printf("[language: French,  blPos: %d]\n", blockPos);
-            break;
-          }
-          case Language::German: {
-            printf("[language: German,  blPos: %d]\n", blockPos);
-            break;
+        if constexpr (false) { //turn it on if you'd like to see language-detection info on screen
+          if (shared->toScreen) {
+            printf("\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
+          } 
+          INJECT_SHARED_blockPos
+          switch (Lang.id) {
+            case Language::Unknown: {
+              printf("[language: Unknown, blPos: %d]\n", blockPos);
+              break;
+            }
+            case Language::English: {
+              printf("[language: English, blPos: %d]\n", blockPos);
+              break;
+            }
+            case Language::French: {
+              printf("[language: French,  blPos: %d]\n", blockPos);
+              break;
+            }
+            case Language::German: {
+              printf("[language: German,  blPos: %d]\n", blockPos);
+              break;
+            }
           }
         }
-#endif //VERBOSE
         if(((shared->options & OPTION_TRAINTXT) != 0u) && Lang.id != Language::Unknown && dictionaries[Lang.id - 1] == nullptr ) {
           switch( Lang.id ) {
             case Language::English: {
@@ -514,6 +516,10 @@ void TextModel::setContexts() {
       (static_cast<int>(cSegment->wordCount == 0) << 1U)
   ));
   assert(i - State * 64 + 1 == nCM2);
+}
+
+void TextModel::setParam(int cmScale) {
+  cm.setScale(cmScale);
 }
 
 void TextModel::mix(Mixer &m) {

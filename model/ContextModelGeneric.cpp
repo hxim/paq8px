@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelGeneric {
+class ContextModelGeneric: public IContextModel {
 
 private:
   Shared* const shared;
@@ -17,7 +17,7 @@ public:
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + ChartModel::MIXERINPUTS +
       RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
-      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS + IndirectModel::MIXERINPUTS +
+      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
       LinearPredictionModel::MIXERINPUTS + ExeModel::MIXERINPUTS +
       LstmModel<>::MIXERINPUTS
@@ -85,6 +85,8 @@ public:
 
     LinearPredictionModel& linearPredictionModel = models->linearPredictionModel();
     linearPredictionModel.mix(*m);
+
+    //exemodel must be the last
     ExeModel& exeModel = models->exeModel();
     exeModel.mix(*m);
 

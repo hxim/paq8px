@@ -160,7 +160,7 @@ namespace LSTM {
  * Long Short-Term Memory neural network.
  * Based on the LSTM implementation in cmix by Byron Knoll.
  */
-template <SIMD simd, typename T>
+template <SIMDType simd, typename T>
 class Lstm {
   static_assert(std::is_integral<T>::value && (!std::is_same<T, bool>::value), "LSTM input type must be integral and non-boolean");
 private:

@@ -4,14 +4,15 @@
 #include "LstmModel.hpp"
 #include "Lstm.hpp"
 #include "SimdFunctions.hpp"
-#include "../Shared.hpp"
+#include "../APM.hpp"
+#include "../BlockType.hpp"
+#include "../IndirectContext.hpp"
 #include "../Mixer.hpp"
 #include "../RingBuffer.hpp"
-#include "../APM.hpp"
-#include "../IndirectContext.hpp"
-#include "../utils.hpp"
+#include "../Shared.hpp"
+#include "../SIMDType.hpp"
 
-template <SIMD simd, std::size_t Bits = 8>
+template <SIMDType simd, std::size_t Bits = 8>
 class SIMDLstmModel :
   public LstmModel<Bits> {
 private:  

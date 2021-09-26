@@ -11,20 +11,9 @@ private:
     void appendIntRecursive(uint64_t x);
 protected:
 #ifdef NDEBUG
-#define chk_consistency() ((void) 0)
+  #define chk_consistency() ((void) 0)
 #else
-
-    void chk_consistency() const {
-      for( uint32_t i = 0; i < size() - 1; i++ ) {
-        if((*this)[i] == 0 ) {
-          quit("Internal error - string consistency check failed (1).");
-}
-}
-      if(((*this)[size() - 1]) != 0 ) {
-        quit("Internal error - string consistency check failed (2).");
-}
-    }
-
+  void chk_consistency() const;
 #endif
 public:
     [[nodiscard]] auto c_str() const -> const char *;

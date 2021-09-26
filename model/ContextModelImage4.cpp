@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelImage4 {
+class ContextModelImage4 : public IContextModel {
 
 private:
   Shared* const shared;
@@ -29,8 +29,12 @@ public:
     m->setScaleFactor(2048, 256);
   }
 
+  void setParam(int imageWidthInBytes) {
+    Image4BitModel& image4BitModel = models->image4BitModel();
+    image4BitModel.setParam(imageWidthInBytes);
+  }
 
-  int p(int blockInfo) {
+  int p() {
 
     m->add(256); //network bias
 
@@ -47,7 +51,6 @@ public:
     }
 
     Image4BitModel& image4BitModel = models->image4BitModel();
-    image4BitModel.setParam(blockInfo);
     image4BitModel.mix(*m);
 
     return m->p();

@@ -1,13 +1,14 @@
 #ifndef PAQ8PX_FILEUTILS_HPP
 #define PAQ8PX_FILEUTILS_HPP
 
-#include "../String.hpp"
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include "../String.hpp"
+#include "../SystemDefines.hpp"
 
 //////////////////// IO functions and classes ///////////////////
 // Wrappers to utf8 vs. wchar functions

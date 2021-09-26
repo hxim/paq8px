@@ -7,9 +7,6 @@ ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint
         bhMap8B(sh, contexts, (1 << 8), 511, StateMap::Generic),     /* StateMap : s, n, lim, init */ // 511-1023
         bhMap12B(sh, contexts, (1 << 12), 511, StateMap::Generic),   /* StateMap : s, n, lim, init */ // 255-1023
         index(0), mask(uint32_t(hashTable.size() - 1)), hashBits(ilog2(mask + 1)), scale(scale), contextflagsAll(0) {
-#ifdef VERBOSE
-  printf("Created ContextMap2 with size = %" PRIu64 ", contexts = %d, scale = %d\n", size, contexts, scale);
-#endif
   assert(size >= 64 && isPowerOf2(size));
   static_assert(sizeof(Bucket16 <HashElementForContextMap, 7>) == (sizeof(HashElementForContextMap) + 2) * 7, "Something is wrong, please pack that struct");
 }

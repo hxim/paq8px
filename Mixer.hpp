@@ -172,6 +172,14 @@ static void trainSimdNone(const short *const t, short *const w, int n, const int
   }
 }
 
+struct ErrorInfo {
+  uint32_t data[2], sum, mask, collected;
+
+  void reset() {
+    memset(this, 0, sizeof(*this));
+  }
+};
+
 class Mixer : protected IPredictor {
 protected:
     static constexpr int MAX_LEARNING_RATE = 8 * 65536 - 1;
@@ -211,7 +219,7 @@ public:
      * Returns the output prediction that the next bit is 1 as a 12 bit number (0 to 4095).
      * @return the prediction
      */
-    virtual auto p() -> int = 0;
+    virtual int p() = 0;
     virtual void setScaleFactor(int sf0, int sf1) = 0;
     virtual void promote(int x) = 0;
 

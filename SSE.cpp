@@ -1,5 +1,6 @@
 #include "SSE.hpp"
 #include "Hash.hpp"
+#include "Utils.hpp"
 
 SSE::SSE(Shared* const sh) : shared(sh),
 Text{
@@ -84,8 +85,8 @@ auto SSE::p(const int pr_orig) -> int {
   constexpr int limit = 1023;
 
   switch(blockType) {
-    case TEXT:
-    case TEXT_EOL: {
+    case BlockType::TEXT:
+    case BlockType::TEXT_EOL: {
       uint32_t pr0 = Text.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 7 | (shared->State.Text.mask & 0x0F) | misses3 << 4, limit); //15
       uint32_t pr1 = Text.APMs[1].p(pr_orig, finalize64(hash(bpos, misses3 & 3, c4 & 0xFFFF, shared->State.Text.mask >> 4), 16), limit); //16
       uint32_t pr2 = Text.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Match.expectedByte << 2 | shared->State.Match.length2), 16), limit); //16
@@ -103,8 +104,8 @@ auto SSE::p(const int pr_orig) -> int {
       return pr;
       break;
     }
-    case IMAGE24:
-    case IMAGE32: {
+    case BlockType::IMAGE24:
+    case BlockType::IMAGE32: {
       uint32_t pr0 = Image.Color.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos==0 ? 0 : (misses3&3)), limit); //11
       uint32_t pr1 = Image.Color.APMs[1].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.W, shared->State.Image.pixels.WW), 16), limit); //16
       uint32_t pr2 = Image.Color.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.N, shared->State.Image.pixels.NN), 16), limit); //16
@@ -121,7 +122,7 @@ auto SSE::p(const int pr_orig) -> int {
       return pr;
       break;
     }
-    case IMAGE8GRAY: {
+    case BlockType::IMAGE8GRAY: {
       uint32_t pr0 = Image.Gray.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3)), limit); //11
       uint32_t pr1 = Image.Gray.APMs[1].p(pr0, (c0 << 8) | shared->State.Image.ctx, limit); //16
       uint32_t pr2 = Image.Gray.APMs[2].p(pr_orig, bpos | (shared->State.Image.ctx & 0xF8) | (shared->State.Match.expectedByte << 8), limit); //16
@@ -132,7 +133,7 @@ auto SSE::p(const int pr_orig) -> int {
       return pr;
       break;
     }
-    case IMAGE8: {
+    case BlockType::IMAGE8: {
       uint32_t pr0 = Image.Palette.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3)), limit); //11
       uint32_t pr1 = Image.Palette.APMs[1].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.N << 16), 16), limit); //16
       uint32_t pr2 = Image.Palette.APMs[2].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.N << 8 | shared->State.Image.pixels.NN << 16), 16), limit); //16
@@ -149,28 +150,28 @@ auto SSE::p(const int pr_orig) -> int {
       return pr;
       break;
     }
-    //case IMAGE4: //TODO
-    //case IMAGE1: //TODO
-    case AUDIO:
-    case AUDIO_LE: {
+    //case BlockType::IMAGE4: //TODO
+    //case BlockType::IMAGE1: //TODO
+    case BlockType::AUDIO:
+    case BlockType::AUDIO_LE: {
       uint32_t pr0 = Audio.APMs[0].p(pr_orig, shared->State.Audio << 6 | static_cast<uint32_t>(bpos) << 3 | misses3, limit); //14
       uint32_t pr = (Audio.APMPostA.p(pr_orig, bpos) + Audio.APMPostB.p(pr0, bpos) + 1) >> 1;
       return pr;
       break;
     }
-    case JPEG: {
+    case BlockType::JPEG: {
       uint32_t pr0 = Jpeg.APMs[0].p(pr_orig, shared->State.JPEG.state, limit);
       uint32_t pr = (Jpeg.APMPostA.p(pr_orig, 0) + Jpeg.APMPostB.p(pr0, 0) + 1) >> 1;
       return pr;
       break;
     }
-    case DEC_ALPHA: {
+    case BlockType::DEC_ALPHA: {
       uint32_t pr0 = DEC.APMs[0].p(pr_orig, (shared->State.DEC.state * 26u) + shared->State.DEC.bcount, limit);
       uint32_t pr = (DEC.APMPostA.p(pr_orig, 0) + DEC.APMPostB.p(pr0, 0)+1) >> 1;
       return pr;
       break;
     }
-    case EXE: {
+    case BlockType::EXE: {
       uint32_t pr0 = x86_64.APMs[0].p(pr_orig, shared->State.x86_64.state << 6 | misses3 << 3 | bpos, limit);//14
       uint32_t pr1 = x86_64.APMs[1].p(pr_orig, shared->State.x86_64.state<<8 | c0, limit); // 16
       uint32_t pr2 = x86_64.APMs[2].p((pr0 + pr1 + 1) >> 1, finalize64(hash(c4 & 0xFF, bpos, misses3 & 1, shared->State.x86_64.state >> 3), 16), limit); //16

@@ -3,6 +3,7 @@
 
 #include "../file/File.hpp"
 #include "../Encoder.hpp"
+#include "../CharacterNames.hpp"
 #include "Filter.hpp"
 #include <cstdint>
 

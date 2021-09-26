@@ -1,9 +1,10 @@
 #ifndef PAQ8PX_RINGBUFFER_HPP
 #define PAQ8PX_RINGBUFFER_HPP
 
-#include "Array.hpp"
 #include <cassert>
 #include <cstdint>
+#include "Array.hpp"
+#include "Utils.hpp"
 
 template<class T>
 class RingBuffer {
@@ -18,9 +19,6 @@ public:
      * @param size number of bytes in array
      */
     explicit RingBuffer(const uint32_t size = 0) : b(size), mask(size - 1) {
-#ifdef VERBOSE
-      printf("Created RingBuffer with size = %d\n", size);
-#endif
       assert(isPowerOf2(size));
     }
 

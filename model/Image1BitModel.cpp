@@ -3,8 +3,8 @@
 
 Image1BitModel::Image1BitModel(const Shared* const sh) : shared(sh), sm {sh, s, 256, 1023, StateMap::BitHistory} {}
 
-void Image1BitModel::setParam(int info0) {
-  w = info0;
+void Image1BitModel::setParam(int widthInBytes) {
+  w = widthInBytes;
 }
 
 void Image1BitModel::mix(Mixer &m) {

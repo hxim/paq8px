@@ -12,8 +12,8 @@ Image4BitModel::Image4BitModel(const Shared* const sh, const uint64_t size) : sh
   mapL (sh, S, 22)
 {}
 
-void Image4BitModel::setParam(int width) {
-  w = width;
+void Image4BitModel::setParam(int widthInBytes) {
+  w = widthInBytes;
 }
 
 void Image4BitModel::update() {

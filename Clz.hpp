@@ -1,7 +1,7 @@
 #ifndef PAQ8PX_CLZ_HPP
 #define PAQ8PX_CLZ_HPP
 
-#include <assert.h>
+#include <cassert>
 #include <cstdint>
 
 #ifdef _MSC_VER

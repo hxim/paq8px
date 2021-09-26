@@ -285,6 +285,18 @@
     <ClCompile Include="model\ChartModel.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="Stretch.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Squash.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BitCount.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BlockType.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -690,6 +702,24 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="model\ChartModel.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="SystemDefines.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BlockType.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CharacterNames.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SIMDType.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="filter\mrb.hpp">
+      <Filter>filter</Filter>
+    </ClInclude>
+    <ClInclude Include="model\IContextModel.hpp">
       <Filter>model</Filter>
     </ClInclude>
   </ItemGroup>

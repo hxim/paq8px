@@ -245,6 +245,8 @@
     <ClCompile Include="APM1.cpp" />
     <ClCompile Include="APMPost.cpp" />
     <ClCompile Include="ArithmeticEncoder.cpp" />
+    <ClCompile Include="BitCount.cpp" />
+    <ClCompile Include="BlockType.cpp" />
     <ClCompile Include="Clz.hpp" />
     <ClCompile Include="ContextMap.cpp" />
     <ClCompile Include="ContextMap2.cpp" />
@@ -309,10 +311,12 @@
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Shared.cpp" />
     <ClCompile Include="SmallStationaryContextMap.cpp" />
+    <ClCompile Include="Squash.cpp" />
     <ClCompile Include="SSE.cpp" />
     <ClCompile Include="StateMap.cpp" />
     <ClCompile Include="StateTable.cpp" />
     <ClCompile Include="StationaryMap.cpp" />
+    <ClCompile Include="Stretch.cpp" />
     <ClCompile Include="String.cpp" />
     <ClCompile Include="text\English.cpp" />
     <ClCompile Include="text\EnglishStemmer.cpp" />
@@ -335,7 +339,9 @@
     <ClInclude Include="Array.hpp" />
     <ClInclude Include="BH.hpp" />
     <ClInclude Include="BitCount.hpp" />
+    <ClInclude Include="BlockType.hpp" />
     <ClInclude Include="Bucket16.hpp" />
+    <ClInclude Include="CharacterNames.hpp" />
     <ClInclude Include="ContextMap.hpp" />
     <ClInclude Include="ContextMap2.hpp" />
     <ClInclude Include="DivisionTable.hpp" />
@@ -365,6 +371,7 @@
     <ClInclude Include="filter\lzw.hpp" />
     <ClInclude Include="filter\LZWDictionary.hpp" />
     <ClInclude Include="filter\LZWEntry.hpp" />
+    <ClInclude Include="filter\mrb.hpp" />
     <ClInclude Include="filter\rle.hpp" />
     <ClInclude Include="filter\TextParserStateInfo.hpp" />
     <ClInclude Include="filter\zlib.hpp" />
@@ -407,6 +414,7 @@
     <ClInclude Include="model\DmcModel.hpp" />
     <ClInclude Include="model\DmcNode.hpp" />
     <ClInclude Include="model\ExeModel.hpp" />
+    <ClInclude Include="model\IContextModel.hpp" />
     <ClInclude Include="model\Image1BitModel.hpp" />
     <ClInclude Include="model\Image24BitModel.hpp" />
     <ClInclude Include="model\Image4BitModel.hpp" />
@@ -434,6 +442,7 @@
     <ClInclude Include="Shared.hpp" />
     <ClInclude Include="simd.hpp" />
     <ClInclude Include="SimdMixer.hpp" />
+    <ClInclude Include="SIMDType.hpp" />
     <ClInclude Include="SmallStationaryContextMap.hpp" />
     <ClInclude Include="Squash.hpp" />
     <ClInclude Include="SSE.hpp" />
@@ -442,6 +451,7 @@
     <ClInclude Include="StationaryMap.hpp" />
     <ClInclude Include="Stretch.hpp" />
     <ClInclude Include="String.hpp" />
+    <ClInclude Include="SystemDefines.hpp" />
     <ClInclude Include="text\Cache.hpp" />
     <ClInclude Include="text\English.hpp" />
     <ClInclude Include="text\EnglishStemmer.hpp" />

@@ -3,10 +3,11 @@
 
 #include "IActivation.hpp"
 #include "../utils.hpp"
+#include "../SIMDType.hpp"
 #include "SimdFunctions.hpp"
 #include <cmath>
 
-template <SIMD simd>
+template <SIMDType simd>
 class Tanh :
   public IActivation {
 private:
@@ -62,7 +63,7 @@ public:
   }
 };
 
-template <SIMD simd>
+template <SIMDType simd>
 class Logistic :
   public IActivation {
 private:

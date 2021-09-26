@@ -10,13 +10,6 @@
 #include "../StationaryMap.hpp"
 #include "../utils.hpp"
 
-struct dBASE {
-    uint8_t version;
-    uint32_t nRecords;
-    uint16_t recordLength, headerLength;
-    uint32_t start, end;
-};
-
 /**
  * Model 2-d data with fixed record length. Also order 1-2 models that include the distance to the last match.
  */
@@ -36,6 +29,7 @@ private:
     IndirectContext<uint16_t> iCtx[nIndContexts];
     Array<uint32_t> cPos1 {256}, cPos2 {256}, cPos3 {256}, cPos4 {256};
     Array<uint32_t> wPos1 {256 * 256}; // buf(1..2) -> last position
+    uint32_t fixedRecordLength = 0; //nonzero when when record length is known 
     uint32_t rLength[3] = {2, 0, 0}; // run length and 2 candidates
     uint32_t rCount[2] = {0, 0}; // candidate counts
     uint8_t padding = 0; // detected padding byte
@@ -43,7 +37,6 @@ private:
     uint32_t prevTransition = 0, nTransition = 0; // position of the last padding transition
     uint32_t col = 0, mxCtx = 0, x = 0;
     bool mayBeImg24B = false;
-    dBASE dbase {};
 
 public:
     static constexpr int MIXERINPUTS =
@@ -54,6 +47,7 @@ public:
     static constexpr int MIXERCONTEXTS = 1024 + 512 + 11 * 32; //1888
     static constexpr int MIXERCONTEXTSETS = 3;
     RecordModel(Shared* const sh, uint64_t size);
+    void setParam(uint32_t fixedRecordLenght);
     void mix(Mixer &m);
 };
 

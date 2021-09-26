@@ -16,11 +16,12 @@
  */
 class WordModel {
 private:
-    static constexpr int nCM1 = 17; // pdf / non_pdf contexts
-    static constexpr int nCM2 = 41; // common contexts
-    static constexpr int nCM = nCM1 + nCM2; // 58
+    static constexpr int nCM1 = Info::nCM1; // pdf / non_pdf contexts
+    static constexpr int nCM2_TEXT = Info::nCM2_TEXT; // 58
+    static constexpr int nCM2_BIN = Info::nCM2_BIN; // 49
 public:
-    static constexpr int MIXERINPUTS = nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 406
+    static constexpr int MIXERINPUTS_TEXT = (nCM1 + nCM2_TEXT) *(ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 406
+    static constexpr int MIXERINPUTS_BIN = (nCM1 + nCM2_BIN) * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY); // 343
     static constexpr int MIXERCONTEXTS = 16 * 8;
     static constexpr int MIXERCONTEXTSETS = 1;
 
@@ -33,6 +34,7 @@ private:
 public:
     WordModel(Shared* const sh, uint64_t size);
     void reset();
+    void setParam(int cmScale);
     void mix(Mixer &m);
 };
 

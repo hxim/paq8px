@@ -1,4 +1,5 @@
 #include "JpegModel.hpp"
+#include "../Stretch.hpp"
 
 JpegModel::JpegModel(Shared* const sh, const uint64_t size) : shared(sh), t(size),
         MJPEGMap(sh, 21, 3, 128, 127), /* BitsOfContext, InputBits, Scale, Limit */

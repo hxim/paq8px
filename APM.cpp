@@ -1,9 +1,10 @@
 #include "APM.hpp"
+#include "Array.hpp"
+#include "Squash.hpp"
+#include "Stretch.hpp"
+#include "UpdateBroadcaster.hpp"
 
 APM::APM(const Shared* const sh, const int n, const int s) : AdaptiveMap(sh, n * s, 1023), N(n * s), steps(s), cxt(0) {
-#ifdef VERBOSE
-  printf("Created APM with n = %d, s = %d\n", n, s);
-#endif
   assert(s > 4); // number of steps - must be a positive integer bigger than 4
   for( int i = 0; i < N; ++i ) {
     int p = ((i % steps * 2 + 1) * 4096) / (steps * 2) - 2048;

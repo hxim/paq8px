@@ -441,7 +441,6 @@ void Image24BitModel::update() {
 
 void Image24BitModel::init() {
   stride = 3 + alpha;
-  w = info & 0xFFFFFFU;
   padding = w % stride;
   x = color = line = px = 0;
   filterOn = false;
@@ -459,8 +458,8 @@ void Image24BitModel::init() {
   buffer.fill(0x7F);
 }
 
-void Image24BitModel::setParam(int info0, uint32_t alpha0, uint32_t isPNG0) {
-  info = info0;
+void Image24BitModel::setParam(int width, uint32_t alpha0, uint32_t isPNG0) {
+  w = width;
   alpha = alpha0;
   isPNG = isPNG0;
 }

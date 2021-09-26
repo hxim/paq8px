@@ -1,12 +1,15 @@
 #ifndef PAQ8PX_WORDEMBEDDINGDICTIONARY_HPP
 #define PAQ8PX_WORDEMBEDDINGDICTIONARY_HPP
 
+//turn it on if you'd like to see word embedding statistics
+//#define SHOW_WORDEMBEDDING_STATS
+
 #include "../file/FileDisk.hpp"
 #include "../file/OpenFromMyFolder.hpp"
 #include "Entry.hpp"
 #include "Word.hpp"
 
-#ifdef VERBOSE
+#ifdef SHOW_WORDEMBEDDING_STATS
 #include "../Shared.hpp"
 #endif
 
@@ -16,7 +19,7 @@ private:
     Array<Entry> entries;
     Array<short> table;
     int index;
-#ifdef VERBOSE
+#ifdef SHOW_WORDEMBEDDING_STATS
     uint32_t requests{};
     uint32_t hits{};
     const Shared * const shared;

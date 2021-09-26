@@ -1902,3 +1902,21 @@ paq8px_v204 by Zoltán Gotthardt
 - Improved usage of "misses" in SSE stage.
 - Ported ChartModel from paq8kx7.
 
+
+paq8px_v205 by Zoltán Gotthardt
+2021.09.27
+- Fixed TEXT detection in multi-content files. Cleaned up (a little bit) the general detection mechanism.
+- Functions squash() and stretch() are now table- based and initialized by their float equivalent functions.
+- Small speedup for binary files: skip adding zero inputs if exe content is not detected
+- Small speedup for text files: skip adding inputs for some contexts (in ChartModel, SparseModel, SparseBitModel).
+- Slightly decreased WordModel's memory use for binary content.
+- Switched from ContextMap to ContextMap2 in NestModel (without Run Stats) in IndirectModel and XMLModel (with Run Stats).
+- Tuned contextmap scaling factor in WordModel and TextModel based on block type.
+- Ported MRB detection, decoding and encoding from paq8pxd and added support for 1-bit images and uncompressed images
+- Moved dBase detection from RecordModel to detect() - similarly to paq8pxd
+- Improved ChartModel.
+- Cosmetic: fixed assert in WordModel.
+- Cosmetic: turned #define to function (rleOutputRun) and enum 'state' to scoped enum in RleFilter.hpp
+- Cosmetic: removed #ifdef VERBOSE.
+- Cosmetic: Utils.hpp -> SystemDefines.hpp + BlockType.hpp + CharacterNames.hpp + SIMDType.hpp.
+- Updated and tidied up the help screen.

@@ -1,10 +1,8 @@
 #include "StateMap.hpp"
+#include "Utils.hpp"
 
 StateMap::StateMap(const Shared* const sh, const int s, const int n, const int lim, const StateMap::MAPTYPE mapType) :
   AdaptiveMap(sh, n * s, lim), numContextSets(s), numContextsPerSet(n), currentContextSetIndex(0), cxt(s) {
-#ifdef VERBOSE
-  printf("Created StateMap with s = %d, n = %d, lim = %d, maptype = %d\n", s, n, lim, mapType);
-#endif
   assert(numContextSets > 0 && numContextsPerSet > 0);
   assert(limit > 0 && limit < 1024);
   if( mapType == BitHistory ) { // when the context is a bit history byte, we have a-priory for p

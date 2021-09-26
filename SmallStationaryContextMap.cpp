@@ -6,9 +6,6 @@ SmallStationaryContextMap::SmallStationaryContextMap(const Shared* const sh, con
   mask((1U << bitsOfContext) - 1), 
   stride((1U << inputBits) - 1),
   bTotal(inputBits), rate(rate), scale(scale) {
-#ifdef VERBOSE
-  printf("Created SmallStationaryContextMap with bitsOfContext = %d, inputBits = %d, rate = %d, scale = %d\n", bitsOfContext, inputBits, rate, scale);
-#endif
   assert(inputBits > 0 && inputBits <= 8);
   reset();
   set(0);

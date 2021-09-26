@@ -17,7 +17,6 @@ private:
     static constexpr int maxLineMatch = 16;
     static constexpr int maxLastUpper = 63;
     static constexpr int maxLastLetter = 16;
-    static constexpr int nCM1 = 17; /**< pdf / non_pdf contexts */
     Shared * const shared;
     ContextMap2 &cm;
     Array<uint32_t> wordPositions {1U << wPosBits}; /**< last positions of whole words/numbers */
@@ -47,6 +46,9 @@ private:
     uint32_t mask {}, expr0Chars {}, mask2 {}, f4 {};
 
 public:
+    static constexpr int nCM1 = 17; // pdf / non_pdf contexts
+    static constexpr int nCM2_TEXT = 41; // common contexts (text content)
+    static constexpr int nCM2_BIN = 41 - 9; // common contexts (bibnary content)
     Info(Shared* const sh, ContextMap2 &contextmap);
 
     /**

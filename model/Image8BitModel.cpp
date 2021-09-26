@@ -29,10 +29,10 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   }
   {}
 
-void Image8BitModel::setParam(int info0, uint32_t gray0, uint32_t isPNG0) {
-  w = info0;
-  gray = gray0;
-  isPNG = isPNG0;
+void Image8BitModel::setParam(int width, uint32_t isGray, uint32_t isPNG) {
+  this->w = width;
+  this->isGray = isGray;
+  this->isPNG = isPNG;
 }
 
 void Image8BitModel::mix(Mixer &m) {
@@ -46,7 +46,7 @@ void Image8BitModel::mix(Mixer &m) {
       filterOn = false;
       columns[0] = max(1, w / max(1, ilog2(w) * 2));
       columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
-      if( gray ) {
+      if( isGray ) {
         if((lastPos != 0u) && lastWasPNG != isPNG ) {
           for( int i = 0; i < nSM; i++ ) {
             map[i].reset();
@@ -118,7 +118,7 @@ void Image8BitModel::mix(Mixer &m) {
       if( x == 0 ) {
         memset(&jumps[0], 0, sizeof(short) * jumps.size());
         if( line > 0 && w > 8 ) {
-          uint8_t bMask = 0xFF - ((1 << gray) - 1);
+          uint8_t bMask = 0xFF - ((1 << isGray) - 1);
           uint32_t pMask = bMask * 0x01010101u;
           uint32_t left = 0;
           uint32_t right = 0;
@@ -171,7 +171,7 @@ void Image8BitModel::mix(Mixer &m) {
       if( prevFramePos > 0 && prevFrameWidth == w ) {
         int offset = prevFramePos + line * w + x;
         prvFrmPx = buf[offset];
-        if( gray != 0u ) {
+        if( isGray != 0u ) {
           sceneOls.update(W);
           sceneOls.add(W);
           sceneOls.add(NW);
@@ -194,10 +194,10 @@ void Image8BitModel::mix(Mixer &m) {
 
       int j = 0;
       jump = jumps[min(x, static_cast<int>(jumps.size()) - 1)];
-      uint64_t i = (filterOn ? (filter + 1) * 64 : 0) + (gray * 1024);
+      uint64_t i = (filterOn ? (filter + 1) * 64 : 0) + (isGray * 1024);
       const uint8_t R_ = CM_USE_RUN_STATS;
       cm.set(R_, hash(++i, (jump != 0) ? (0x100 | buffer(abs(jump))) * (1 - 2 * static_cast<int>(jump < 0)) : N, line & 3U));
-      if( !gray ) {
+      if( !isGray ) {
         for( j = 0; j < nPltMaps; j++ ) {
           iCtx[j] += W;
         }
@@ -363,13 +363,13 @@ void Image8BitModel::mix(Mixer &m) {
       shared->State.Image.pixels.N = N;
       shared->State.Image.pixels.NN = NN;
       shared->State.Image.pixels.WW = WW;
-      shared->State.Image.ctx = ctx >> gray;
+      shared->State.Image.ctx = ctx >> isGray;
     }
   }
   INJECT_SHARED_c0
   uint8_t b = (c0 << (8 - bpos));
   if((x != 0) || !isPNG) {
-    if( gray ) {
+    if( isGray ) {
       int i = 0;
       map[i++].set(0);
       map[i++].set(((static_cast<uint8_t>(clip(W + N - NW) - px - b)) * 8 + bpos) |
@@ -391,7 +391,7 @@ void Image8BitModel::mix(Mixer &m) {
   // predict next bit
   if((x != 0) || !isPNG) {
     cm.mix(m);
-    if( gray ) {
+    if( isGray ) {
       for( int i = 0; i < nSM; i++ ) {
         map[i].mix(m);
       }

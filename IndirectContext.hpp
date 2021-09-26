@@ -19,9 +19,6 @@ public:
       inputMask((UINT32_C(1) << inputBits) - 1), 
       inputBits(inputBits),
       contextBits(contextBits) {
-#ifdef VERBOSE
-      printf("Created IndirectContext with bitsPerContext = %d, inputBits = %d\n", bitsPerContext, inputBits);
-#endif
       assert(bitsPerContext > 0 && bitsPerContext <= 20);
       assert(inputBits > 0 && inputBits <= 8);
       assert(contextBits <= sizeof(T)*8);

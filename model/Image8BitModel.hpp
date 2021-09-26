@@ -55,7 +55,7 @@ public:
     uint8_t prvFrmPrediction = 0; /**< prediction for corresponding pixel in previous frame */
     uint32_t lastPos = 0;
     uint32_t lastWasPNG = 0;
-    uint32_t gray = 0;
+    uint32_t isGray = 0;
     uint32_t isPNG = 0;
     int w = 0;
     int ctx = 0;

@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelImage8 {
+class ContextModelImage8 : public IContextModel {
 
 private:
   Shared* const shared;
@@ -29,8 +29,16 @@ public:
     );
   }
 
+  void setParam(int width, uint32_t isGray, uint32_t isPNG) {
+    Image8BitModel& image8BitModel = models->image8BitModel();
+    image8BitModel.setParam(width, isGray, isPNG);
+    if (isGray)
+      m->setScaleFactor(1300, 100); // 1100-1400, 90-110
+    else
+      m->setScaleFactor(1600, 110); // 1500-1800, 100-128
+  }
 
-  int p(int blockInfo, int isGray, int isPNG) {
+  int p() {
 
     m->add(256); //network bias
 
@@ -47,13 +55,7 @@ public:
     }
 
     Image8BitModel& image8BitModel = models->image8BitModel();
-    image8BitModel.setParam(blockInfo, isGray, isPNG);
     image8BitModel.mix(*m);
-
-    if(isGray)
-      m->setScaleFactor(1300, 100); // 1100-1400, 90-110
-    else 
-      m->setScaleFactor(1600, 110); // 1500-1800, 100-128
 
     return m->p();
   }

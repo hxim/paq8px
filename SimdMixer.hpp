@@ -7,7 +7,7 @@
 #include "Mixer.hpp"
 #include "Squash.hpp"
 
-template<SIMD simd>
+template<SIMDType simd>
 class SIMDMixer : public Mixer {
 private:
     SIMDMixer *mp; /**< points to a Mixer to combine results */

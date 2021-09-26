@@ -2,9 +2,6 @@
 #define PAQ8PX_APM_HPP
 
 #include "AdaptiveMap.hpp"
-#include "Squash.hpp"
-#include "Stretch.hpp"
-#include "UpdateBroadcaster.hpp"
 
 /**
  * An APM maps a probability and a context to a new probability.

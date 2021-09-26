@@ -1,4 +1,5 @@
 #include "Info.hpp"
+#include "../CharacterNames.hpp"
 
 Info::Info(Shared* const sh, ContextMap2 &contextmap) : shared(sh), cm(contextmap) {
   reset();
@@ -297,10 +298,10 @@ void Info::predict(const uint8_t pdfTextParserState) {
   const uint8_t mayBeCaps = static_cast<const uint8_t>(uint8_t(c4 >> 8U) >= 'A' && uint8_t(c4 >> 8U) <= 'Z' && uint8_t(c4) >= 'A' &&
                                                        uint8_t(c4) <= 'Z');
   INJECT_SHARED_blockType
-  const bool isTextBlock = blockType == TEXT || blockType == TEXT_EOL;
+  const bool isTextBlock = isTEXT(blockType);
 
   const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
-  uint64_t i = 2048 * static_cast<uint64_t>(isTextBlock);
+  uint64_t i = 0;
 
   cm.set(RH, hash(++i, text0)); //strong
 
@@ -309,10 +310,7 @@ void Info::predict(const uint8_t pdfTextParserState) {
     cm.set(RH, hash(++i, expr0, expr1, expr2, expr3, expr4));
     cm.set(RH, hash(++i, expr0, expr1, expr2));
   } else {
-    cm.skip(RH);
-    i++;
-    cm.skip(RH);
-    i++;
+    i += 2;
   }
 
   // sections introduced by keywords (enwik world95.txt html/xml)
@@ -385,8 +383,7 @@ void Info::predict(const uint8_t pdfTextParserState) {
     cm.set(RH, hash(++i, word0, c1, word1, word3));
     cm.set(RH, hash(++i, word0, c1, word2, word3));
   } else {
-    cm.skipn(RH, 6);
-    i+=6;
+    i += 6;
   }
 
   const uint8_t g = groups & 0xffu;
@@ -411,11 +408,11 @@ void Info::predict(const uint8_t pdfTextParserState) {
       fl = 2;
     } else if( isspace(c1) != 0 ) {
       fl = 3;
-    } else if((c1) == 0xff ) {
+    } else if(c1 == 0xff ) {
       fl = 4;
-    } else if((c1) < 16 ) {
+    } else if(c1 < 16 ) {
       fl = 5;
-    } else if((c1) < 64 ) {
+    } else if(c1 < 64 ) {
       fl = 6;
     } else {
       fl = 7;
@@ -433,9 +430,8 @@ void Info::predict(const uint8_t pdfTextParserState) {
                 (static_cast<int>(wordLen1 > 3) << 2U) | (static_cast<int>(lastUpper < lastLetter + wordLen1) << 1U) |
                 static_cast<int>(lastUpper < wordLen0 + wordLen1 + wordGap))); //weak
   } else {
-    cm.skip(RH);
     i++;
   }
-  // TODO(epsteina): Figure out how to do this
-//  assert(int(i) == 2048 * isTextBlock + nCM2);
+
+  assert(int(i) == nCM2_TEXT);
 }

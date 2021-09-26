@@ -7,9 +7,6 @@ StationaryMap::StationaryMap(const Shared* const sh, const int bitsOfContext, co
   stride((1 << inputBits) - 1), bTotal(inputBits), scale(scale), rate(rate),
   context(0), bCount(0), b(0), cp(nullptr)
 {
-#ifdef VERBOSE
-  printf("Created StationaryMap with bitsOfContext = %d, inputBits = %d, scale = %d, rate = %d\n", bitsOfContext, inputBits, scale, rate);
-#endif
   assert(inputBits > 0 && inputBits <= 8);
   assert(bitsOfContext + inputBits <= 24);
   assert(9 <= rate && rate <= 16); // 9 is just a reasonable lower bound, 16 is a hard bound

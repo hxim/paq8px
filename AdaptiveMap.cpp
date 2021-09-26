@@ -1,9 +1,6 @@
 #include "AdaptiveMap.hpp"
 
 AdaptiveMap::AdaptiveMap(const Shared* const sh, const int n, const int lim) : shared(sh), t(n), limit(lim) {
-#ifdef VERBOSE
-  printf("Created AdaptiveMap with n = %d, lim = %d\n", n, lim);
-#endif
   dt = DivisionTable::getDT();
 }
 

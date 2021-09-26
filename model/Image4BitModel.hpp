@@ -38,7 +38,7 @@ public:
     static constexpr int MIXERCONTEXTS = 256 + 512 + 512 + 1024 + 16 + 1; /**< 2321 */
     static constexpr int MIXERCONTEXTSETS = 6;
     explicit Image4BitModel(const Shared* const sh, uint64_t size);
-    void setParam(int info0);
+    void setParam(int widthInBytes);
     void update() override;
     void mix(Mixer &m);
 };

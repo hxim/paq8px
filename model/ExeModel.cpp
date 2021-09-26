@@ -201,7 +201,7 @@ void ExeModel::update() {
   context = state + 16 * op.bytesRead + 16 * (op.REX & REX_w);
   stateBh[context] = (stateBh[context] << 8U) | c1;
 
-  bool forced = shared->State.blockType == EXE;
+  bool forced = shared->State.blockType == BlockType::EXE;
   if( valid || forced ) {
     uint32_t mask = 0;
     uint32_t count0 = 0;
@@ -285,7 +285,7 @@ void ExeModel::update() {
 }
 
 void ExeModel::mix(Mixer &m) {
-  auto forced = shared->State.blockType == EXE;
+  auto forced = shared->State.blockType == BlockType::EXE;
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
     update();
@@ -299,30 +299,33 @@ void ExeModel::mix(Mixer &m) {
     cm.mix(m);
     iMap.set(hash(brkCtx, bpos));
     iMap.mix(m);
-  } else {
-    for( int i = 0; i < MIXERINPUTS; ++i ) {
-      m.add(0);
+    } else {
+      if constexpr (false) { //no need to add inputs as exemodel is always the last model
+        for (int i = 0; i < MIXERINPUTS; ++i) {
+          m.add(0);
+        }
+      }
     }
-  }
-  INJECT_SHARED_c0
-  uint8_t s = (
-     (stateBh[context] >> (28 - bpos)) & 0x08U) | 
+
+    INJECT_SHARED_c0
+    uint8_t s = (
+      (stateBh[context] >> (28 - bpos)) & 0x08U) |
     ((stateBh[context] >> (21 - bpos)) & 0x04U) |
-    ((stateBh[context] >> (14 - bpos)) & 0x02U) | 
+    ((stateBh[context] >> (14 - bpos)) & 0x02U) |
     ((stateBh[context] >> (7 - bpos)) & 0x01U) |
     (static_cast<int>(op.category == OP_GEN_BRANCH) << 4U) |
     (static_cast<int>((c0 & ((1U << bpos) - 1)) == 0) << 5U
-  );
+      );
 
-  m.set(context * 4 + (s >> 4U), 1024);
-  m.set(state * 64 + bpos * 8 + static_cast<int>(op.bytesRead > 0) * 4 + (s >> 4U), 1024);
-  m.set((brkCtx & 0x1FFU) | ((s & 0x20U) << 4U), 1024);
-  m.set(finalize64(hash(op.code, state, opN(cache, 1) & codeMask), 13), 8192);
-  m.set(finalize64(hash(state, bpos, op.code, op.bytesRead), 13), 8192);
-  m.set(finalize64(hash(state, (bpos << 2U) | (c0 & 3U), opCategoryMask & categoryMask,
-    (static_cast<int>(op.category == OP_GEN_BRANCH) << 2U) | 
-    (static_cast<int>((op.flags & fMODE) == fAM) << 1U) |
-    static_cast<int>(op.bytesRead > 0)), 13), 8192);
+    m.set(context * 4 + (s >> 4U), 1024);
+    m.set(state * 64 + bpos * 8 + static_cast<int>(op.bytesRead > 0) * 4 + (s >> 4U), 1024);
+    m.set((brkCtx & 0x1FFU) | ((s & 0x20U) << 4U), 1024);
+    m.set(finalize64(hash(op.code, state, opN(cache, 1) & codeMask), 13), 8192);
+    m.set(finalize64(hash(state, bpos, op.code, op.bytesRead), 13), 8192);
+    m.set(finalize64(hash(state, (bpos << 2U) | (c0 & 3U), opCategoryMask & categoryMask,
+      (static_cast<int>(op.category == OP_GEN_BRANCH) << 2U) |
+      (static_cast<int>((op.flags & fMODE) == fAM) << 1U) |
+      static_cast<int>(op.bytesRead > 0)), 13), 8192);
 }
 
 auto ExeModel::isInvalidX64Op(const uint8_t op) -> bool {

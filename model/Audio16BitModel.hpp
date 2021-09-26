@@ -29,7 +29,6 @@ private:
                                     {{2450, 8,   2e-5f, 2e-6f}, {2450, 8,   2e-5f, 2e-6f}}};
     int prd[nSSM][2][2] {0};
     int residuals[nSSM][2] {0};
-    int stereo = 0;
     int ch = 0;
     int lsb = 0;
     uint32_t mask = 0;
@@ -41,6 +40,9 @@ public:
     static constexpr int MIXERINPUTS = nCtx * nSSM * SmallStationaryContextMap::MIXERINPUTS; // 112
     static constexpr int MIXERCONTEXTS = 8192 + 4096 + 2560 + 256 + 20; // 15124
     static constexpr int MIXERCONTEXTSETS = 5;
+
+    int stereo = 0;
+
     explicit Audio16BitModel(Shared* const sh);
     void setParam(int info);
     void mix(Mixer &m);

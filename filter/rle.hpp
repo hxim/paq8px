@@ -4,39 +4,39 @@
 #include "Filter.hpp"
 #include "../VLI.hpp"
 
-#define RLE_OUTPUT_RUN \
-  { \
-    while (run > 128) { \
-      *outPtr++ = 0xFF, *outPtr++ = byte; \
-      run -= 128; \
-    } \
-    *outPtr++ = (uint8_t)(0x80U | (run - 1)), *outPtr++ = byte; \
-  }
-
 class RleFilter : Filter {
 private:
-    enum {
+    enum class RleState {
         BASE, LITERAL, RUN, LITERAL_RUN
-    } state = BASE;
+    } state = RleState::BASE;
+
+    void rleOutputRun(uint8_t byte, uint8_t* &outPtr, int &run) {
+      while (run > 128) {
+          *outPtr++ = 0xFF, *outPtr++ = byte;
+          run -= 128;
+      }
+        *outPtr++ = (uint8_t)(0x80U | (run - 1)), *outPtr++ = byte;
+    }
+
 
     void handleRun(uint8_t byte, uint8_t *&outPtr, uint8_t *&lastLiteral, int &run) {
       if( run > 1 ) {
-        state = RUN;
-        RLE_OUTPUT_RUN
+        state = RleState::RUN;
+        rleOutputRun(byte, outPtr, run);
       } else {
         lastLiteral = outPtr;
         *outPtr++ = 0, *outPtr++ = byte;
-        state = LITERAL;
+        state = RleState::LITERAL;
       }
     }
 
     void handleLiteral(uint8_t byte, uint8_t *&outPtr, uint8_t *lastLiteral, int &run) {
       if( run > 1 ) {
-        state = LITERAL_RUN;
-        RLE_OUTPUT_RUN
+        state = RleState::LITERAL_RUN;
+        rleOutputRun(byte, outPtr, run);
       } else {
         if( ++(*lastLiteral) == 127 ) {
-          state = BASE;
+          state = RleState::BASE;
         }
         *outPtr++ = byte;
       }
@@ -45,10 +45,10 @@ private:
     auto handleLiteralRun(uint8_t *outPtr, uint8_t *lastLiteral) -> uint8_t {
       uint8_t loop = 0;
       if( outPtr[-2] == 0x81 && *lastLiteral < (125)) {
-        state = (((*lastLiteral) += 2) == 127) ? BASE : LITERAL;
+        state = (((*lastLiteral) += 2) == 127) ? RleState::BASE : RleState::LITERAL;
         outPtr[-2] = outPtr[-1];
       } else {
-        state = RUN;
+        state = RleState::RUN;
       }
       loop = 1;
       return loop;
@@ -93,7 +93,7 @@ public:
         auto *inPtr = (uint8_t *) inBuffer;
         auto *outPtr = (uint8_t *) outBuffer;
         uint8_t *lastLiteral = nullptr;
-        state = BASE;
+        state = RleState::BASE;
         while( remaining > 0 ) {
           uint8_t byte = *inPtr++;
           uint8_t loop = 0;
@@ -103,16 +103,16 @@ public:
           do {
             loop = 0;
             switch( state ) {
-              case BASE:
-              case RUN: {
+              case RleState::BASE:
+              case RleState::RUN: {
                 handleRun(byte, outPtr, lastLiteral, run);
                 break;
               }
-              case LITERAL: {
+              case RleState::LITERAL: {
                 handleLiteral(byte, outPtr, lastLiteral, run);
                 break;
               }
-              case LITERAL_RUN: {
+              case RleState::LITERAL_RUN: {
                 loop = handleLiteralRun(outPtr, lastLiteral);
               }
             }

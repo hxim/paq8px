@@ -4,7 +4,6 @@
 #include <cstdint>
 #include <cassert>
 #include "Shared.hpp"
-#include "UpdateBroadcaster.hpp"
 
 /**
  * APMPost maps a 12-bit probability (0-4095) to an n-bit probability (as defined by the Arithmetic Encoder)

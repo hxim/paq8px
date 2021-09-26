@@ -30,7 +30,7 @@ private:
     /**
      * Assignment operator is private so that it cannot be called
      */
-    auto operator=(Ilog const & /*unused*/) -> Ilog & { return *this; }
+    Ilog& operator=(Ilog const & /*unused*/) { return *this; }
 
     Array<uint8_t> t = Array<uint8_t>(65536);
 };
@@ -40,7 +40,6 @@ private:
  * @param x
  * @return
  */
-auto llog(uint32_t x) -> int;
-auto bitCount(uint32_t v) -> uint32_t;
+int llog(uint32_t x);
 
 #endif //PAQ8PX_ILOG_HPP

@@ -1,9 +1,10 @@
 #include "APM1.hpp"
+#include "Array.hpp"
+#include "UpdateBroadcaster.hpp"
+#include "Squash.hpp"
+#include "Stretch.hpp"
 
 APM1::APM1(const Shared* const sh, const int n, const int r) : shared(sh), index(0), n(n), t(n * 33), rate(r) {
-#ifdef VERBOSE
-  printf("Created APM1 with n = %d, r = %d\n", n, r);
-#endif
   assert(n > 0 && rate > 0 && rate < 32);
   // maps p, cxt -> p initially
   for( int i = 0; i < n; ++i ) {

@@ -1,7 +1,7 @@
 #ifndef PAQ8PX_XMLMODEL_HPP
 #define PAQ8PX_XMLMODEL_HPP
 
-#include "../ContextMap.hpp"
+#include "../ContextMap2.hpp"
 #include "../Shared.hpp"
 #include <cstdint>
 
@@ -53,7 +53,7 @@ private:
     static_assert((cacheSize & (cacheSize - 1)) == 0);
     static_assert(cacheSize > 8);
     const Shared * const shared;
-    ContextMap cm;
+    ContextMap2 cm;
     XMLTagCache cache {};
     uint32_t stateBh[8] {};
     XMLState state = None;
@@ -66,7 +66,7 @@ private:
     void detectContent(XMLContent *content);
 
 public:
-    static constexpr int MIXERINPUTS = nCM * (ContextMap::MIXERINPUTS); //20
+    static constexpr int MIXERINPUTS = nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); //20
     static constexpr int MIXERCONTEXTS = 0;
     static constexpr int MIXERCONTEXTSETS = 0;
     explicit XMLModel(const Shared* const sh, uint64_t size);

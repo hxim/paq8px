@@ -10,9 +10,6 @@ LargeStationaryMap::LargeStationaryMap(const Shared* const sh, const int context
   numContexts(contexts),
   currentContextIndex(0),
   contextHashes(contexts) {
-#ifdef VERBOSE
-  printf("Created LargeStationaryMap with hashBits = %d, %d, scale = %d, rate = %d\n", hashBits, scale, rate);
-#endif
   assert(hashBits > 0);
   assert(hashBits <= 24); // 24 is just a reasonable limit for memory use 
   assert(9 <= rate && rate <= 16); // 9 is just a reasonable lower bound, 16 is a hard bound

@@ -4,21 +4,23 @@ SparseModel::SparseModel(const Shared* const sh, const uint64_t size) : shared(s
 
 void SparseModel::mix(Mixer &m) {
   INJECT_SHARED_blockType
-  const bool isText = blockType == TEXT || blockType == TEXT_EOL;
+  const bool isText = isTEXT(blockType);
 
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
     INJECT_SHARED_c4
-    INJECT_SHARED_buf
     uint64_t i = 0;
     const uint8_t RH = CM_USE_RUN_STATS | CM_USE_BYTE_HISTORY;
 
-    if (isText) {
-      //Sparse models are usually just generating noise for text content - so skip
-      cm.skipn(RH, 28);
-      i+=28;
-    }
-    else {
+    //textfiles benefit from these contexts - these strong(er) models for text files
+    cm.set(RH, hash(++i, c4 & 0x00ff00ff)); //buf(1) + buf(3)
+    cm.set(RH, hash(++i, c4 & 0xff0000ff)); //buf(1) + buf(4)
+    cm.set(RH, hash(++i, c4 & 0x0000ff00)); //buf(2)
+
+    //The following sparse contexts are usually just generating noise for text content - so skip if not text
+    if (!isText) {
+      INJECT_SHARED_buf
+
       //context for 4-byte structures and 
       //positions of zeroes in the last 16 bytes
       ctx <<= 1;
@@ -75,19 +77,12 @@ void SparseModel::mix(Mixer &m) {
       cm.set(RH, hash(++i, buf(10) << 8 | buf(8))); // silesia/nci
     }
 
-    //strong(er) models for text files
-    cm.set(RH, hash(++i, c4 & 0x00ff00ff)); //buf(1) + buf(3)
-    cm.set(RH, hash(++i, c4 & 0xff0000ff)); //buf(1) + buf(4)
-    cm.set(RH, hash(++i, c4 & 0x0000ff00)); //buf(2)
 
-    assert((int) i == nCM);
+    assert((int) i == isText ? nCM_TEXT : nCM);
   }
   cm.mix(m);
 
-  if (isText) {
-    m.skip(4 * 256);
-  }
-  else {
+  if (!isText) {
     //support fixed structures of 4 bytes
     INJECT_SHARED_blockPos
     m.set((blockPos & 3)<<8 | (ctx&0xff), 4 * 256);

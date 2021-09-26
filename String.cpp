@@ -1,4 +1,19 @@
+#include <string.h>
+#include "utils.hpp"
 #include "String.hpp"
+
+#ifndef NDEBUG
+  void String::chk_consistency() const {
+    for (uint32_t i = 0; i < size() - 1; i++) {
+      if ((*this)[i] == 0) {
+        quit("Internal error - string consistency check failed (1).");
+      }
+    }
+    if (((*this)[size() - 1]) != 0) {
+      quit("Internal error - string consistency check failed (2).");
+    }
+  }
+#endif
 
 void String::appendIntRecursive(uint64_t x) {
   if( x <= 9 ) {

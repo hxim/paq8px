@@ -1,4 +1,5 @@
 #include "Audio16BitModel.hpp"
+#include "../BitCount.hpp"
 
 Audio16BitModel::Audio16BitModel(Shared* const sh) : AudioModel(sh), 
   sMap1B{ /* SmallStationaryContextMap : BitsOfContext, InputBits, Rate, Scale */

@@ -6,9 +6,10 @@
 #include "Activations.hpp"
 #include "PolynomialDecay.hpp"
 #include "../utils.hpp"
+#include "../SIMDType.hpp"
 #include <vector>
 
-template <SIMD simd, typename T>
+template <SIMDType simd, typename T>
 class LstmLayer {
 private:
   std::valarray<float> state, state_error, stored_error;

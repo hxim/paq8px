@@ -27,6 +27,7 @@
 #include "model/DecAlphaModel.hpp"
 #include "lstm/LstmModel.hpp"
 #include "lstm/LstmFactory.hpp"
+#include "model/IContextModel.hpp"
 
 /**
  * This is a factory class for lazy object creation for models.

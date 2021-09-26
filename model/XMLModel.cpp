@@ -1,4 +1,5 @@
 #include "XMLModel.hpp"
+#include "../CharacterNames.hpp"
 
 void XMLModel::detectContent(XMLContent *content) {
   INJECT_SHARED_buf
@@ -64,7 +65,7 @@ void XMLModel::detectContent(XMLContent *content) {
   }
 }
 
-XMLModel::XMLModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM) {}
+XMLModel::XMLModel(const Shared* const sh, const uint64_t size) : shared(sh), cm(sh, size, nCM, 64) {}
 
 void XMLModel::update() {
   XMLTag *pTag = &cache.tags[(cache.Index - 1) & (cacheSize - 1)];
@@ -89,6 +90,8 @@ void XMLModel::update() {
     lineEnding = 1 + static_cast<int>(static_cast<uint8_t>(c4 >> 8U) == CARRIAGE_RETURN);
   }
 
+  const uint8_t R_ = CM_USE_RUN_STATS;
+
   INJECT_SHARED_c8
   switch( state ) {
     case None: {
@@ -101,7 +104,7 @@ void XMLModel::update() {
         detectContent(content);
       }
 
-      cm.set(hash(pState, state, ((*pTag).level + 1) * indentStep - whiteSpaceRun));
+      cm.set(R_, hash(pState, state, ((*pTag).level + 1) * indentStep - whiteSpaceRun));
       break;
     }
     case ReadTagName: {
@@ -146,7 +149,7 @@ void XMLModel::update() {
         i += 1 + static_cast<int>((*pTag).endTag && cache.tags[(cache.Index - i - 1) & (cacheSize - 1)].name == (*pTag).name);
       } while( i < cacheSize && ((*pTag).endTag || (*pTag).empty));
 
-      cm.set(hash(pState, state, (*tag).name, (*tag).level, (*pTag).name, static_cast<uint64_t>((*pTag).level != (*tag).level)));
+      cm.set(R_, hash(pState, state, (*tag).name, (*tag).level, (*pTag).name, static_cast<uint64_t>((*pTag).level != (*tag).level)));
       break;
     }
     case ReadTag: {
@@ -163,7 +166,7 @@ void XMLModel::update() {
         state = ReadAttributeName;
         (*attribute).name = c1 & 0xDFU;
       }
-      cm.set(hash(pState, state, (*tag).name, c1, (*tag).attributes.Index));
+      cm.set(R_, hash(pState, state, (*tag).name, c1, (*tag).attributes.Index));
       break;
     }
     case ReadAttributeName: {
@@ -176,7 +179,7 @@ void XMLModel::update() {
         (*attribute).name = (*attribute).name * 263 * 32 + (c1 & 0xDFU);
       }
 
-      cm.set(hash(pState, state, (*attribute).name, (*tag).attributes.Index, (*tag).name, (*content).type));
+      cm.set(R_, hash(pState, state, (*attribute).name, (*tag).attributes.Index, (*tag).name, (*content).type));
       break;
     }
     case ReadAttributeValue: {
@@ -190,7 +193,7 @@ void XMLModel::update() {
           (*content).type |= URL;
         }
       }
-      cm.set(hash(pState, state, (*attribute).name, (*content).type));
+      cm.set(R_, hash(pState, state, (*attribute).name, (*content).type));
       break;
     }
     case ReadContent: {
@@ -204,7 +207,7 @@ void XMLModel::update() {
         (*content).data = (*content).data * 997 * 16 + (c1 & 0xDFU);
         detectContent(content);
       }
-      cm.set(hash(pState, state, (*tag).name, c4 & 0xC0FFU));
+      cm.set(R_, hash(pState, state, (*tag).name, c4 & 0xC0FFU));
       break;
     }
     case ReadCDATA: {
@@ -212,7 +215,7 @@ void XMLModel::update() {
         state = None;
         cache.Index++;
       }
-      cm.set(hash(pState, state));
+      cm.set(R_, hash(pState, state));
       break;
     }
     case ReadComment: {
@@ -220,17 +223,18 @@ void XMLModel::update() {
         state = None;
         cache.Index++;
       }
-      cm.set(hash(pState, state));
+      cm.set(R_, hash(pState, state));
       break;
     }
   }
 
   stateBh[pState] = (stateBh[pState] << 8U) | c1;
   pTag = &cache.tags[(cache.Index - 1) & (cacheSize - 1)];
+
   uint64_t i = 64;
-  cm.set(hash(++i, state, (*tag).level, pState * 2 + static_cast<int>((*tag).endTag), (*tag).name));
-  cm.set(hash(++i, (*pTag).name, state * 2 + static_cast<int>((*pTag).endTag), (*pTag).content.type, (*tag).content.type));
-  cm.set(hash(++i, state * 2 + static_cast<int>((*tag).endTag), (*tag).name, (*tag).content.type, c4 & 0xE0FFU));
+  cm.set(R_, hash(++i, state, (*tag).level, pState * 2 + static_cast<int>((*tag).endTag), (*tag).name));
+  cm.set(R_, hash(++i, (*pTag).name, state * 2 + static_cast<int>((*pTag).endTag), (*pTag).content.type, (*tag).content.type));
+  cm.set(R_, hash(++i, state * 2 + static_cast<int>((*tag).endTag), (*tag).name, (*tag).content.type, c4 & 0xE0FFU));
 }
 
 void XMLModel::mix(Mixer &m) {

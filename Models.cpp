@@ -69,7 +69,7 @@ auto Models::indirectModel() -> IndirectModel & {
 }
 
 auto Models::chartModel() -> ChartModel& {
-  static ChartModel instance{ shared, shared->mem * 4, shared->mem };
+  static ChartModel instance{ shared, shared->mem * 4 };
   return instance;
 }
 

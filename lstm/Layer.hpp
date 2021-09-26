@@ -7,7 +7,7 @@
 #include "IDecay.hpp"
 #include "../utils.hpp"
 
-template<SIMD simd, class Optimizer, class Activation, class Decay, typename T>
+template<SIMDType simd, class Optimizer, class Activation, class Decay, typename T>
 class Layer {
   static_assert(std::is_base_of<IOptimizer, Optimizer>::value, "Optimizer must implement IOptimizer interface");
   static_assert(std::is_base_of<IActivation, Activation>::value, "Activation must implement IActivation interface");

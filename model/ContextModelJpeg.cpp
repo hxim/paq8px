@@ -1,7 +1,7 @@
 #include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
-class ContextModelJpeg {
+class ContextModelJpeg : public IContextModel {
 
 private:
   Shared* const shared;
@@ -18,7 +18,7 @@ public:
       JpegModel::MIXERINPUTS +
       SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
-      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS + IndirectModel::MIXERINPUTS +
+      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
       LinearPredictionModel::MIXERINPUTS +
       (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERINPUTS : 0)
@@ -43,8 +43,7 @@ public:
     );
   }
 
-
-  int p(int blockInfo) {
+  int p() {
 
     m->add(256); //network bias
 

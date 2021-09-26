@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "204"  //update version here before publishing your changes
+#define PROGVERSION  "205"  //update version here before publishing your changes
 #define PROGYEAR     "2021"
 
 
@@ -35,26 +35,45 @@ static void printHelp() {
          "\n"
          "  " PROGNAME " -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]\n"
          "\n"
-         "    -LEVEL:\n"
-         "      -0 = no compression, only transformations when applicable (uses 146 MB)\n"
-         "      -1 -2 -3 = compress using less memory (685, 699, 729 MB)\n"
-         "      -4 -5 -6 -7 -8 -9 = use more memory (787, 905, 1140, 1610, 2549, 4428 MB)\n"
-         "      -10  -11  -12     = use even more memory (8187, 15703, 29713 MB)\n"
-         "    The listed memory requirements are indicative, actual usage may vary\n"
-         "    depending on several factors including need for temporary files,\n"
-         "    temporary memory needs of some preprocessing (transformations), etc.\n"
+         "    Examples:\n"
+         "      " PROGNAME " -8 enwik8\n"
+         "      " PROGNAME " -8ba b64sample.xml\n"
+         "      " PROGNAME " -8 @myfolder/myfilelist.txt\n"
+         "      " PROGNAME " -8a benchmark/enwik8 results/enwik8_a_" PROGNAME PROGVERSION "\n"
          "\n"
-         "    optional compression SWITCHES:\n"
+         "\n"
+         "    -LEVEL:\n"
+         "\n"
+         "      Specifies how much memory to use. Approximately the same amount of memory\n"
+         "      will be used for both compression and decompression.\n"
+         "\n"
+         "      -0 = no compression, only transformations when applicable (uses 415 MB)\n"
+         "      -1 -2 -3 = compress using less memory (642, 657, 686 MB)\n"
+         "      -4 -5 -6 -7 -8 -9 = use more memory (744, 861, 1094, 1560, 2491, 4355 MB)\n"
+         "      -10  -11  -12     = use even more memory (8082, 15535, 29419 MB)\n"
+         "\n"
+         "      The above listed memory requirements are indicative, actual usage may vary\n"
+         "      depending on several factors including need for temporary files,\n"
+         "      temporary memory needs of some preprocessing (transformations), etc.\n"
+         "\n"
+         "\n"
+         "    Optional compression SWITCHES:\n"
+         "\n"
          "      b = Brute-force detection of DEFLATE streams\n"
          "      e = Pre-train x86/x64 model\n"
-         "      t = Pre-train main model with word and expression list\n"
+         "      t = Pre-train the Normal+Text+Word models with word and expression list\n"
          "          (english.dic, english.exp)\n"
-         "      a = Adaptive learning rate\n"
-         "      s = Skip the color transform, just reorder the RGB channels\n"
-         "      l = Use Long Short-Term Memory network\n"
+         "      a = Use adaptive learning rate\n"
+         "      s = For 24/32 bit images skip the color transform, just reorder the RGB channels\n"
+         "      l = Use Long Short-Term Memory network as an additional model\n"
          "      r = Use repository of pre-trained LSTM models (implies option -l)\n"
+         "          (english.rnn, x86_64.rnn)\n"
+         "\n"
+         "\n"
          "    INPUTSPEC:\n"
+         "\n"
          "    The input may be a FILE or a PATH/FILE or a [PATH/]@FILELIST.\n"
+         "\n"
          "    Only file content and the file size is kept in the archive. Filename,\n"
          "    path, date and any file attributes or permissions are not stored.\n"
          "    When a @FILELIST is provided the FILELIST file will be considered\n"
@@ -68,7 +87,9 @@ static void printHelp() {
          "    but you may restore full file information using them with a 3rd party\n"
          "    utility. The FILELIST file must contain a header but will be ignored.\n"
          "\n"
+         "\n"
          "    OUTPUTSPEC:\n"
+         "\n"
          "    When omitted: the archive will be created in the current folder. The\n"
          "    archive filename will be constructed from the input file name by \n"
          "    appending ." PROGNAME PROGVERSION " extension to it.\n"
@@ -78,15 +99,11 @@ static void printHelp() {
          "    the input filename and will be created in the specified folder.\n"
          "    If the archive file already exists it will be overwritten.\n"
          "\n"
-         "    Examples:\n"
-         "      " PROGNAME " -8 enwik8\n"
-         "      " PROGNAME " -8ba b64sample.xml\n"
-         "      " PROGNAME " -8 @myfolder/myfilelist.txt\n"
-         "      " PROGNAME " -8a benchmark/enwik8 results/enwik8_a_" PROGNAME PROGVERSION "\n"
          "\n"
          "To extract (decompress contents):\n"
          "\n"
          "  " PROGNAME " -d [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]\n"
+         "\n"
          "    If an output folder is not provided the output file will go to the input\n"
          "    folder. If an output filename is not provided output filename will be the\n"
          "    same as ARCHIVEFILE without the last extension (e.g. without ." PROGNAME PROGVERSION")\n"
@@ -94,18 +111,23 @@ static void printHelp() {
          "    When the archive contains multiple files, first the @LISTFILE is extracted\n"
          "    then the rest of the files. Any required folders will be created.\n"
          "\n"
+         "\n"
          "To test:\n"
          "\n"
          "  " PROGNAME " -t [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]\n"
+         "\n"
          "    Tests contents of the archive by decompressing it (to memory) and comparing\n"
          "    the result to the original file(s). If a file fails the test, the first\n"
          "    mismatched position will be printed to screen.\n"
          "\n"
+         "\n"
          "To list archive contents:\n"
          "\n"
          "  " PROGNAME " -l [INPUTFOLDER/]ARCHIVEFILE\n"
+         "\n"
          "    Extracts @FILELIST from archive (to memory) and prints its content\n"
          "    to screen. This command is only applicable to multi-file archives.\n"
+         "\n"
          "\n"
          "Additional optional switches:\n"
          "\n"
@@ -119,13 +141,14 @@ static void printHelp() {
          "    -simd [NONE|SSE2|SSSE3|AVX2|NEON]\n"
          "    Overrides detected SIMD instruction set for neural network operations\n"
          "\n"
+         "\n"
          "Remark: the command line arguments may be used in any order except the input\n"
          "and output: always the input comes first then output (which may be omitted).\n"
          "\n"
          "    Example:\n"
-         "      " PROGNAME " -8 enwik8 folder/ -v -log logfile.txt -simd sse2\n"
+         "      " PROGNAME " -8 enwik8 outputfolder/ -v -log logfile.txt -simd sse2\n"
          "    is equivalent to:\n"
-         "      " PROGNAME " -v -simd sse2 enwik8 -log logfile.txt folder/ -8\n");
+         "      " PROGNAME " -v -simd sse2 enwik8 -log logfile.txt outputfolder/ -8\n");
 }
 
 static void printModules() {
@@ -370,15 +393,15 @@ auto processCommandLine(int argc, char **argv) -> int {
 
     // Set highest or user selected vectorization mode
     if (simdIset == 11) {
-      shared.chosenSimd = SIMD_NEON;
+      shared.chosenSimd = SIMDType::SIMD_NEON;
     } else if (simdIset >= 9) {
-      shared.chosenSimd = SIMD_AVX2;
+      shared.chosenSimd = SIMDType::SIMD_AVX2;
     } else if (simdIset >= 5) {
-      shared.chosenSimd = SIMD_SSSE3;
+      shared.chosenSimd = SIMDType::SIMD_SSSE3;
     } else if( simdIset >= 3 ) {
-      shared.chosenSimd = SIMD_SSE2;
+      shared.chosenSimd = SIMDType::SIMD_SSE2;
     } else {
-      shared.chosenSimd = SIMD_NONE;
+      shared.chosenSimd = SIMDType::SIMD_NONE;
     }
 
     if( verbose ) {
@@ -605,7 +628,7 @@ auto processCommandLine(int argc, char **argv) -> int {
       totalSize += start;
       if((shared.options & OPTION_MULTIPLE_FILE_MODE) != 0 ) { //multiple file mode
 
-        en.encodeBlockType(TEXT);
+        en.encodeBlockType(BlockType::TEXT);
         uint64_t len1 = input.size(); //ASCIIZ filename of listfile - with ending zero
         const String *const s = listoffiles.getString();
         uint64_t len2 = s->size(); //ASCIIZ filenames of files to compress - with ending zero
@@ -633,7 +656,7 @@ auto processCommandLine(int argc, char **argv) -> int {
       if( output.strsize() != 0 ) {
         quit("Output filename must not be specified when extracting multiple files.");
       }
-      if((c = en.decodeBlockType()) != TEXT ) {
+      if((en.decodeBlockType()) != BlockType::TEXT ) {
         quit(errmsgInvalidChar);
       }
       en.decodeBlockSize(); //we don't really need it
