@@ -1920,3 +1920,8 @@ paq8px_v205 by Zoltán Gotthardt
 - Cosmetic: removed #ifdef VERBOSE.
 - Cosmetic: Utils.hpp -> SystemDefines.hpp + BlockType.hpp + CharacterNames.hpp + SIMDType.hpp.
 - Updated and tidied up the help screen.
+
+
+paq8px_v205fix1 by Zoltán Gotthardt
+2021.09.27
+- Fixed TEXT_FRAGMENT_MIN_SIZE to be the intended 1024

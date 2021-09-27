@@ -12,7 +12,7 @@ public:
     uint8_t EOLType{0}; /**< 0: none or CR-only;   1: CRLF-only (applicable to EOL transform);   2: mixed or LF-only */
     uint8_t UTF8State{0}; /**< state of utf8 parser; 0: valid;  12: invalid;  any other value: yet uncertain (more bytes must be read) */
 
-    static constexpr uint32_t TEXT_FRAGMENT_MIN_SIZE = 1024*1024;/**< size of minimum allowed text block (in bytes) */
+    static constexpr uint32_t TEXT_FRAGMENT_MIN_SIZE = 1024;/**< size of minimum allowed text block (in bytes) */
     static constexpr uint32_t TEXT_SMALL_BLOCK_SIZE = 128; /**< size of minimum allowed error-free text block (in bytes) */
     static constexpr uint32_t TEXT_MAX_MISSES = 8; /**< threshold: max allowed number of invalid UTF8 sequences seen recently before reporting "fail" */
     static constexpr uint32_t TEXT_ADAPT_RATE = 256; /**< smaller (like 32) = illegal sequences are allowed to come more often, larger (like 1024) = more rigorous detection */

@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "205"  //update version here before publishing your changes
+#define PROGVERSION  "205fix1"  //update version here before publishing your changes
 #define PROGYEAR     "2021"
 
 
