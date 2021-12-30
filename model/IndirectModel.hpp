@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_INDIRECTMODEL_HPP
-#define PAQ8PX_INDIRECTMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../IndirectContext.hpp"
@@ -31,5 +30,3 @@ public:
     explicit IndirectModel(const Shared* const sh, uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_INDIRECTMODEL_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LZW_HPP
-#define PAQ8PX_LZW_HPP
+#pragma once
 
 #include "Filter.hpp"
 
@@ -176,5 +175,3 @@ static auto decodeLzw(File *in, File *out, FMode mode, uint64_t &diffFound) -> u
   }
   return pos;
 }
-
-#endif //PAQ8PX_LZW_HPP

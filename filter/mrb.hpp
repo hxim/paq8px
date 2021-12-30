@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_MRB_HPP
-#define PAQ8PX_MRB_HPP
+#pragma once
 
 #include "Filter.hpp"
 
@@ -151,5 +150,3 @@ public:
     return len;
   }
 };
-
-#endif //PAQ8PX_MRB_HPP

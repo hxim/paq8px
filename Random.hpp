@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_RANDOM_HPP
-#define PAQ8PX_RANDOM_HPP
+#pragma once
 
 #include "Array.hpp"
 #include <cstdint>
@@ -14,5 +13,3 @@ public:
     Random();
     auto operator()(int numberOfBits) -> uint32_t;
 };
-
-#endif //PAQ8PX_RANDOM_HPP

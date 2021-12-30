@@ -1,12 +1,9 @@
-#ifndef PAQ8PX_SIMDTYPE_HPP
-#define PAQ8PX_SIMDTYPE_HPP
+#pragma once
 
-enum SIMDType {
+enum class SIMDType {
   SIMD_NONE, 
   SIMD_SSE2, 
   SIMD_SSSE3, 
   SIMD_AVX2, 
   SIMD_NEON
 };
-
-#endif //PAQ8PX_SIMDTYPE_HPP

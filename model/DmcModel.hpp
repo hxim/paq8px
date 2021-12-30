@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DMCMODEL_HPP
-#define PAQ8PX_DMCMODEL_HPP
+#pragma once
 
 #include "../Array.hpp"
 #include "../Mixer.hpp"
@@ -8,7 +7,7 @@
 #include "../StateMap.hpp"
 #include "../StateTable.hpp"
 #include "../Stretch.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "DmcNode.hpp"
 #include <cassert>
 #include <cstdint>
@@ -95,5 +94,3 @@ public:
     */
     [[nodiscard]] auto stw() -> int;
 };
-
-#endif //PAQ8PX_DMCMODEL_HPP

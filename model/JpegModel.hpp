@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_JPEGMODEL_HPP
-#define PAQ8PX_JPEGMODEL_HPP
+#pragma once
 
 #include "../BH.hpp"
 #include "../APM.hpp"
@@ -159,9 +158,7 @@ private:
     Shared * const shared;
 
 public:
-    explicit JpegModel(Shared* const sh, uint64_t size);
+    explicit JpegModel(Shared* const sh, const MixerFactory* const mf, uint64_t size);
     ~JpegModel();
     auto mix(Mixer &m) -> int;
 };
-
-#endif //PAQ8PX_JPEGMODEL_HPP

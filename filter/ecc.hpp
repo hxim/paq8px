@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_ECC_HPP
-#define PAQ8PX_ECC_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -65,5 +64,3 @@ static auto edcCompute(const uint8_t *src, int size) -> uint32_t {
   }
   return edc;
 }
-
-#endif //PAQ8PX_ECC_HPP

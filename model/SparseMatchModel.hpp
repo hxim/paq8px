@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SPARSEMATCHMODEL_HPP
-#define PAQ8PX_SPARSEMATCHMODEL_HPP
+#pragma once
 
 #include "../MTFList.hpp"
 #include "../Hash.hpp"
@@ -56,5 +55,3 @@ public:
     void update();
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_SPARSEMATCHMODEL_HPP

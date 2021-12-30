@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_UTILS_HPP
-#define PAQ8PX_UTILS_HPP
+#pragma once
 
 #include <cstdint>
 #include <cassert>
@@ -102,18 +101,6 @@ class IntentionalException : public std::exception {};
   throw IntentionalException();
 }
 
-
-#define OPTION_MULTIPLE_FILE_MODE 1U
-#define OPTION_BRUTE 2U
-#define OPTION_TRAINEXE 4U
-#define OPTION_TRAINTXT 8U
-#define OPTION_ADAPTIVE 16U
-#define OPTION_SKIPRGB 32U
-#define OPTION_LSTM 64U
-#define OPTION_LSTM_TRAINING 128U
-
-
-
 inline auto clip(int const px) -> uint8_t {
   if( px > 255 ) {
     return 255;
@@ -175,5 +162,3 @@ inline auto DiffQt(const uint8_t a, const uint8_t b, const uint8_t limit = 7) ->
 inline auto logQt(const uint8_t px, const uint8_t bits) -> uint32_t {
   return (uint32_t(0x100 | px)) >> max(0, static_cast<int>(ilog2(px) - bits));
 }
-
-#endif //PAQ8PX_UTILS_HPP

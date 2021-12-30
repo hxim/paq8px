@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_IPREDICTOR_HPP
-#define PAQ8PX_IPREDICTOR_HPP
+#pragma once
 
 /**
  * Common interface for all probability predictors (probability map and mixer classes).
@@ -20,5 +19,3 @@ public:
     virtual void update() = 0;
     virtual ~IPredictor() = default;
 };
-
-#endif //PAQ8PX_IPREDICTOR_HPP

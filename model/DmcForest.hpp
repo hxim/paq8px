@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DMCFOREST_HPP
-#define PAQ8PX_DMCFOREST_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include "../Array.hpp"
@@ -58,5 +57,3 @@ public:
      */
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_DMCFOREST_HPP

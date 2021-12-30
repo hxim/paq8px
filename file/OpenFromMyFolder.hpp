@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_OPENFROMMYFOLDER_HPP
-#define PAQ8PX_OPENFROMMYFOLDER_HPP
+#pragma once
 
 #include "FileDisk.hpp"
 
@@ -33,5 +32,3 @@ public:
      */
     static void anotherFile(FileDisk *f, const char *filename);
 };
-
-#endif //PAQ8PX_OPENFROMMYFOLDER_HPP

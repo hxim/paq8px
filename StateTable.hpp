@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_STATETABLE_HPP
-#define PAQ8PX_STATETABLE_HPP
+#pragma once
 
 #include "Random.hpp"
 #include <cstdint>
@@ -156,5 +155,3 @@ public:
 
     static auto prio(uint8_t state) -> uint8_t;
 };
-
-#endif //PAQ8PX_STATETABLE_HPP

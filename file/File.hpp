@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILE_HPP
-#define PAQ8PX_FILE_HPP
+#pragma once
 
 #include "../String.hpp"
 #include <cerrno>
@@ -33,5 +32,3 @@ public:
     virtual auto curPos() -> uint64_t = 0;
     virtual auto eof() -> bool = 0;
 };
-
-#endif //PAQ8PX_FILE_HPP

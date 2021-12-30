@@ -1,7 +1,6 @@
-#ifndef PAQ8PX_SIMDFUNCTIONS_HPP
-#define PAQ8PX_SIMDFUNCTIONS_HPP
+#pragma once
 
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "../simd.hpp"
 #include <cmath>
 #include <numeric>
@@ -182,6 +181,4 @@ float expa(float x) {
   return 2.0f / (tanha(-x * 0.5f) + 1.0f) - 1.0f;
 }
 
-}
-
-#endif //PAQ8PX_SIMDFUNCTIONS_HPP
+} // end of namespace

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_AUDIO8BITMODEL_HPP
-#define PAQ8PX_AUDIO8BITMODEL_HPP
+#pragma once
 
 #include "AudioModel.hpp"
 #include "../Ilog.hpp"
@@ -45,5 +44,3 @@ public:
     void setParam(int info);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_AUDIO8BITMODEL_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_APM1_HPP
-#define PAQ8PX_APM1_HPP
+#pragma once
 
 #include <cstdint>
 #include <cassert>
@@ -36,5 +35,3 @@ public:
     int p(int pr, int cxt);
     void update() override;
 };
-
-#endif //PAQ8PX_APM1_HPP

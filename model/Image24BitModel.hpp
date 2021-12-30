@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_IMAGE24BITMODEL_HPP
-#define PAQ8PX_IMAGE24BITMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../OLS.hpp"
@@ -88,5 +87,3 @@ public:
     void setParam(int width, uint32_t alpha0, uint32_t isPNG0);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_IMAGE24BITMODEL_HPP

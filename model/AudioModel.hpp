@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_AUDIOMODEL_HPP
-#define PAQ8PX_AUDIOMODEL_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include <cstdint>
@@ -22,5 +21,3 @@ protected:
     static auto signedClip8(int i) -> int;
     static auto signedClip16(int i) -> int;
 };
-
-#endif //PAQ8PX_AUDIOMODEL_HPP

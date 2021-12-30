@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_INDIRECTCONTEXT_HPP
-#define PAQ8PX_INDIRECTCONTEXT_HPP
+#pragma once
 
 #include "Array.hpp"
 #include <cassert>
@@ -49,5 +48,3 @@ public:
       return *ctx;
     };
 };
-
-#endif //PAQ8PX_INDIRECTCONTEXT_HPP

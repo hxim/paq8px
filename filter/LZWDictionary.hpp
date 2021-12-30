@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LZWDICTIONARY_HPP
-#define PAQ8PX_LZWDICTIONARY_HPP
+#pragma once
 
 #include "../file/File.hpp"
 #include "LZWEntry.hpp"
@@ -20,5 +19,3 @@ public:
     void addEntry(int prefix, int suffix, int offset = -1);
     auto dumpEntry(File *f, int code) -> int;
 };
-
-#endif //PAQ8PX_LZWDICTIONARY_HPP

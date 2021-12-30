@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_WORDMODEL_HPP
-#define PAQ8PX_WORDMODEL_HPP
+#pragma once
 
 #ifndef DISABLE_TEXTMODEL
 
@@ -46,5 +45,3 @@ public:
     static constexpr int MIXERCONTEXTSETS = 0;
 };
 #endif //DISABLE_TEXTMODEL
-
-#endif //PAQ8PX_WORDMODEL_HPP

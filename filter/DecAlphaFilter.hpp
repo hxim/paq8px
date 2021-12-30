@@ -1,10 +1,8 @@
-#ifndef PAQ8PX_DECALPHAFILTER_HPP
-#define PAQ8PX_DECALPHAFILTER_HPP
+#pragma once
 
 #include "DecAlpha.hpp"
 #include "../file/File.hpp"
 #include "../Encoder.hpp"
-#include "../VLI.hpp"
 #include "Filter.hpp"
 #include <cstdint>
 
@@ -57,10 +55,10 @@ public:
     for (std::uint64_t offset = 0u; offset < size; offset += block) {
       std::uint64_t length = std::min<std::uint64_t>(size - offset, block);
       for (std::size_t i = 0u; i < static_cast<std::size_t>(length) - 3u; i += 4u) {
-        blk[i]      = encoder->decompressByte();
-        blk[i + 1u] = encoder->decompressByte();
-        blk[i + 2u] = encoder->decompressByte();
-        blk[i + 3u] = encoder->decompressByte();
+        blk[i]      = encoder->decompressByte(&encoder->predictorMain);
+        blk[i + 1u] = encoder->decompressByte(&encoder->predictorMain);
+        blk[i + 2u] = encoder->decompressByte(&encoder->predictorMain);
+        blk[i + 3u] = encoder->decompressByte(&encoder->predictorMain);
         std::uint32_t instruction = (blk[i] | (blk[i + 1u] << 8u) | (blk[i + 2u] << 16u) | (blk[i + 3u] << 24u));
         DECAlpha::Unshuffle(instruction);
         if ((instruction >> 21u) == (0x34u << 5u) + 26u) { // bsr r26, offset
@@ -76,7 +74,7 @@ public:
       }
       std::size_t const l = static_cast<std::size_t>(length - (length & 3u));
       for (std::size_t i = 0u; i < static_cast<std::size_t>(length & 3u); i++)
-        blk[l + i] = encoder->decompressByte();
+        blk[l + i] = encoder->decompressByte(&encoder->predictorMain);
 
       if (fMode == FDECOMPRESS) {
         out->blockWrite(&blk[0u], length);
@@ -94,5 +92,3 @@ public:
     return size;
   }
 };
-
-#endif //PAQ8PX_DECALPHAFILTER_HPP

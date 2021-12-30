@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILEUTILS2_HPP
-#define PAQ8PX_FILEUTILS2_HPP
+#pragma once
 
 #include "FileDisk.hpp"
 
@@ -30,5 +29,3 @@ static void appendToFile(const char *filename, const char *s) {
     fclose(f);
   }
 }
-
-#endif //PAQ8PX_FILEUTILS2_HPP

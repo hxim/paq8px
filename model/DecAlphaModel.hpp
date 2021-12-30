@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DECALPHAMODEL_HPP
-#define PAQ8PX_DECALPHAMODEL_HPP
+#pragma once
 
 #include "../filter/DecAlpha.hpp"
 #include "../Shared.hpp"
@@ -547,5 +546,3 @@ public:
     shared->State.DEC.bcount = count;
   }
 };
-
-#endif //PAQ8PX_DECALPHAMODEL_HPP

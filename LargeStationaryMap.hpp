@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LARGESTATIONARYMAP_HPP
-#define PAQ8PX_LARGESTATIONARYMAP_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include "Bucket16.hpp"
@@ -66,5 +65,3 @@ public:
     void skip();
 
 };
-
-#endif //PAQ8PX_LARGESTATIONARYMAP_HPP

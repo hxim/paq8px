@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_IMAGE8BITMODEL_HPP
-#define PAQ8PX_IMAGE8BITMODEL_HPP
+#pragma once
 
 #include "../Array.hpp"
 #include "../ContextMap2.hpp"
@@ -93,5 +92,3 @@ public:
     void setParam(int info0, uint32_t gray0, uint32_t isPNG0);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_IMAGE8BITMODEL_HPP

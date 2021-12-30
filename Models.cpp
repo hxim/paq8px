@@ -1,4 +1,8 @@
 #include "Models.hpp"
+#include "CharacterNames.hpp"
+#include "DummyMixer.hpp"
+#include "file/OpenFromMyFolder.hpp"
+#include "file/FileDisk.hpp"
 
 /*
  relationship between compression level, shared->mem and NormalModel memory use as an example
@@ -21,7 +25,105 @@
 */
 
 
-Models::Models(Shared* const sh) : shared(sh) {}
+Models::Models(Shared* const sh, MixerFactory* mf) : shared(sh), mixerFactory(mf) {}
+
+void Models::trainModelsWhenNeeded() {
+  //initiate pre-training
+  if (shared->GetOptionTrainTxt()) {
+    trainText("english.dic", 3);
+    trainText("english.exp", 1);
+  }
+  if (shared->GetOptionTrainExe()) {
+    trainExe();
+  }
+}
+
+void Models::trainText(const char* const dictionary, int iterations) {
+  NormalModel& normalModel = this->normalModel();
+  WordModel& wordModel = this->wordModel();
+  DummyMixer mDummy(shared,
+    NormalModel::MIXERINPUTS + WordModel::MIXERINPUTS_TEXT,
+    NormalModel::MIXERCONTEXTS_PRE + WordModel::MIXERCONTEXTS,
+    NormalModel::MIXERCONTEXTSETS_PRE + WordModel::MIXERCONTEXTSETS);
+  shared->State.blockType = BlockType::TEXT;
+  INJECT_SHARED_pos
+    INJECT_SHARED_blockPos
+    assert(pos == 0 && blockPos == 0);
+  FileDisk f;
+  printf("Pre-training models with text...");
+  OpenFromMyFolder::anotherFile(&f, dictionary);
+  int c = 0;
+  int trainingByteCount = 0;
+  while (iterations-- > 0) {
+    f.setpos(0);
+    c = SPACE;
+    trainingByteCount = 0;
+    do {
+      trainingByteCount++;
+      uint8_t c1 = c == NEW_LINE ? SPACE : c;
+      if (c != CARRIAGE_RETURN) {
+        for (int bpos = 0; bpos < 8; bpos++) {
+          normalModel.mix(mDummy); //update (train) model
+#ifndef DISABLE_TEXTMODEL
+          wordModel.mix(mDummy); //update (train) model
+#endif
+          mDummy.p();
+          int y = (c1 >> (7 - bpos)) & 1U;
+          shared->update(y, false);
+        }
+      }
+      // emulate a space before and after each word/expression
+      // reset models in between
+      if (c == NEW_LINE) {
+        normalModel.reset();
+#ifndef DISABLE_TEXTMODEL
+        wordModel.reset();
+#endif
+        for (int bpos = 0; bpos < 8; bpos++) {
+          normalModel.mix(mDummy); //update (train) model
+#ifndef DISABLE_TEXTMODEL
+          wordModel.mix(mDummy); //update (train) model
+#endif
+          mDummy.p();
+          int y = (c1 >> (7 - bpos)) & 1U;
+          shared->update(y, false);
+        }
+      }
+    } while ((c = f.getchar()) != EOF);
+  }
+  normalModel.reset();
+#ifndef DISABLE_TEXTMODEL
+  wordModel.reset();
+#endif
+  shared->reset();
+  printf(" done [%s, %d bytes]\n", dictionary, trainingByteCount);
+  f.close();
+}
+
+void Models::trainExe() {
+  ExeModel& exeModel = this->exeModel();
+  DummyMixer mDummy(shared, ExeModel::MIXERINPUTS, ExeModel::MIXERCONTEXTS, ExeModel::MIXERCONTEXTSETS);
+  INJECT_SHARED_pos
+    INJECT_SHARED_blockPos
+    assert(pos == 0 && blockPos == 0);
+  FileDisk f;
+  printf("Pre-training x86/x64 model...");
+  OpenFromMyFolder::myself(&f);
+  int c = 0;
+  int trainingByteCount = 0;
+  do {
+    trainingByteCount++;
+    for (uint32_t bpos = 0; bpos < 8; bpos++) {
+      exeModel.mix(mDummy); //update (train) model
+      mDummy.p();
+      int y = (c >> (7 - bpos)) & 1U;
+      shared->update(y, false);
+    }
+  } while ((c = f.getchar()) != EOF);
+  printf(" done [%d bytes]\n", trainingByteCount);
+  f.close();
+  shared->reset();
+}
 
 auto Models::normalModel() -> NormalModel & {
   static NormalModel instance {shared, shared->mem * 32};
@@ -115,7 +217,7 @@ auto Models::linearPredictionModel() -> LinearPredictionModel & {
 }
 
 auto Models::jpegModel() -> JpegModel & {
-  static JpegModel instance {shared, shared->mem}; /**< Not the actual memory use - see in the model */
+  static JpegModel instance {shared, mixerFactory, shared->mem}; /**< Not the actual memory use - see in the model */
   return instance;
 }
 

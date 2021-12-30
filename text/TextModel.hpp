@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_TEXTMODEL_HPP
-#define PAQ8PX_TEXTMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../RingBuffer.hpp"
@@ -116,5 +115,3 @@ public:
 };
 
 #endif //DISABLE_TEXTMODEL
-
-#endif //PAQ8PX_TEXTMODEL_HPP

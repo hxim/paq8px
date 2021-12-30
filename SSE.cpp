@@ -4,60 +4,60 @@
 
 SSE::SSE(Shared* const sh) : shared(sh),
 Text{
-    { /*APM:*/  {sh,1 << 15,20}, {sh,1 << 16,24}, {sh,1 << 16,24}, {sh,1 << 16,24}} , /* APM: contexts, steps */
+    { /*APM:*/  {sh,1 << 15,20,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}} , /* APM: contexts, steps */
     { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,6}, {sh,1 << 16,6}}, /* APM1: contexts, rate */
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
 },
 Image{
   // color:
-    { { /*APM:*/ {sh,1 << 11,24}, {sh,1 << 16,24}, {sh,1 << 16,24}, {sh,1 << 16,24}},
+    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}},
       { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,7}} ,
       { /*ApmPostA: */ sh,8},
       { /*ApmPostB: */ sh,8}
     }, 
     // palette:
-    { { /*APM:*/ {sh,1 << 11,24}, {sh,1 << 16,24}, {sh,1 << 16,24}, {sh,1 << 16,24}},
+    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}},
       { /*APM1:*/ {sh,1 << 16,5}, {sh,1 << 16,6}},
       { /*ApmPostA: */ sh,1},
       { /*ApmPostB: */ sh,1}
     }, 
     // gray:
-    { { /*APM:*/ {sh,1 << 11,24}, {sh,1 << 16,24}, {sh,1 << 16,24}} ,
+    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}} ,
       { /*ApmPostA: */ sh,8},
       { /*ApmPostB: */ sh,8}
     }
   },
   Audio{
-    { /*APM:*/ {sh,1 << 14,24} },
+    { /*APM:*/ {sh,1 << 14,24,1023} },
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
   },
   Jpeg{
-    { /*APM:*/ {sh,0x1000 + 1,24} },
+    { /*APM:*/ {sh,0x1000 + 1,24,1023} },
     { /*ApmPostA: */ sh,1},
     { /*ApmPostB: */ sh,1}
   },
   DEC{
-    { /*APM:*/ {sh,25*26,20} },
+    { /*APM:*/ {sh,25*26,20,1023} },
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
   },
   x86_64{
-    { /*APM:*/ {sh,1 << 14,20}, {sh,1 << 16,16}, {sh,1 << 16,16} },
+    { /*APM:*/ {sh,1 << 14,20,1023}, {sh,1 << 16,16,1023}, {sh,1 << 16,16,1023} },
     { /*APM1:*/ {sh,1 << 13,7}, {sh,1 << 16,7}, {sh,1 << 16,7} },
     { /*ApmPostA: */ sh,1},
     { /*ApmPostB: */ sh,1}
   },
   Generic {
-    { /*APM:*/  {sh,1<<8,20}, {sh,1 << 8,24}, {sh,1 << 16,24}, {sh,1 << 16,24}}, /* APM: contexts, steps */
+    { /*APM:*/  {sh,1<<8,20,1023}, {sh,1 << 8,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}}, /* APM: contexts, steps */
     { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,7}, {sh,1 << 16,7}},
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
   }
   {}
 
-auto SSE::p(const int pr_orig) -> int {
+uint32_t SSE::p(const uint32_t pr_orig) {
 
   INJECT_SHARED_c0
   INJECT_SHARED_bpos
@@ -82,15 +82,17 @@ auto SSE::p(const int pr_orig) -> int {
     ((misses & 0xfe) != 0) << 1 |
     ((misses & 0xff00) != 0) << 2;
   
-  constexpr int limit = 1023;
+  const BlockType normalizedBlockType =
+    blockType == BlockType::JPEG && shared->State.JPEG.state == 0 ? BlockType::DEFAULT :
+    blockType;
 
-  switch(blockType) {
+  switch(normalizedBlockType) {
     case BlockType::TEXT:
     case BlockType::TEXT_EOL: {
-      uint32_t pr0 = Text.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 7 | (shared->State.Text.mask & 0x0F) | misses3 << 4, limit); //15
-      uint32_t pr1 = Text.APMs[1].p(pr_orig, finalize64(hash(bpos, misses3 & 3, c4 & 0xFFFF, shared->State.Text.mask >> 4), 16), limit); //16
-      uint32_t pr2 = Text.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Match.expectedByte << 2 | shared->State.Match.length2), 16), limit); //16
-      uint32_t pr3 = Text.APMs[3].p(pr_orig, finalize64(hash(c0, c4 & 0xFFFF, shared->State.Text.firstLetter), 16), limit); //16
+      uint32_t pr0 = Text.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 7 | (shared->State.Text.mask & 0x0F) | misses3 << 4); //15
+      uint32_t pr1 = Text.APMs[1].p(pr_orig, finalize64(hash(bpos, misses3 & 3, c4 & 0xFFFF, shared->State.Text.mask >> 4), 16)); //16
+      uint32_t pr2 = Text.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Match.expectedByte << 2 | shared->State.Match.length2), 16)); //16
+      uint32_t pr3 = Text.APMs[3].p(pr_orig, finalize64(hash(c0, c4 & 0xFFFF, shared->State.Text.firstLetter), 16)); //16
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
@@ -106,10 +108,10 @@ auto SSE::p(const int pr_orig) -> int {
     }
     case BlockType::IMAGE24:
     case BlockType::IMAGE32: {
-      uint32_t pr0 = Image.Color.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos==0 ? 0 : (misses3&3)), limit); //11
-      uint32_t pr1 = Image.Color.APMs[1].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.W, shared->State.Image.pixels.WW), 16), limit); //16
-      uint32_t pr2 = Image.Color.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.N, shared->State.Image.pixels.NN), 16), limit); //16
-      uint32_t pr3 = Image.Color.APMs[3].p(pr_orig, (c0 << 8) | shared->State.Image.ctx, limit); //16
+      uint32_t pr0 = Image.Color.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos==0 ? 0 : (misses3&3))); //11
+      uint32_t pr1 = Image.Color.APMs[1].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.W, shared->State.Image.pixels.WW), 16)); //16
+      uint32_t pr2 = Image.Color.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.N, shared->State.Image.pixels.NN), 16)); //16
+      uint32_t pr3 = Image.Color.APMs[3].p(pr_orig, (c0 << 8) | shared->State.Image.ctx); //16
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
@@ -123,9 +125,9 @@ auto SSE::p(const int pr_orig) -> int {
       break;
     }
     case BlockType::IMAGE8GRAY: {
-      uint32_t pr0 = Image.Gray.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3)), limit); //11
-      uint32_t pr1 = Image.Gray.APMs[1].p(pr0, (c0 << 8) | shared->State.Image.ctx, limit); //16
-      uint32_t pr2 = Image.Gray.APMs[2].p(pr_orig, bpos | (shared->State.Image.ctx & 0xF8) | (shared->State.Match.expectedByte << 8), limit); //16
+      uint32_t pr0 = Image.Gray.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3))); //11
+      uint32_t pr1 = Image.Gray.APMs[1].p(pr0, (c0 << 8) | shared->State.Image.ctx); //16
+      uint32_t pr2 = Image.Gray.APMs[2].p(pr_orig, bpos | (shared->State.Image.ctx & 0xF8) | (shared->State.Match.expectedByte << 8)); //16
 
       int prA = (2 * pr_orig + pr1 + pr2 + 2) >> 2;
 
@@ -134,10 +136,10 @@ auto SSE::p(const int pr_orig) -> int {
       break;
     }
     case BlockType::IMAGE8: {
-      uint32_t pr0 = Image.Palette.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3)), limit); //11
-      uint32_t pr1 = Image.Palette.APMs[1].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.N << 16), 16), limit); //16
-      uint32_t pr2 = Image.Palette.APMs[2].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.N << 8 | shared->State.Image.pixels.NN << 16), 16), limit); //16
-      uint32_t pr3 = Image.Palette.APMs[3].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.WW << 16), 16), limit); //16
+      uint32_t pr0 = Image.Palette.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3))); //11
+      uint32_t pr1 = Image.Palette.APMs[1].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.N << 16), 16)); //16
+      uint32_t pr2 = Image.Palette.APMs[2].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.N << 8 | shared->State.Image.pixels.NN << 16), 16)); //16
+      uint32_t pr3 = Image.Palette.APMs[3].p(pr_orig, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.WW << 16), 16)); //16
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
@@ -154,27 +156,27 @@ auto SSE::p(const int pr_orig) -> int {
     //case BlockType::IMAGE1: //TODO
     case BlockType::AUDIO:
     case BlockType::AUDIO_LE: {
-      uint32_t pr0 = Audio.APMs[0].p(pr_orig, shared->State.Audio << 6 | static_cast<uint32_t>(bpos) << 3 | misses3, limit); //14
+      uint32_t pr0 = Audio.APMs[0].p(pr_orig, shared->State.Audio << 6 | static_cast<uint32_t>(bpos) << 3 | misses3); //14
       uint32_t pr = (Audio.APMPostA.p(pr_orig, bpos) + Audio.APMPostB.p(pr0, bpos) + 1) >> 1;
       return pr;
       break;
     }
     case BlockType::JPEG: {
-      uint32_t pr0 = Jpeg.APMs[0].p(pr_orig, shared->State.JPEG.state, limit);
+      uint32_t pr0 = Jpeg.APMs[0].p(pr_orig, shared->State.JPEG.state);
       uint32_t pr = (Jpeg.APMPostA.p(pr_orig, 0) + Jpeg.APMPostB.p(pr0, 0) + 1) >> 1;
       return pr;
       break;
     }
     case BlockType::DEC_ALPHA: {
-      uint32_t pr0 = DEC.APMs[0].p(pr_orig, (shared->State.DEC.state * 26u) + shared->State.DEC.bcount, limit);
+      uint32_t pr0 = DEC.APMs[0].p(pr_orig, (shared->State.DEC.state * 26u) + shared->State.DEC.bcount);
       uint32_t pr = (DEC.APMPostA.p(pr_orig, 0) + DEC.APMPostB.p(pr0, 0)+1) >> 1;
       return pr;
       break;
     }
     case BlockType::EXE: {
-      uint32_t pr0 = x86_64.APMs[0].p(pr_orig, shared->State.x86_64.state << 6 | misses3 << 3 | bpos, limit);//14
-      uint32_t pr1 = x86_64.APMs[1].p(pr_orig, shared->State.x86_64.state<<8 | c0, limit); // 16
-      uint32_t pr2 = x86_64.APMs[2].p((pr0 + pr1 + 1) >> 1, finalize64(hash(c4 & 0xFF, bpos, misses3 & 1, shared->State.x86_64.state >> 3), 16), limit); //16
+      uint32_t pr0 = x86_64.APMs[0].p(pr_orig, shared->State.x86_64.state << 6 | misses3 << 3 | bpos);//14
+      uint32_t pr1 = x86_64.APMs[1].p(pr_orig, shared->State.x86_64.state<<8 | c0); // 16
+      uint32_t pr2 = x86_64.APMs[2].p((pr0 + pr1 + 1) >> 1, finalize64(hash(c4 & 0xFF, bpos, misses3 & 1, shared->State.x86_64.state >> 3), 16)); //16
 
       uint32_t prA = (pr_orig + pr0 + pr1 + pr2 + 2) >> 2;
 
@@ -189,10 +191,10 @@ auto SSE::p(const int pr_orig) -> int {
       break;
     }
     default: {
-      uint32_t pr0 = Generic.APMs[0].p(pr_orig, shared->State.Match.length2 << 6 | static_cast<uint32_t>(bpos) << 3 | misses3, limit); //8
-      uint32_t pr1 = Generic.APMs[1].p(pr_orig, shared->State.NormalModel.order << 5 | shared->State.Match.length2 << 3 | bpos, limit); //8
-      uint32_t pr2 = Generic.APMs[2].p(pr_orig, c0 | (c4 & 0xFF) << 8, limit); //16
-      uint32_t pr3 = Generic.APMs[3].p(pr_orig, c0 << 8 | (c4 & 0xF0) | (c4 & 0xF000 >> 12), limit); //16
+      uint32_t pr0 = Generic.APMs[0].p(pr_orig, shared->State.Match.length2 << 6 | static_cast<uint32_t>(bpos) << 3 | misses3); //8
+      uint32_t pr1 = Generic.APMs[1].p(pr_orig, shared->State.NormalModel.order << 5 | shared->State.Match.length2 << 3 | bpos); //8
+      uint32_t pr2 = Generic.APMs[2].p(pr_orig, c0 | (c4 & 0xFF) << 8); //16
+      uint32_t pr3 = Generic.APMs[3].p(pr_orig, c0 << 8 | (c4 & 0xF0) | (c4 & 0xF000 >> 12)); //16
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
       

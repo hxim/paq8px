@@ -1,7 +1,7 @@
-#ifndef PAQ8PX_NORMALMODEL_HPP
-#define PAQ8PX_NORMALMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
+#include "../StateMapPair.hpp"
 
 /**
  * Model for order 0-14 contexts
@@ -12,22 +12,22 @@
 class NormalModel {
 private:
     static constexpr int nCM = 9;
-    static constexpr int nSM = 3;
+    static constexpr int nSM = 2*4;
     Shared * const shared;
     ContextMap2 cm;
-    StateMap smOrder0Slow;
-    StateMap smOrder1Slow;
-    StateMap smOrder1Fast;
+    StateMapPair smOrder0;
+    StateMapPair smOrder1;
 public:
     static constexpr int MIXERINPUTS =
       nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS + ContextMap2::MIXERINPUTS_BYTE_HISTORY) + 
-      nSM; //66
+      nSM; //71
     static constexpr int MIXERCONTEXTS_PRE = 64;
     static constexpr int MIXERCONTEXTS_POST = 1024 + 256 + 512 + 256 + 256 + 1536; //3840
     static constexpr int MIXERCONTEXTSETS_PRE = 1;
     static constexpr int MIXERCONTEXTSETS_POST = 6;
     NormalModel(Shared* const sh, const uint64_t cmSize);
     void reset();
+    void resetBetweenBlocks();
 
     /**
      * update order 1..14 context hashes.
@@ -42,5 +42,3 @@ public:
      */
     void mixPost(Mixer &m);
 };
-
-#endif //PAQ8PX_NORMALMODEL_HPP

@@ -1,22 +1,24 @@
-#ifndef PAQ8PX_STATEMAP_HPP
-#define PAQ8PX_STATEMAP_HPP
+#pragma once
 
 #include "DivisionTable.hpp"
 #include "AdaptiveMap.hpp"
 #include "StateTable.hpp"
 #include "UpdateBroadcaster.hpp"
+#include "IPredictor.hpp"
 
 /**
  * A @ref StateMap maps a context to a probability.
  */
-class StateMap : public AdaptiveMap {
+class StateMap : public AdaptiveMap, protected IPredictor {
 protected:
     const uint32_t numContextSets; /**< Number of context sets */
     const uint32_t numContextsPerSet; /**< Number of contexts in each context set */
     uint32_t currentContextSetIndex; /**< Number of context indexes present in cxt array (0..numContextSets-1) */
     Array<uint32_t> cxt; /**< context index of last prediction per context set */
 public:
-    enum MAPTYPE {
+  int limit; //1..1023
+  
+  enum MAPTYPE {
         Generic, BitHistory, Run
     };
 
@@ -27,7 +29,8 @@ public:
      * @param lim
      * @param mapType
      */
-    StateMap(const Shared* const sh, int s, int n, int lim, MAPTYPE mapType);
+    StateMap (const Shared* const sh, int s, int n, int lim, MAPTYPE mapType);
+    ~StateMap() override = default;
 
     void update() override;
 
@@ -60,5 +63,3 @@ public:
     void skip(uint32_t s);
     void print() const;
 };
-
-#endif //PAQ8PX_STATEMAP_HPP

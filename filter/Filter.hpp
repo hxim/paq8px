@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILTER_HPP
-#define PAQ8PX_FILTER_HPP
+#pragma once
 
 #include "../file/File.hpp"
 #include "../Encoder.hpp"
@@ -22,5 +21,3 @@ public:
 
     virtual ~Filter() = default;
 };
-
-#endif //PAQ8PX_FILTER_HPP

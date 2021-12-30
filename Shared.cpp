@@ -1,7 +1,7 @@
 #include "Shared.hpp"
 
 /*
- relationship between compression level, shared->mem and buf memory use 
+ relationship between compression level, shared->mem and buf memory use
 
  level   shared->mem    buf memory use (shared->mem * 8)
  -----   -----------    --------------
@@ -20,14 +20,21 @@
 
 */
 
-void Shared::init(uint8_t level) {
-  this->level = level;
-  mem = UINT64_C(65536) << level;
-  buf.setSize(static_cast<uint32_t>(min(mem * 8, UINT64_C(1) << 30))); /**< no reason to go over 1 GB */
+Shared::Shared() {
   toScreen = !isOutputRedirected();
 }
 
-void Shared::update(int y) {
+void Shared::init(uint8_t level, uint32_t bufMem) {
+  this->level = level;
+  mem = UINT64_C(65536) << level;
+  if (bufMem == 0) //to auto size
+    bufMem = static_cast<uint32_t>(min(mem * 8, UINT64_C(1) << 30)); /**< no reason to go over 1 GB */
+  assert(isPowerOf2(bufMem));
+  buf.setSize(bufMem);
+  toScreen = !isOutputRedirected();
+}
+
+void Shared::update(int y, bool isMissed) {
   State.y = y;
   State.c0 += State.c0 + y;
   State.bitPosition = (State.bitPosition + 1U) & 7U;
@@ -41,6 +48,8 @@ void Shared::update(int y) {
   static constexpr uint8_t asciiGroup[254] = { 0, 10, 0, 1, 10, 10, 0, 4, 2, 3, 10, 10, 10, 10, 0, 0, 5, 4, 2, 2, 3, 3, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 5, 5, 9, 4, 2, 2, 2, 2, 3, 3, 3, 3, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 5, 8, 8, 5, 9, 9, 6, 5, 2, 2, 2, 2, 2, 2, 2, 8, 3, 3, 3, 3, 3, 3, 3, 8, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 8, 8, 8, 8, 8, 5, 5, 9, 9, 9, 9, 9, 7, 8, 5, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 8, 8, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 8, 8, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10 };
   State.Text.characterGroup = (State.bitPosition > 0) ? asciiGroup[(1U << State.bitPosition) - 2 + (State.c0 & ((1U << State.bitPosition) - 1))] : 0;
   
+  State.misses = (State.misses << 1) | static_cast<uint32_t>(isMissed);
+
   // Broadcast to all current subscribers: y (and c0, c1, c4, etc) is known
   updateBroadcaster.broadcastUpdate();
 }

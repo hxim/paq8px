@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_EXEMODEL_HPP
-#define PAQ8PX_EXEMODEL_HPP
+#pragma once
 
 #include "../RingBuffer.hpp"
 #include "../ContextMap2.hpp"
@@ -636,5 +635,3 @@ public:
 
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_EXEMODEL_HPP

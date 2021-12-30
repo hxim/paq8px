@@ -906,14 +906,14 @@ paq8px_v127 by Márcio Pais
 
 
 paq8px_v128 by Márcio Pais
-2017.01.02
+2018.01.02
 - Improved 8bpp grayscale image model (PNG and non-PNG variants)
 - Tweaked SmallStationaryMap
 - Small changes in English stemmer to allow for compilation with MSVC Fix buffer overflow (thank you Jan Ondrus)
 
 
 paq8px_v129 by Márcio Pais
-2017.01.09
+2018.01.09
 - Slightly improved 24/32bpp image model (PNG and non-PNG variants)
 - Horizontal symmetries search for 8bpp model
 - New context map and hash table, used in the main model only
@@ -921,7 +921,7 @@ paq8px_v129 by Márcio Pais
 
 
 paq8px_v129_fix1 by Zoltán Gotthardt
-2017.01.13
+2018.01.13
 - Fixed "error: use of deleted function" in gcc in Array class (v114-129) reported by Mauro
 - Sanity check in makedir function
 - Changed "rb+" to "rb" in FileDisk.open() to enable compressing read-only files
@@ -933,7 +933,7 @@ paq8px_v129_fix1 by Zoltán Gotthardt
 
 
 paq8px_v129_fix2 by Zoltán Gotthardt
-2017.01.14
+2018.01.14
 - fixed redefinition warning for NOMINMAX (when compiling with newer MinGW-w64 versions)
 - fixed a couple of "misleading-indentation" (in Mixer) and "suggest parentheses" warnings (in ContextModel) (when compiling with MinGW-w64)
 - fixed a "comparison between signed and unsigned integer expressions" warning in ContextMapB64 (when compiling with MinGW-w64)
@@ -949,7 +949,7 @@ paq8px_v130 by Márcio Pais
 
 
 paq8px_v130_fix1 by Zoltán Gotthardt
-2017.01.17
+2018.01.17
 - Fixed 4 asserts: assert(true) -> assert(false)
 - Fixed decode_cd(): dealing with the "residual" data was buggy
 - Removed unnecessary includes
@@ -958,7 +958,7 @@ paq8px_v130_fix1 by Zoltán Gotthardt
 
 
 paq8px_v130_fix2 by Zoltán Gotthardt
-2017.01.18
+2018.01.18
 - On decompression the following message was printed: "FileDisk: unable to open file (No such file or directory)". Fixed.
 - Printing more info when FileDisk.create() or FileDisk.createtmp() fails for any reason (name of the file and error: access denied, file not found, etc.)
 - Cosmetic fixes in remarks and/or code (Array's chkindex, IntBuf, jpegModel, Encoder, detect(), etc.)
@@ -966,14 +966,14 @@ paq8px_v130_fix2 by Zoltán Gotthardt
 
 
 paq8px_v131 by Márcio Pais
-2017.01.21
+2018.01.21
 - Refactored new ContextMap, now used on the exeModel also
 - Text pre-training now performs 3 iterations on the dictionary (word list) file, and also trains on an optional expression list file
 - New context for the 8bpp grayscale image model
 
 
 paq8px_v132 by Zoltán Gotthardt
-2017.01.25
+2018.01.25
 - Restored linux compatibility.
 - Eliminated some compiler warnings.
 - A little cleanup here and there.
@@ -981,7 +981,7 @@ paq8px_v132 by Zoltán Gotthardt
 
 
 paq8px_v132_fix1 by Zoltán Gotthardt
-2017.01.27
+2018.01.27
 - Fixed (finalized) exception handling
 - Removed some unnecessary #includes, organised the remaining ones and explained PRIu64
 - Separated platform-specific logic from ContextModel::Train() and exeModel::Train(){
@@ -990,20 +990,20 @@ paq8px_v132_fix1 by Zoltán Gotthardt
 
 
 paq8px_v133 by Márcio Pais
-2017.01.28
+2018.01.28
 - Refactored stemming routines
 - New French stemmer (currently unused)
 - English stemmer now handles "non/non-" prefixes
 
 
 paq8px_v134 by Andrew Epstein
-2017.02.03
+2018.02.03
 - Implemented dot_product() and train() in AVX2
 - Fixes for proper Mac OSX compilation
 
 
 paq8px_v135 by Márcio Pais
-2017.02.04
+2018.02.04
 - New experimental text model with language detection via stemming/common word lists, currently using only one context
 - Text pre-training now uses the RunContextMaps
 - English Stemmer: Refactoring, added processing of gender-specific words and common words
@@ -1011,12 +1011,12 @@ paq8px_v135 by Márcio Pais
 
 
 paq8px_v136 by Márcio Pais
-2017.02.11
+2018.02.11
 - Improved text model (uses 16 contexts, sets 3 mixer contexts)
 
 
 paq8px_v137 by Zoltán Gotthardt
-2017.02.14
+2018.02.14
 - Fixed some compatibility issues with older compilers
 - Changed some [] arrays to Array<> in order to detect out of bound operations
 - Now you can disable/enable compilation of certain models/transformations (ZLIB, TEXTMODEL, WORDMODEL, WAVMODEL)
@@ -1049,35 +1049,35 @@ paq8px_v137 by Zoltán Gotthardt
 
 
 paq8px_v137_fix1 by Zoltán Gotthardt
-2017.02.15
+2018.02.15
 - Fixed: missing space on help screen ("filewhere")
 - Fixed: problem in multiple file mode when parsing the listfile (code for tab was incorrect) 
 
 
 paq8px_v138 by Márcio Pais
-2017.02.15
+2018.02.15
 - A small improvement to the new text model (uses 21 contexts, sets 4 mixer contexts)
 
 
-paq8px_v138_e1w3fix by Zoltán Gotthardt
-2017.02.24
+paq8px_v138_e1w3fix by pinguin2
+2018.02.24
 - Fixing 1 error and 3 warnings that happen while building v138 on Linux.
 
 
 paq8px_v139 by Márcio Pais
-2017.02.25
+2018.02.25
 - Slightly improved text model (now uses 26 contexts)
 - French stemmer now handles UTF8 Unicode code points common to that language
 
 
 paq8px_v140 by Márcio Pais
-2017.02.27
+2018.02.27
 - Slightly improved text model (now sets 6 mixer contexts)
 - New german stemmer
 
 
 paq8px_v141 by Mauro Vezzosi
-2017.04.08
+2018.04.08
 - Tuned the adaptive learning rates in Mixer
 
 
@@ -1925,3 +1925,30 @@ paq8px_v205 by Zoltán Gotthardt
 paq8px_v205fix1 by Zoltán Gotthardt
 2021.09.27
 - Fixed TEXT_FRAGMENT_MIN_SIZE to be the intended 1024
+
+
+paq8px_v206 by Zoltán Gotthardt
+2021.12.28
+- Compression enhancement:
+  - Now modelling metadata (blocktype, blockinfo and blocksize) separately from file data.
+  - Skipping some RecordModel contexts in case of Text blocks.
+  - Using block pos instead of file pos for a context in RecordModel (mozilla).
+  - Treat JPEG metadata az BlockType::DEFAULT in NormalModel and in SSE stage.
+  - Removed some models from JPEG metadata modelling.
+  - Added fast adapting order-0 StateMap to NormalModel, parameter tuning.
+  - Added 2 contexts to WordModel to model columns in fixed-length lines.
+- Refactoring:
+  - Moved "limit" out of AdaptiveMap.
+  - Created new map to deal with a pair of slow and fast adapting state mapping: StateMapPair.
+  - Encoding functions are moved out of encoder.
+  - Moved encoding of blockInfo out of exe filter.
+  - Refactored Shared and Predictor; fixed memory leaks related to MixerFactory instantiation; moved model pre-training from Predictor to Models.
+  - Replaced include guards with #pragma once in hpp files. Fixed Filters.hpp from previous commit.
+- Fixes:
+  - Fixed some compiler warnings.
+  - Fixed overflow in StateMap (RunMap) a-priory initialization + slight parameter tuning.
+  - Fixed rgb image detection with a size guard + Included more size guards in block detection function.
+  - Fixed reading VLI sizes >4gb from archive; fixed 64-bit file stat on Windows (backported from paq8px-lite-t1).
+  - Fixed compilation on some linux systems (with gcc 7.5.0): utils.hpp->Utils.hpp
+- New command line option:
+  - Added -skipdetection command line option to aid compressing binary files with false positive blocktypes detected.

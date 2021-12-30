@@ -9,25 +9,26 @@ private:
   Mixer* m;
 
 public:
-  ContextModelAudio8(Shared* const sh, Models* const models) : shared(sh), models(models) {
-    MixerFactory mf{};
-    m = mf.createMixer (
-      sh,
+  ContextModelAudio8(Shared* const sh, Models* const models, const MixerFactory* const mf) : shared(sh), models(models) {
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    m = mf->createMixer (
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS +
       Audio8BitModel::MIXERINPUTS+
       RecordModel::MIXERINPUTS + 
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERINPUTS : 0)
+      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       Audio8BitModel::MIXERCONTEXTS +
       RecordModel::MIXERCONTEXTS +
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       Audio8BitModel::MIXERCONTEXTSETS +
       RecordModel::MIXERCONTEXTSETS +
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      ,
+      (useLSTM ? 1 : 0)
     );
     m->setScaleFactor(850, 140); //800-900, 140
   }
@@ -50,8 +51,9 @@ public:
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
 
-    //??
-    if ((shared->options & OPTION_LSTM) != 0u) {
+    //is it useful?
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    if (useLSTM) {
       LstmModel<>& lstmModel = models->lstmModel();
       lstmModel.mix(*m);
     }

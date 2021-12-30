@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_ILOG_HPP
-#define PAQ8PX_ILOG_HPP
+#pragma once
 
 #include "Array.hpp"
 
@@ -41,5 +40,3 @@ private:
  * @return
  */
 int llog(uint32_t x);
-
-#endif //PAQ8PX_ILOG_HPP

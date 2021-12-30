@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_NESTMODEL_HPP
-#define PAQ8PX_NESTMODEL_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include "../ContextMap2.hpp"
@@ -18,5 +17,3 @@ public:
     explicit NestModel(const Shared* const sh, uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_NESTMODEL_HPP

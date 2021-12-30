@@ -1,8 +1,7 @@
-#ifndef PAQ8PX_ARRAY_HPP
-#define PAQ8PX_ARRAY_HPP
+#pragma once
 
 #include <cstdint>
-#include "utils.hpp"
+#include "Utils.hpp"
 #include <cstdlib>
 #include <cstdio>
 #include <cassert>
@@ -163,5 +162,3 @@ Array<T, Align>::~Array() {
   data = nullptr;
   ptr = nullptr;
 }
-
-#endif //PAQ8PX_ARRAY_HPP

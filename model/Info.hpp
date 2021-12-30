@@ -1,6 +1,4 @@
-#ifndef PAQ8PX_INFO_HPP
-#define PAQ8PX_INFO_HPP
-
+#pragma once
 
 #include "../Shared.hpp"
 #include "../ContextMap2.hpp"
@@ -39,14 +37,14 @@ private:
     uint16_t chk {}; /**< checksum of last partially processed word */
     int firstChar {}; /**< category of first character of the current line (or -1 when in first column) */
     int lineMatch {}; /**< the length of match of the current line vs the previous line */
-    uint32_t nl1 {}, nl2 {}; /**< current newline position, previous newline position */
+    uint32_t nl1 {}, nl2 {}, nl3{}, nl4{}; /**< current newline position, previous newline positions */
     uint64_t groups {}; /**< 8 last character categories */
     uint64_t text0 {}; /**< uninterrupted stream of letters */
     uint32_t lastLetter {}, lastUpper {}, wordGap {};
     uint32_t mask {}, expr0Chars {}, mask2 {}, f4 {};
 
 public:
-    static constexpr int nCM1 = 17; // pdf / non_pdf contexts
+    static constexpr int nCM1 = 19; // pdf / non_pdf contexts
     static constexpr int nCM2_TEXT = 41; // common contexts (text content)
     static constexpr int nCM2_BIN = 41 - 9; // common contexts (bibnary content)
     Info(Shared* const sh, ContextMap2 &contextmap);
@@ -67,5 +65,3 @@ public:
     void lineModelSkip();
     void predict(uint8_t pdfTextParserState);
 };
-
-#endif //PAQ8PX_INFO_HPP

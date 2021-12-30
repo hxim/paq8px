@@ -24,6 +24,10 @@ void RecordModel::setParam(uint32_t fixedRecordLenght) {
 }
 
 void RecordModel::mix(Mixer &m) {
+
+  INJECT_SHARED_blockType
+  bool isText = isTEXT(blockType);
+
   // find record length
   INJECT_SHARED_bpos
   if( bpos == 0 ) {
@@ -182,22 +186,26 @@ void RecordModel::mix(Mixer &m) {
     cp.set(hash(++i, N, (WxNW = c ^ buf(rLength[0] + 1))));
     cp.set(hash(++i, static_cast<int>(shared->State.Match.length2 != 0) << 8U | shared->State.Match.expectedByte, uint8_t(iCtx[1]()), N, WxNW));
 
-    int k = 0x300;
-    if( mayBeImg24B ) {
-      k = (col % 3) << 8U;
-      maps[0].set(clip((static_cast<uint8_t>(c4 >> 16U)) + c - (c4 >> 24U)) | k);
-    } else {
-      maps[0].set(clip(c * 2 - d) | k);
-    }
-    maps[1].set(clip(c + N - buf(rLength[0] + 1)) | k);
-    maps[2].set(clip(N + NN - NNN));
-    maps[3].set(clip(N * 2 - NN));
-    maps[4].set(clip(N * 3 - NN * 3 + NNN));
-    iMap[0].setDirect(N + NN - NNN);
-    iMap[1].setDirect(N * 2 - NN);
-    iMap[2].setDirect(N * 3 - NN * 3 + NNN);
+    if (!isText) {
+      int k = 0x300;
+      if (mayBeImg24B) {
+        k = (col % 3) << 8U;
+        maps[0].set(clip((static_cast<uint8_t>(c4 >> 16U)) + c - (c4 >> 24U)) | k);
+      }
+      else {
+        maps[0].set(clip(c * 2 - d) | k);
+      }
+      maps[1].set(clip(c + N - buf(rLength[0] + 1)) | k);
+      maps[2].set(clip(N + NN - NNN));
+      maps[3].set(clip(N * 2 - NN));
+      maps[4].set(clip(N * 3 - NN * 3 + NNN));
+      iMap[0].setDirect(N + NN - NNN);
+      iMap[1].setDirect(N * 2 - NN);
+      iMap[2].setDirect(N * 3 - NN * 3 + NNN);
 
-    sMap[3].set(pos & 255U); // mozilla
+      INJECT_SHARED_blockPos
+      sMap[3].set(blockPos & 255U); // mozilla
+    }
 
     // update last context positions
     cPos4[c] = cPos3[c];
@@ -215,25 +223,32 @@ void RecordModel::mix(Mixer &m) {
   iCtx[nIndContexts - 1] += y;
   iCtx[nIndContexts - 1] = ctx;
   maps[5].set(ctx);
+  maps[5].mix(m);
 
   sMap[0].set(ctx);
   sMap[1].set(iCtx[nIndContexts - 1]());
   sMap[2].set((ctx << 8U) | WxNW);
+  sMap[0].mix(m);
+  sMap[1].mix(m);
+  sMap[2].mix(m);
 
   cm.mix(m);
   cn.mix(m);
   co.mix(m);
   cp.mix(m);
-  for( int i = 0; i < nSM; i++ ) {
-    maps[i].mix(m);
+  
+  if (!isText) {
+    maps[0].mix(m);
+    maps[1].mix(m);
+    maps[2].mix(m);
+    maps[3].mix(m);
+    maps[4].mix(m);
+    iMap[0].mix(m);
+    iMap[1].mix(m);
+    iMap[2].mix(m);
+    sMap[3].mix(m);
   }
-  for( int i = 0; i < nIM; i++ ) {
-    iMap[i].mix(m);
-  }
-  for( int i = 0; i < nSSM; i++ ) {
-    sMap[i].mix(m);
-  }
-
+  
   m.set(static_cast<uint32_t>(rLength[0] > 2) * ((bpos << 7U) | mxCtx), 1024);
   m.set(((N ^ B) >> 4U) | (x << 4U), 512);
   m.set(((shared->State.Text.characterGroup) << 5U) | x, 11 * 32);

@@ -1,11 +1,13 @@
-#ifndef PAQ8PX_RLE_HPP
-#define PAQ8PX_RLE_HPP
+#pragma once
 
 #include "Filter.hpp"
 #include "../VLI.hpp"
 
 class RleFilter : Filter {
 private:
+
+    int scanLineSize = 0;
+
     enum class RleState {
         BASE, LITERAL, RUN, LITERAL_RUN
     } state = RleState::BASE;
@@ -55,13 +57,18 @@ private:
     }
 
 public:
-    void encode(File *in, File *out, uint64_t size, int info, int &headerSize) override {
+
+    void setScanLineSize(int scanLineSize) {
+      this->scanLineSize = scanLineSize; // Run-length Packets should never encode pixels from more than one scan line (important for "decode")
+   }
+
+    void encode(File *in, File *out, uint64_t size, int /*info*/, int& headerSize) override {
       uint8_t b = 0;
       uint8_t c = in->getchar();
       int i = 1;
-      int maxBlockSize = info & 0xFFFFFFU;
-      out->putVLI(maxBlockSize);
-      headerSize = VLICost(maxBlockSize);
+      out->putVLI(scanLineSize);
+      headerSize = VLICost(scanLineSize);
+
       while( i < static_cast<int>(size)) {
         b = in->getchar(), i++;
         if( c == 0x80 ) {
@@ -86,10 +93,10 @@ public:
       uint8_t inBuffer[0x10000] = {0};
       uint8_t outBuffer[0x10200] = {0};
       uint64_t pos = 0;
-      int maxBlockSize = static_cast<int>(in->getVLI());
+      scanLineSize = static_cast<int>(in->getVLI());
 
       do {
-        uint64_t remaining = in->blockRead(&inBuffer[0], maxBlockSize);
+        uint64_t remaining = in->blockRead(&inBuffer[0], scanLineSize);
         auto *inPtr = (uint8_t *) inBuffer;
         auto *outPtr = (uint8_t *) outBuffer;
         uint8_t *lastLiteral = nullptr;
@@ -135,5 +142,3 @@ public:
       return pos;
     }
 };
-
-#endif //PAQ8PX_RLE_HPP

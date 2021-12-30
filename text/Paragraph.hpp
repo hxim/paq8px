@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_PARAGRAPH_HPP
-#define PAQ8PX_PARAGRAPH_HPP
+#pragma once
 
 #include "Sentence.hpp"
 #include <cstdint>
@@ -10,5 +9,3 @@ public:
     uint32_t typeCount[Sentence::Types::Count];
     uint32_t typeMask;
 };
-
-#endif //PAQ8PX_PARAGRAPH_HPP

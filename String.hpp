@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_STRING_HPP
-#define PAQ8PX_STRING_HPP
+#pragma once
 
 #include "Array.hpp"
 
@@ -33,5 +32,3 @@ public:
     [[nodiscard]] auto findLast(char c) const -> int;
     explicit String(const char *s = "");
 };
-
-#endif //PAQ8PX_STRING_HPP

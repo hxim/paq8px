@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_GIF_HPP
-#define PAQ8PX_GIF_HPP
+#pragma once
 
 #include "../Array.hpp"
 #include "Filter.hpp"
@@ -268,6 +267,3 @@ static auto decodeGif(File *in, uint64_t size, File *out, FMode mode, uint64_t &
   }
   return outsize + 1;
 }
-
-
-#endif //PAQ8PX_GIF_HPP

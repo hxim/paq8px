@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CHARTMODEL_HPP
-#define PAQ8PX_CHARTMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../Shared.hpp"
@@ -24,5 +23,3 @@ public:
     explicit ChartModel(const Shared* const sh, const uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_CHARTMODEL_HPP

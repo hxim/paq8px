@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_INDIRECTMAP_HPP
-#define PAQ8PX_INDIRECTMAP_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include "Hash.hpp"
@@ -37,5 +36,3 @@ public:
     void setScale(int Scale);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_INDIRECTMAP_HPP

@@ -1,14 +1,11 @@
-#ifndef PAQ8PX_TRANSFORMOPTIONS_HPP
-#define PAQ8PX_TRANSFORMOPTIONS_HPP
+#pragma once
 
 struct TransformOptions
 {
   bool skipRgb = false;
-  bool useZlibBrute = false;
+  bool useBruteForceDeflateDetection = false;
   TransformOptions(const Shared * const shared) {
-    skipRgb = (shared->options & OPTION_SKIPRGB) != 0u;
-    useZlibBrute = (shared->options & OPTION_BRUTE) != 0;
+    skipRgb = shared->GetOptionSkipRGB();
+    useBruteForceDeflateDetection = shared->GetOptionBruteforceDeflateDetection();
   }
 };
-
-#endif

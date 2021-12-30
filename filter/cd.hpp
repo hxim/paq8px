@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CD_HPP
-#define PAQ8PX_CD_HPP
+#pragma once
 
 #include "Filter.hpp"
 #include "ecc.hpp"
@@ -190,5 +189,3 @@ public:
       return nextBlockPos;
     }
 };
-
-#endif //PAQ8PX_CD_HPP

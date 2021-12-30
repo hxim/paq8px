@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CONTEXTMAP_HPP
-#define PAQ8PX_CONTEXTMAP_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include "Bucket16.hpp"
@@ -116,5 +115,3 @@ public:
     void update() override;
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_CONTEXTMAP_HPP

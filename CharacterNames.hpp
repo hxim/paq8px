@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CHARACTERNAMES_HPP
-#define PAQ8PX_CHARACTERNAMES_HPP
+#pragma once
 
 #define TAB 0x09
 #define NEW_LINE 0x0A
@@ -8,5 +7,3 @@
 #define QUOTE 0x22
 #define APOSTROPHE 0x27
 #define GRAVE_ACCENT 0x60
-
-#endif //PAQ8PX_CHARACTERNAMES_HPP

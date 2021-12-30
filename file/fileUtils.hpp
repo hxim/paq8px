@@ -76,7 +76,7 @@ class Utf8Str {
 #endif
 
 #ifdef WINDOWS
-#define STAT _stat
+#define STAT __stat64
 #else
 #define STAT stat
 #endif
@@ -109,7 +109,7 @@ static auto openFile(const char *filename, const int mode) -> FILE * {
  */
 static auto statPath(const char *path, struct STAT &status) -> bool {
 #ifdef WINDOWS
-  return _wstat(WcharStr(path).wchar_str, &status);
+  return _wstat64(WcharStr(path).wchar_str, &status);
 #else
   return stat(path, &status) != 0;
 #endif

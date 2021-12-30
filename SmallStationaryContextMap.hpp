@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SMALLSTATIONARYCONTEXTMAP_HPP
-#define PAQ8PX_SMALLSTATIONARYCONTEXTMAP_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include "Mixer.hpp"
@@ -44,5 +43,3 @@ public:
     void update() override;
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_SMALLSTATIONARYCONTEXTMAP_HPP

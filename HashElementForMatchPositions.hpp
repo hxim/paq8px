@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_HASHELEMENTFORMATCHPOSITIONS_HPP
-#define PAQ8PX_HASHELEMENTFORMATCHPOSITIONS_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ struct HashElementForMatchPositions { // sizeof(HashElementForMatchPositions) = 
     matchPositions[0] = pos;
   }
 };
-
-#endif //PAQ8PX_HASHELEMENTFORMATCHPOSITIONS_HPP

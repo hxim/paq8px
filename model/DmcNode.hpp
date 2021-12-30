@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DMCNODE_HPP
-#define PAQ8PX_DMCNODE_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -23,5 +22,3 @@ public:
     [[nodiscard]] auto getNx1() const -> uint32_t;
     void setNx1(uint32_t nx1);
 };
-
-#endif //PAQ8PX_DMCNODE_HPP

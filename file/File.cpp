@@ -21,7 +21,7 @@ auto File::getVLI() -> uint64_t {
   uint8_t b = 0;
   do {
     b = getchar();
-    i |= uint64_t((b & 0x7FU) << k);
+    i |= uint64_t(b & 0x7FU) << k;
     k += 7;
   } while((b >> 7U) > 0 );
   return i;

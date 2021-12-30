@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SIMDLSTMMODEL_HPP
-#define PAQ8PX_SIMDLSTMMODEL_HPP
+#pragma once
 
 #include "LstmModel.hpp"
 #include "Lstm.hpp"
@@ -35,7 +34,7 @@ public:
     modelType(LSTM::Model::Type::Default), pModelType(LSTM::Model::Type::Default),
     pBlockType(BlockType::Count)
   {
-    if ((this->shared->options & OPTION_LSTM_TRAINING) > 0u) {
+    if (this->shared->GetOptionTrainLSTM()) {
       repo[LSTM::Model::Type::Default] = std::unique_ptr<LSTM::Model>(new LSTM::Model(shape)); // std::make_unique requires C++14
       lstm.SaveModel(*repo[LSTM::Model::Type::Default]);
       repo[LSTM::Model::Type::English] = std::unique_ptr<LSTM::Model>(new LSTM::Model(shape));
@@ -59,7 +58,7 @@ public:
       memcpy(&this->probs[0], &output[0], (1 << Bits) * sizeof(float));
       this->top = (1 << Bits) - 1;
       this->bot = 0;
-      if (((this->shared->options & OPTION_LSTM_TRAINING) > 0u) && (this->shared->State.blockPos == 0u)) {
+      if ((this->shared->GetOptionTrainLSTM()) && (this->shared->State.blockPos == 0u)) {
         BlockType const blockType = static_cast<BlockType>(this->shared->State.blockType);
         if (blockType != pBlockType) {
           switch (blockType) {
@@ -87,7 +86,7 @@ public:
 
     this->mid = (this->bot + this->top)>>1;
     float prediction, num, denom;
-    if (simd == SIMD_AVX2) {
+    if (simd == SIMDType::SIMD_AVX2) {
       num = sum256_ps(&this->probs[this->mid + 1], this->top - this->mid, 0.f);
       denom = sum256_ps(&this->probs[this->bot], this->mid + 1 - this->bot, num);
     }
@@ -114,9 +113,9 @@ public:
     m.promote(stretch(p)/2);
     m.add(stretch(p));
     m.add((p - 2048) >> 2);
-    int const pr1 = this->apm1.p(p, (c0 << 8) | (this->shared->State.misses & 0xFF), 0xFF);
-    int const pr2 = this->apm2.p(p, (bpos << 8) | this->expected, 0xFF);
-    int const pr3 = this->apm3.p(pr2, ctx, 0xFF);
+    int const pr1 = this->apm1.p(p, (c0 << 8) | (this->shared->State.misses & 0xFF));
+    int const pr2 = this->apm2.p(p, (bpos << 8) | this->expected);
+    int const pr3 = this->apm3.p(pr2, ctx);
     m.add(stretch(pr1) >> 1);
     m.add(stretch(pr2) >> 1);
     m.add(stretch(pr3) >> 1);
@@ -124,5 +123,3 @@ public:
     m.set(static_cast<std::uint32_t>(lstm.epoch) << 3 | bpos, 100 * 8);
   }
 };
-
-#endif //PAQ8PX_SIMDLSTMMODEL_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_RECORDMODEL_HPP
-#define PAQ8PX_RECORDMODEL_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include "../ContextMap.hpp"
@@ -8,7 +7,7 @@
 #include "../RingBuffer.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../StationaryMap.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 
 /**
  * Model 2-d data with fixed record length. Also order 1-2 models that include the distance to the last match.
@@ -50,5 +49,3 @@ public:
     void setParam(uint32_t fixedRecordLenght);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_RECORDMODEL_HPP

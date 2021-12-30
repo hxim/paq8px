@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LINEARPREDICTIONMODEL_HPP
-#define PAQ8PX_LINEARPREDICTIONMODEL_HPP
+#pragma once
 
 #include "../OLS.hpp"
 #include "../SmallStationaryContextMap.hpp"
@@ -23,5 +22,3 @@ public:
     LinearPredictionModel(const Shared* const sh);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_LINEARPREDICTIONMODEL_HPP

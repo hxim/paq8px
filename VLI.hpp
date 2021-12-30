@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_VLI
-#define PAQ8PX_VLI
+#pragma once
 
 #include <cstdint>
 
@@ -11,5 +10,3 @@ static auto VLICost(uint64_t n) -> int {
   }
   return cost;
 }
-
-#endif

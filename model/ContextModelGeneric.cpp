@@ -9,10 +9,9 @@ private:
   Mixer* m;
 
 public:
-  ContextModelGeneric(Shared* const sh, Models* const models) : shared(sh), models(models) {
-    MixerFactory mf{};
-    m = mf.createMixer (
-      sh,
+  ContextModelGeneric(Shared* const sh, Models* const models, const MixerFactory* const mf) : shared(sh), models(models) {
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    m = mf->createMixer(
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + ChartModel::MIXERINPUTS +
@@ -20,15 +19,15 @@ public:
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
       LinearPredictionModel::MIXERINPUTS + ExeModel::MIXERINPUTS +
-      LstmModel<>::MIXERINPUTS
+      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + NormalModel::MIXERCONTEXTS_POST + SparseMatchModel::MIXERCONTEXTS +
       SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + ChartModel::MIXERCONTEXTS +
       RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
       DmcForest::MIXERCONTEXTS + NestModel::MIXERCONTEXTS + XMLModel::MIXERCONTEXTS +
-      LinearPredictionModel::MIXERCONTEXTS + ExeModel::MIXERCONTEXTS + 
-      LstmModel<>::MIXERCONTEXTS
+      LinearPredictionModel::MIXERCONTEXTS + ExeModel::MIXERCONTEXTS +
+      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + NormalModel::MIXERCONTEXTSETS_POST + SparseMatchModel::MIXERCONTEXTSETS +
       SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + ChartModel::MIXERCONTEXTSETS +
@@ -36,11 +35,12 @@ public:
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
       DmcForest::MIXERCONTEXTSETS + NestModel::MIXERCONTEXTSETS + XMLModel::MIXERCONTEXTSETS +
       LinearPredictionModel::MIXERCONTEXTSETS + ExeModel::MIXERCONTEXTSETS + 
-      LstmModel<>::MIXERCONTEXTSETS
+      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      ,
+      (useLSTM ? 1 : 0)
     );
     m->setScaleFactor(980, 90);
   }
-
 
   int p() {
 
@@ -53,7 +53,8 @@ public:
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
 
-    if ((shared->options & OPTION_LSTM) != 0u) {
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    if (useLSTM) {
       LstmModel<>& lstmModel = models->lstmModel();
       lstmModel.mix(*m);
     }

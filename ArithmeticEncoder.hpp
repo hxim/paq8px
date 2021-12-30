@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_ARITHMETICENCODER_HPP
-#define PAQ8PX_ARITHMETICENCODER_HPP
+#pragma once
 
 #include "file/FileDisk.hpp"
 
@@ -23,5 +22,3 @@ private:
   void bit_write(int bit);
   void bit_write_with_pending(const int bit);
 };
-
-#endif //PAQ8PX_ARITHMETICENCODER_HPP

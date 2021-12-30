@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CLZ_HPP
-#define PAQ8PX_CLZ_HPP
+#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -36,5 +35,3 @@ static inline uint32_t clz(uint32_t x) {
   return 32u - popcnt(x);
 }
 #endif
-
-#endif //PAQ8PX_CLZ_HPP

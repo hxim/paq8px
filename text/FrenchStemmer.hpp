@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FRENCHSTEMMER_HPP
-#define PAQ8PX_FRENCHSTEMMER_HPP
+#pragma once
 
 #include "French.hpp"
 #include "Language.hpp"
@@ -70,5 +69,3 @@ public:
     auto isVowel(char c) -> bool final;
     auto stem(Word *w) -> bool override;
 };
-
-#endif //PAQ8PX_FRENCHSTEMMER_HPP

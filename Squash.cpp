@@ -1,6 +1,7 @@
 #include "Squash.hpp"
 #include <cassert>
-#include <tgmath.h>
+#include <cmath>
+#include <cstdint>
 
 
 class squash_table {
@@ -14,7 +15,7 @@ public:
      */
     if (d < -2047)return 1;
     if (d > 2047)return 4095;
-    float p = 1.0f / (1.0f + exp(-d / 256.0));
+    float p = 1.0f / (1.0f + exp(-d / 256.0f));
     p *= 4096.0;
     uint32_t pi = (uint32_t)round(p);
     if (pi > 4095)pi = 4095;

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LANGUAGE_HPP
-#define PAQ8PX_LANGUAGE_HPP
+#pragma once
 
 #include "Word.hpp"
 
@@ -15,5 +14,3 @@ public:
     virtual ~Language() = default;
     virtual auto isAbbreviation(Word *w) -> bool = 0;
 };
-
-#endif //PAQ8PX_LANGUAGE_HPP

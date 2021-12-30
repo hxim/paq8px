@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_BUCKET16_HPP
-#define PAQ8PX_BUCKET16_HPP
+#pragma once
 
 #include <cstdint>
 #include <cstring>
@@ -144,5 +143,3 @@ public:
     return &elements[0].value;
   }
 };
-
-#endif //PAQ8PX_BUCKET16_HPP

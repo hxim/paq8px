@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_IMAGE1BITMODEL_HPP
-#define PAQ8PX_IMAGE1BITMODEL_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include "../Mixer.hpp"
@@ -29,5 +28,3 @@ public:
     void setParam(int info0);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_IMAGE1BITMODEL_HPP

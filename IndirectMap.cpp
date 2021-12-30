@@ -9,7 +9,6 @@ IndirectMap::IndirectMap(const Shared* const sh, const int bitsOfContext, const 
   assert(bitsOfContext + inputBits <= 24);
   cp = nullptr;
   setDirect(0);
-  sm.setLimit(limit);
 }
 
 void IndirectMap::setDirect(const uint32_t ctx) {

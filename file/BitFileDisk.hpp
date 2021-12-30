@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_BITFILEDISK_HPP
-#define PAQ8PX_BITFILEDISK_HPP
+#pragma once
 
 #include "FileDisk.hpp"
 
@@ -42,5 +41,3 @@ public:
     return code;
   }
 };
-
-#endif //PAQ8PX_BITFILEDISK_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_TEXTPARSERSTATEINFO_HPP
-#define PAQ8PX_TEXTPARSERSTATEINFO_HPP
+#pragma once
 
 #include "../Array.hpp"
 #include <cstdint>
@@ -53,5 +52,3 @@ public:
     bool isLargeText() const;
     bool isSmallText() const;
 };
-
-#endif //PAQ8PX_TEXTPARSERSTATEINFO_HPP

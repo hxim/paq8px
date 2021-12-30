@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_GERMANSTEMMER_HPP
-#define PAQ8PX_GERMANSTEMMER_HPP
+#pragma once
 
 #include "German.hpp"
 #include "Language.hpp"
@@ -38,5 +37,3 @@ public:
     auto isVowel(char c) -> bool final;
     auto stem(Word *w) -> bool override;
 };
-
-#endif //PAQ8PX_GERMANSTEMMER_HPP

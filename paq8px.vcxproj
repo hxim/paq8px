@@ -246,6 +246,7 @@
     <ClCompile Include="APMPost.cpp" />
     <ClCompile Include="ArithmeticEncoder.cpp" />
     <ClCompile Include="BitCount.cpp" />
+    <ClCompile Include="Block.cpp" />
     <ClCompile Include="BlockType.cpp" />
     <ClCompile Include="Clz.hpp" />
     <ClCompile Include="ContextMap.cpp" />
@@ -270,11 +271,13 @@
     <ClCompile Include="model\Audio16BitModel.cpp" />
     <ClCompile Include="model\Audio8BitModel.cpp" />
     <ClCompile Include="model\AudioModel.cpp" />
+    <ClCompile Include="model\BlockModel.cpp" />
     <ClCompile Include="model\CharGroupModel.cpp" />
     <ClCompile Include="model\ChartModel.cpp" />
     <ClCompile Include="model\ContextModel.cpp" />
     <ClCompile Include="model\ContextModelAudio16.cpp" />
     <ClCompile Include="model\ContextModelAudio8.cpp" />
+    <ClCompile Include="model\ContextModelBlock.cpp" />
     <ClCompile Include="model\ContextModelDec.cpp" />
     <ClCompile Include="model\ContextModelGeneric.cpp" />
     <ClCompile Include="model\ContextModelImage1.cpp" />
@@ -307,6 +310,8 @@
     <ClCompile Include="MTFList.cpp" />
     <ClCompile Include="paq8px.cpp" />
     <ClCompile Include="Predictor.cpp" />
+    <ClCompile Include="PredictorBlock.cpp" />
+    <ClCompile Include="PredictorMain.cpp" />
     <ClCompile Include="ProgramChecker.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Shared.cpp" />
@@ -314,6 +319,7 @@
     <ClCompile Include="Squash.cpp" />
     <ClCompile Include="SSE.cpp" />
     <ClCompile Include="StateMap.cpp" />
+    <ClCompile Include="StateMapPair.cpp" />
     <ClCompile Include="StateTable.cpp" />
     <ClCompile Include="StationaryMap.cpp" />
     <ClCompile Include="Stretch.cpp" />
@@ -339,6 +345,7 @@
     <ClInclude Include="Array.hpp" />
     <ClInclude Include="BH.hpp" />
     <ClInclude Include="BitCount.hpp" />
+    <ClInclude Include="Block.hpp" />
     <ClInclude Include="BlockType.hpp" />
     <ClInclude Include="Bucket16.hpp" />
     <ClInclude Include="CharacterNames.hpp" />
@@ -347,6 +354,7 @@
     <ClInclude Include="DivisionTable.hpp" />
     <ClInclude Include="DummyMixer.hpp" />
     <ClInclude Include="Encoder.hpp" />
+    <ClInclude Include="file\BitFileDisk.hpp" />
     <ClInclude Include="file\File.hpp" />
     <ClInclude Include="file\FileDisk.hpp" />
     <ClInclude Include="file\FileName.hpp" />
@@ -406,9 +414,11 @@
     <ClInclude Include="model\Audio16BitModel.hpp" />
     <ClInclude Include="model\Audio8BitModel.hpp" />
     <ClInclude Include="model\AudioModel.hpp" />
+    <ClInclude Include="model\BlockModel.hpp" />
     <ClInclude Include="model\CharGroupModel.hpp" />
     <ClInclude Include="model\ChartModel.hpp" />
     <ClInclude Include="model\ContextModel.hpp" />
+    <ClInclude Include="model\ContextModelBlock.hpp" />
     <ClInclude Include="model\DecAlphaModel.hpp" />
     <ClInclude Include="model\DmcForest.hpp" />
     <ClInclude Include="model\DmcModel.hpp" />
@@ -436,6 +446,8 @@
     <ClInclude Include="MTFList.hpp" />
     <ClInclude Include="OLS.hpp" />
     <ClInclude Include="Predictor.hpp" />
+    <ClInclude Include="PredictorBlock.hpp" />
+    <ClInclude Include="PredictorMain.hpp" />
     <ClInclude Include="ProgramChecker.hpp" />
     <ClInclude Include="Random.hpp" />
     <ClInclude Include="RingBuffer.hpp" />
@@ -447,6 +459,7 @@
     <ClInclude Include="Squash.hpp" />
     <ClInclude Include="SSE.hpp" />
     <ClInclude Include="StateMap.hpp" />
+    <ClInclude Include="StateMapPair.hpp" />
     <ClInclude Include="StateTable.hpp" />
     <ClInclude Include="StationaryMap.hpp" />
     <ClInclude Include="Stretch.hpp" />

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_WORD_HPP
-#define PAQ8PX_WORD_HPP
+#pragma once
 
 #include "../Hash.hpp"
 #include <cctype>
@@ -42,5 +41,3 @@ public:
     auto startsWith(const char *prefix) const -> bool;
     void print() const;
 };
-
-#endif //PAQ8PX_WORD_HPP

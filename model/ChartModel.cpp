@@ -113,7 +113,7 @@ void ChartModel::mix(Mixer& m) {
     uint32_t cnt = isText ? 1 : 3; // for text files we use the charGroup (1 context), for binary files we use the bit contexts (3 contexts)
     
     //update chart
-    for (int i = 0; i < cnt; i++) {
+    for (uint32_t i = 0; i < cnt; i++) {
       uint32_t e = a[i];
       chart[i << 3 | ((e >> 8) & 7)] = w0;
     }
@@ -121,7 +121,7 @@ void ChartModel::mix(Mixer& m) {
     cnt *= 8; // the chart has 8+8+8 slots: for text blocks we use only the first 8, for binary blocks we use all the 24 
 
     //chart model
-    for (int i = 0; i < cnt; i++) {
+    for (uint32_t i = 0; i < cnt; i++) {
       uint32_t s = i >> 3;   // selector: which bits are selected: s: 0 for text; 0..2 for binary
       uint32_t e = a[s];     // content: 3 selected bits from 3 consecutive bytes
       uint32_t k = chart[i]; // i: text: 0..7; binary: 0..23

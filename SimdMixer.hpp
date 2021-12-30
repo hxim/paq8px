@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SIMDMIXER_HPP
-#define PAQ8PX_SIMDMIXER_HPP
+#pragma once
 
 #include "UpdateBroadcaster.hpp"
 #include "BitCount.hpp"
@@ -13,27 +12,28 @@ private:
     SIMDMixer *mp; /**< points to a Mixer to combine results */
 
     /**
-     * Define padding requirements.
+     * Define SIMD padding requirements.
      */
     [[nodiscard]] constexpr inline auto simdWidth() const -> int {
-      if( simd == SIMD_AVX2 ) {
+      if( simd == SIMDType::SIMD_AVX2 ) {
         return 32 / sizeof(short); // 256 bit (32 byte) data size
       }
-      else if( simd == SIMD_SSE2 || simd == SIMD_SSSE3 || simd == SIMD_NEON ) {
+      else if( simd == SIMDType::SIMD_SSE2 || simd == SIMDType::SIMD_SSSE3 || simd == SIMDType::SIMD_NEON ) {
         return 16 / sizeof(short); // 128 bit (16 byte) data size
       }
-      else if( simd == SIMD_NONE ) {
+      else if( simd == SIMDType::SIMD_NONE ) {
         return 4 / sizeof(short); // Processes 2 shorts at once -> width is 4 bytes
       }
       assert(false);
     }
 
 public:
-    SIMDMixer(const Shared* const sh, const int n, const int m, const int s) : Mixer(sh, ((n + (simdWidth() - 1)) & -(simdWidth())), m, s) {
+    SIMDMixer(const Shared* const sh, const int n, const int m, const int s, const int promoted) : 
+      Mixer(sh, ((n + (simdWidth() - 1)) & -(simdWidth())), m, s) {
       assert((this->n & (simdWidth() - 1)) == 0);
       assert(this->m > 0);
       assert(this->s > 0);
-      mp = (s > 1) ? new SIMDMixer<simd>(sh, s + (((sh->options & OPTION_LSTM) != 0u) ? 1 : 0), 1, 1) : nullptr;
+      mp = (s > 1) ? new SIMDMixer<simd>(sh, s + promoted, 1, 1, 0) : nullptr;
     }
 
     ~SIMDMixer() override {
@@ -63,7 +63,8 @@ public:
         for( uint64_t i = 0; i < numContexts; ++i ) {
           if (cxt[i] != UINT32_MAX) {
             int err = target - pr[i];
-            if ((shared->options & OPTION_ADAPTIVE) != 0) {
+            const bool isAdaptiveLearningRate = shared->GetOptionAdaptiveLearningRate();
+            if (isAdaptiveLearningRate) {
               const uint32_t logErr = min(0xF, ilog2(abs(err)));
               info[i].sum -= square(info[i].data[1] >> 28);
               info[i].data[1] <<= 4;
@@ -95,16 +96,16 @@ public:
               if (rate > MIN_LEARNING_RATE_SN) rate--;
             }
             rates[i] = rate;
-            if (simd == SIMD_NONE) {
+            if (simd == SIMDType::SIMD_NONE) {
               trainSimdNone(&tx[0], &wx[cxt[i] * n], nx, (err * rate) >> 16);
             }
-            else if (simd == SIMD_SSE2 || simd == SIMD_SSSE3) {
+            else if (simd == SIMDType::SIMD_SSE2 || simd == SIMDType::SIMD_SSSE3) {
               trainSimdSse2(&tx[0], &wx[cxt[i] * n], nx, (err * rate) >> 16);
             }
-            else if (simd == SIMD_AVX2) {
+            else if (simd == SIMDType::SIMD_AVX2) {
               trainSimdAvx2(&tx[0], &wx[cxt[i] * n], nx, (err * rate) >> 16);
             }
-            else if (simd == SIMD_NEON) {
+            else if (simd == SIMDType::SIMD_NEON) {
               trainSimdNeon(&tx[0], &wx[cxt[i] * n], nx, (err * rate) >> 16);
             }
 
@@ -129,16 +130,16 @@ public:
         for( uint64_t i = 0; i < numContexts; ++i ) {
           int dp = 0;
           if (cxt[i] != UINT32_MAX) { // valid mixer context (not to skip)
-            if (simd == SIMD_NONE) {
+            if (simd == SIMDType::SIMD_NONE) {
               dp = dotProductSimdNone(&tx[0], &wx[cxt[i] * n], nx);
             }
-            else if (simd == SIMD_SSE2 || simd == SIMD_SSSE3) {
+            else if (simd == SIMDType::SIMD_SSE2 || simd == SIMDType::SIMD_SSSE3) {
               dp = dotProductSimdSse2(&tx[0], &wx[cxt[i] * n], nx);
             }
-            else if (simd == SIMD_AVX2) {
+            else if (simd == SIMDType::SIMD_AVX2) {
               dp = dotProductSimdAvx2(&tx[0], &wx[cxt[i] * n], nx);
             }
-            else if (simd == SIMD_NEON) {
+            else if (simd == SIMDType::SIMD_NEON) {
               dp = dotProductSimdNeon(&tx[0], &wx[cxt[i] * n], nx);
             }
             else {
@@ -159,16 +160,16 @@ public:
         return mp->p();
       } // s=1 context
       int dp;
-      if( simd == SIMD_NONE ) {
+      if( simd == SIMDType::SIMD_NONE ) {
         dp = dotProductSimdNone(&tx[0], &wx[cxt[0] * n], nx);
       }
-      else if( simd == SIMD_SSE2 || simd == SIMD_SSSE3 ) {
+      else if( simd == SIMDType::SIMD_SSE2 || simd == SIMDType::SIMD_SSSE3 ) {
         dp = dotProductSimdSse2(&tx[0], &wx[cxt[0] * n], nx);
       }
-      else if( simd == SIMD_AVX2 ) {
+      else if( simd == SIMDType::SIMD_AVX2 ) {
         dp = dotProductSimdAvx2(&tx[0], &wx[cxt[0] * n], nx);
       }
-      else if (simd == SIMD_NEON) {
+      else if (simd == SIMDType::SIMD_NEON) {
         dp = dotProductSimdNeon(&tx[0], &wx[cxt[0] * n], nx);
       }
       else {
@@ -178,5 +179,3 @@ public:
       return pr[0] = squash(dp);
     }
 };
-
-#endif //PAQ8PX_SIMDMIXER_HPP

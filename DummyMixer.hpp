@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DUMMYMIXER_HPP
-#define PAQ8PX_DUMMYMIXER_HPP
+#pragma once
 
 #include "UpdateBroadcaster.hpp"
 #include "Mixer.hpp"
@@ -16,5 +15,3 @@ public:
     void setScaleFactor(const int /*sf0*/, const int /*sf1*/) override {}
     void promote(int) override {}
 };
-
-#endif //PAQ8PX_DUMMYMIXER_HPP

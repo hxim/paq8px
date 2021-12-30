@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_WORDEMBEDDINGDICTIONARY_HPP
-#define PAQ8PX_WORDEMBEDDINGDICTIONARY_HPP
+#pragma once
 
 //turn it on if you'd like to see word embedding statistics
 //#define SHOW_WORDEMBEDDING_STATS
@@ -34,5 +33,3 @@ public:
     void getWordEmbedding(Word *w);
     void loadFromFile(const char *filename);
 };
-
-#endif //PAQ8PX_WORDEMBEDDINGDICTIONARY_HPP

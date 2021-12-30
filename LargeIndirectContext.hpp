@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LARGEINDIRECTCONTEXT_HPP
-#define PAQ8PX_LARGEINDIRECTCONTEXT_HPP
+#pragma once
 
 #include "Array.hpp"
 #include "Bucket16.hpp"
@@ -40,5 +39,3 @@ public:
     };
 
 };
-
-#endif //PAQ8PX_LARGEINDIRECTCONTEXT_HPP

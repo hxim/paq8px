@@ -1,8 +1,8 @@
-#ifndef PAQ8PX_COSINEDECAY_HPP
-#define PAQ8PX_COSINEDECAY_HPP
+#pragma once
 
 #include "IDecay.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
+
 #define _USE_MATH_DEFINES
 #include <cmath>
 
@@ -22,5 +22,3 @@ public:
 };
 
 #undef _USE_MATH_DEFINES
-
-#endif //PAQ8PX_COSINEDECAY_HPP

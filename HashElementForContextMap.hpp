@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_HASHELEMENTFORCONTEXTMAP_HPP
-#define PAQ8PX_HASHELEMENTFORCONTEXTMAP_HPP
+#pragma once
 
 #include <cstdint>
 #include "StateTable.hpp"
@@ -28,5 +27,3 @@ struct HashElementForContextMap { // sizeof(HashElemetForContextMap) = 7
     return StateTable::prio(bitState);
   }
 };
-
-#endif //PAQ8PX_HASHELEMENTFORCONTEXTMAP_HPP

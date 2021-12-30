@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SYSTEMDEFINES_HPP
-#define PAQ8PX_SYSTEMDEFINES_HPP
+#pragma once
 
 static_assert(sizeof(short) == 2, "sizeof(short)");
 static_assert(sizeof(int) == 4, "sizeof(int)");
@@ -76,9 +75,6 @@ static_assert(sizeof(int) == 4, "sizeof(int)");
 //FileType, FILE_TYPE_PIPE, FILE_TYPE_DISK,
 //uRetVal, DWORD, UINT, TRUE, MAX_PATH, CP_UTF8, etc.
 #endif
-
-
-#endif //PAQ8PX_SYSTEMDEFINES_HPP
 
 
 //////////////////// Cross-platform definitions /////////////////////////////////////

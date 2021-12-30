@@ -1,11 +1,9 @@
-#ifndef PAQ8PX_BLOCKTYPE_HPP
-#define PAQ8PX_BLOCKTYPE_HPP
+#pragma once
 
 #include <type_traits>
 
 enum class BlockType {
   DEFAULT = 0,
-  FILECONTAINER,
   JPEG,
   HDR,
   IMAGE1,
@@ -50,5 +48,3 @@ bool hasTransform(BlockType ft, int info);
 bool isPNG(BlockType ft);
 
 bool isTEXT(BlockType ft);
-
-#endif //PAQ8PX_BLOCKTYPE_HPP

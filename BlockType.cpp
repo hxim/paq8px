@@ -2,12 +2,12 @@
 #include "BlockType.hpp"
 
 bool hasRecursion(BlockType ft) {
-  return ft == BlockType::CD || ft == BlockType::ZLIB || ft == BlockType::BASE64 || ft == BlockType::GIF || ft == BlockType::RLE || ft == BlockType::LZW || ft == BlockType::FILECONTAINER;
+  return ft == BlockType::CD || ft == BlockType::ZLIB || ft == BlockType::BASE64 || ft == BlockType::GIF || ft == BlockType::RLE || ft == BlockType::LZW;
 }
 
 bool hasInfo(BlockType ft) {
   return ft == BlockType::IMAGE1 || ft == BlockType::IMAGE4 || ft == BlockType::IMAGE8 || ft == BlockType::IMAGE8GRAY || ft == BlockType::IMAGE24 || ft == BlockType::IMAGE32 || ft == BlockType::AUDIO ||
-    ft == BlockType::AUDIO_LE || ft == BlockType::PNG8 || ft == BlockType::PNG8GRAY || ft == BlockType::PNG24 || ft == BlockType::PNG32 || ft == BlockType::MRB || ft == BlockType::DBF;
+    ft == BlockType::AUDIO_LE || ft == BlockType::PNG8 || ft == BlockType::PNG8GRAY || ft == BlockType::PNG24 || ft == BlockType::PNG32 || ft == BlockType::MRB || ft == BlockType::DBF || ft == BlockType::EXE;
 }
 
 bool hasTransform(BlockType ft, int info) {

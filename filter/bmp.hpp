@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_BMP_HPP
-#define PAQ8PX_BMP_HPP
+#pragma once
 
 #include "Filter.hpp"
 #include "../file/File.hpp"
@@ -71,9 +70,9 @@ public:
       for( int i = 0; i < static_cast<int>(size / width); i++ ) {
         p = i * width;
         for( int j = 0; j < width / 3; j++ ) {
-          g = encoder->decompressByte();
-          r = encoder->decompressByte();
-          b = encoder->decompressByte();
+          g = encoder->decompressByte(&encoder->predictorMain);
+          r = encoder->decompressByte(&encoder->predictorMain);
+          b = encoder->decompressByte(&encoder->predictorMain);
           if( !skipRgb ) {
             r = g - r, b = g - b;
           }
@@ -110,9 +109,9 @@ public:
         }
         for( int j = 0; j < width % 3; j++ ) {
           if( fMode == FDECOMPRESS ) {
-            out->putChar(encoder->decompressByte());
+            out->putChar(encoder->decompressByte(&encoder->predictorMain));
           } else if( fMode == FCOMPARE ) {
-            if( encoder->decompressByte() != out->getchar() && (diffFound == 0U)) {
+            if( encoder->decompressByte(&encoder->predictorMain) != out->getchar() && (diffFound == 0U)) {
               diffFound = p + j + 1;
             }
           }
@@ -120,9 +119,9 @@ public:
       }
       for( int i = size % width; i > 0; i-- ) {
         if( fMode == FDECOMPRESS ) {
-          out->putChar(encoder->decompressByte());
+          out->putChar(encoder->decompressByte(&encoder->predictorMain));
         } else if( fMode == FCOMPARE ) {
-          if( encoder->decompressByte() != out->getchar() && (diffFound == 0u)) {
+          if( encoder->decompressByte(&encoder->predictorMain) != out->getchar() && (diffFound == 0u)) {
             diffFound = size - i;
             break;
           }
@@ -131,5 +130,3 @@ public:
       return size;
     }
 };
-
-#endif //PAQ8PX_BMP_HPP

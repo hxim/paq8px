@@ -1,8 +1,7 @@
-#ifndef PAQ8PX_ZLIB_HPP
-#define PAQ8PX_ZLIB_HPP
+#pragma once
 
 #include "Filters.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include <zlib.h>
 
 static auto parseZlibHeader(int header) -> int {
@@ -341,5 +340,3 @@ static auto decodeZlib(File *in, uint64_t size, File *out, FMode mode, uint64_t 
   deflateEnd(&recStrm);
   return recPos == len ? len : 0;
 }
-
-#endif //PAQ8PX_ZLIB_HPP

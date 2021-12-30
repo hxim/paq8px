@@ -1,11 +1,10 @@
-#ifndef PAQ8PX_LAYER_HPP
-#define PAQ8PX_LAYER_HPP
+#pragma once
 
 #include "SimdFunctions.hpp"
 #include "IOptimizer.hpp"
 #include "IActivation.hpp"
 #include "IDecay.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 
 template<SIMDType simd, class Optimizer, class Activation, class Decay, typename T>
 class Layer {
@@ -53,7 +52,7 @@ public:
     std::size_t const epoch)
   {
     for (std::size_t i = 0; i < num_cells; i++) {
-      if (simd == SIMD_AVX2)
+      if (simd == SIMDType::SIMD_AVX2)
         norm[epoch][i] = dot256_ps_fma3(&input[0], &weights[i][output_size], input.size(), weights[i][input_symbol]);
       else {
         float f = weights[i][input_symbol];
@@ -100,7 +99,7 @@ public:
 
     if (layer > 0) {
       for (std::size_t i = 0; i < num_cells; i++) {
-        if (simd == SIMD_AVX2)
+        if (simd == SIMDType::SIMD_AVX2)
           (*hidden_error)[i] += dot256_ps_fma3(&error[0], &transpose[num_cells + i][0], num_cells, 0.f);
         else {
           float f = 0.f;
@@ -112,7 +111,7 @@ public:
     }
     if (epoch > 0) {
       for (std::size_t i = 0; i < num_cells; i++) {
-        if (simd == SIMD_AVX2)
+        if (simd == SIMDType::SIMD_AVX2)
           (*stored_error)[i] += dot256_ps_fma3(&error[0], &transpose[i][0], num_cells, 0.f);
         else {
           float f = 0.f;
@@ -160,5 +159,3 @@ public:
     }
   }
 };
-
-#endif //PAQ8PX_LAYER_HPP

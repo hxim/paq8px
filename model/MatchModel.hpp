@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_MATCHMODEL_HPP
-#define PAQ8PX_MATCHMODEL_HPP
+#pragma once
 
 #include "../Shared.hpp"
 #include "../ContextMap2.hpp"
@@ -200,5 +199,3 @@ public:
     void update();
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_MATCHMODEL_HPP

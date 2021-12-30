@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_HASHELEMENTFORSTATIONARYMAP_HPP
-#define PAQ8PX_HASHELEMENTFORSTATIONARYMAP_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -13,5 +12,3 @@ struct HashElementForStationaryMap { // sizeof(HashElemetForStationaryMap) = 4
   }
 
 };
-
-#endif //PAQ8PX_HASHELEMENTFORSTATIONARYMAP_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_ENTRY_HPP
-#define PAQ8PX_ENTRY_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -12,5 +11,3 @@ struct Entry {
     uint32_t embedding;
 };
 #pragma pack(pop)
-
-#endif //PAQ8PX_ENTRY_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FRENCH_HPP
-#define PAQ8PX_FRENCH_HPP
+#pragma once
 
 #include "Language.hpp"
 #include "Word.hpp"
@@ -15,5 +14,3 @@ public:
     };
     auto isAbbreviation(Word *w) -> bool override;
 };
-
-#endif //PAQ8PX_FRENCH_HPP

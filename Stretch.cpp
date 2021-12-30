@@ -1,6 +1,7 @@
 #include "Stretch.hpp"
 #include <cassert>
-#include <tgmath.h>
+#include <cmath>
+#include <cstdint>
 
 class stretch_table {
 public:

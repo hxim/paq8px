@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SIMD_HPP
-#define PAQ8PX_SIMD_HPP
+#pragma once
 
 ///////////////////////// SIMD Vectorization detection //////////////////////////////////
 #if (!defined(__ARM_FEATURE_SIMD32) && !defined(__ARM_NEON))
@@ -116,5 +115,3 @@ static auto simdDetect() -> int {
   return 9;
 #endif
 }
-
-#endif //PAQ8PX_SIMD_HPP

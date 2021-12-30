@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_PROGRAMCHECKER_HPP
-#define PAQ8PX_PROGRAMCHECKER_HPP
+#pragma once
 
 #include <cassert>
 #include <chrono>
@@ -47,5 +46,3 @@ public:
     void print() const;
     ~ProgramChecker();
 };
-
-#endif //PAQ8PX_PROGRAMCHECKER_HPP

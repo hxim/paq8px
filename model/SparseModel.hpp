@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SPARSEMODEL_HPP
-#define PAQ8PX_SPARSEMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../Mixer.hpp"
@@ -27,5 +26,3 @@ public:
     explicit SparseModel(const Shared* const sh, uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_SPARSEMODEL_HPP

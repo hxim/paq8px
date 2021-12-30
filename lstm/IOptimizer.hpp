@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_IOPTIMIZER_HPP
-#define PAQ8PX_IOPTIMIZER_HPP
+#pragma once
 
 #include <cstdint>
 #include <valarray>
@@ -15,5 +14,3 @@ public:
     float const learning_rate,
     std::uint64_t const time_step) const = 0;
 };
-
-#endif //PAQ8PX_IOPTIMIZER_HPP

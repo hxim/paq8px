@@ -1,8 +1,7 @@
-#ifndef PAQ8PX_ADAM_HPP
-#define PAQ8PX_ADAM_HPP
+#pragma once
 
 #include "IOptimizer.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "../simd.hpp"
 #include <cmath>
 //#define USE_RSQRT
@@ -150,11 +149,9 @@ public:
     float const learning_rate,
     std::uint64_t const time_step) const
   {
-    if constexpr (simd == SIMD_AVX2)
+    if constexpr (simd == SIMDType::SIMD_AVX2)
       RunSimdAVX2(g, m, v, w, learning_rate, time_step);
     else
       RunSimdNone(g, m, v, w, learning_rate, time_step);
   }
 };
-
-#endif //PAQ8PX_ADAM_HPP

@@ -1,15 +1,14 @@
 #include "JpegModel.hpp"
 #include "../Stretch.hpp"
 
-JpegModel::JpegModel(Shared* const sh, const uint64_t size) : shared(sh), t(size),
+JpegModel::JpegModel(Shared* const sh, const MixerFactory* const mf, const uint64_t size) : shared(sh), t(size),
         MJPEGMap(sh, 21, 3, 128, 127), /* BitsOfContext, InputBits, Scale, Limit */
-        sm(sh, N, 256, 1023, StateMap::BitHistory), apm1(sh, 0x20000, 18), 
-        apm2(sh, 0x4000, 20), apm3(sh, 0x4000, 21), apm4(sh, 0x4000, 22), apm5(sh, 0x4000, 23), 
-        apm6(sh, 0x4000, 20), apm7(sh, 0x4000, 21), apm8(sh, 0x4000, 22), apm9(sh, 0x4000, 23), apm10(sh, 0x4000, 24),
-        apm11(sh, 0x8000, 22), apm12(sh, 0x8000, 22), apm13(sh, 0x8000, 22), apm14(sh, 0x8000, 22)
+        sm(sh, N, 256, 1023, StateMap::BitHistory), apm1(sh, 0x20000, 18, 1023), 
+        apm2(sh, 0x4000, 20, 1023), apm3(sh, 0x4000, 21, 1023), apm4(sh, 0x4000, 22, 1023), apm5(sh, 0x4000, 23, 1023),
+        apm6(sh, 0x4000, 20, 1023), apm7(sh, 0x4000, 21, 1023), apm8(sh, 0x4000, 22, 1023), apm9(sh, 0x4000, 23, 1023), apm10(sh, 0x4000, 24, 1023),
+        apm11(sh, 0x8000, 22, 1023), apm12(sh, 0x8000, 22, 1023), apm13(sh, 0x8000, 22, 1023), apm14(sh, 0x8000, 22, 1023)
 {
-  auto mf = new MixerFactory();
-  m1 = mf->createMixer(sh, N + 1 /*bias*/+ IndirectMap::MIXERINPUTS /*MJPEGMap*/, 1024 + 2 + 1024 + 1024, 4);
+  m1 = mf->createMixer(N + 1 /*bias*/+ IndirectMap::MIXERINPUTS /*MJPEGMap*/, 1024 + 2 + 1024 + 1024, 4 , 0);
   m1->setScaleFactor(1024, 128); // 2048, 256 for small images
 }
 
@@ -795,46 +794,46 @@ auto JpegModel::mix(Mixer &m) -> int {
   m.add(stretch(pr0) >> 1);
   m.add((pr0 - 2048) >> 3);
   
-  int pr1 = apm1.p(pr0, finalize64(hash(hc, coef), 17), 1023);
+  int pr1 = apm1.p(pr0, finalize64(hash(hc, coef), 17));
   m.add(stretch(pr1) >> 1);
   m.add((pr1 - 2048) >> 3);
   
   // chained apms
-  int pr2 = apm2.p(pr1, finalize64(hash(hc, abs(advPred[1]) / 12), 14), 1023);
+  int pr2 = apm2.p(pr1, finalize64(hash(hc, abs(advPred[1]) / 12), 14));
   m.add(stretch(pr2) >> 1);
-  int pr3 = apm3.p(pr2, finalize64(hash(hc, abs(advPred[0]) / 12), 14), 1023);
+  int pr3 = apm3.p(pr2, finalize64(hash(hc, abs(advPred[0]) / 12), 14));
   m.add(stretch(pr3) >> 1);
 
   // chained apms
-  int pr4 = apm4.p(pr1, finalize64(hash(hc, abs(advPred[2]) / 12), 14), 1023);
+  int pr4 = apm4.p(pr1, finalize64(hash(hc, abs(advPred[2]) / 12), 14));
   m.add(stretch(pr4) >> 1);
-  int pr5 = apm5.p(pr4, finalize64(hash(hc, abs(advPred[3]) / 12), 14), 1023);
+  int pr5 = apm5.p(pr4, finalize64(hash(hc, abs(advPred[3]) / 12), 14));
   m.add(stretch(pr5) >> 1);
 
   // chained apms
-  int pr6 = apm6.p(pr1, finalize64(hash(hc, abs(lcp[0]) / 12), 14), 1023);
+  int pr6 = apm6.p(pr1, finalize64(hash(hc, abs(lcp[0]) / 12), 14));
   m.add(stretch(pr6) >> 1);
-  int pr7 = apm7.p(pr6, finalize64(hash(hc, abs(lcp[1]) / 12), 14), 1023);
+  int pr7 = apm7.p(pr6, finalize64(hash(hc, abs(lcp[1]) / 12), 14));
   m.add(stretch(pr7) >> 1);
-  int pr8 = apm8.p(pr7, finalize64(hash(hc, abs(lcp[2]) / 12), 14), 1023);
+  int pr8 = apm8.p(pr7, finalize64(hash(hc, abs(lcp[2]) / 12), 14));
   m.add(stretch(pr8) >> 1);
-  int pr9 = apm9.p(pr8, finalize64(hash(hc, abs(lcp[3]) / 12), 14), 1023);
+  int pr9 = apm9.p(pr8, finalize64(hash(hc, abs(lcp[3]) / 12), 14));
   m.add(stretch(pr9) >> 1);
 
-  int pr10 = apm10.p(pr9, finalize64(hash(hc, abs(lcp[4]) / 12), 14), 1023);
+  int pr10 = apm10.p(pr9, finalize64(hash(hc, abs(lcp[4]) / 12), 14));
   m.add(stretch(pr10) >> 1);
     
   // individual apms
-  int pr11 = apm11.p(pr0, finalize64(hash(hc, abs(lcp[0]) / 12, abs(lcp[1]) / 12), 15), 1023);
+  int pr11 = apm11.p(pr0, finalize64(hash(hc, abs(lcp[0]) / 12, abs(lcp[1]) / 12), 15));
   m.add(stretch(pr11) >> 1);
 
-  int pr12 = apm12.p(pr0, finalize64(hash(hc, abs(advPred[0]) / 12, abs(advPred[1]) / 12), 15), 1023);
+  int pr12 = apm12.p(pr0, finalize64(hash(hc, abs(advPred[0]) / 12, abs(advPred[1]) / 12), 15));
   m.add(stretch(pr12) >> 1);
 
-  int pr13 = apm13.p(pr0, finalize64(hash(hc, abs(advPred[1]) / 12, abs(advPred[2]) / 12), 15), 1023);
+  int pr13 = apm13.p(pr0, finalize64(hash(hc, abs(advPred[1]) / 12, abs(advPred[2]) / 12), 15));
   m.add(stretch(pr13) >> 1);
 
-  int pr14 = apm14.p(pr0, finalize64(hash(hc, abs(advPred[2]) / 12, abs(advPred[3]) / 12), 15), 1023);
+  int pr14 = apm14.p(pr0, finalize64(hash(hc, abs(advPred[2]) / 12, abs(advPred[3]) / 12), 15));
   m.add(stretch(pr14) >> 1);
    
   m.set(1 + (static_cast<int>(zu + zv < 5) | (static_cast<int>(huffBits > 8) << 1U) | (static_cast<int>(firstCol) << 2U)), 1 + 8);

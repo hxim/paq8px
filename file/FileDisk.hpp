@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILEDISK_HPP
-#define PAQ8PX_FILEDISK_HPP
+#pragma once
 
 #include "File.hpp"
 #include "fileUtils.hpp"
@@ -40,5 +39,3 @@ public:
     auto curPos() -> uint64_t override;
     auto eof() -> bool override;
 };
-
-#endif //PAQ8PX_FILEDISK_HPP

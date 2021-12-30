@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_XMLMODEL_HPP
-#define PAQ8PX_XMLMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../Shared.hpp"
@@ -73,5 +72,3 @@ public:
     void update();
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_XMLMODEL_HPP

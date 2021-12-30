@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SENTENCE_HPP
-#define PAQ8PX_SENTENCE_HPP
+#pragma once
 
 #include "Segment.hpp"
 
@@ -17,5 +16,3 @@ public:
     Word lastNoun;
     Word lastCapital;
 };
-
-#endif //PAQ8PX_SENTENCE_HPP

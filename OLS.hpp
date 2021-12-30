@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_OLS_HPP
-#define PAQ8PX_OLS_HPP
+#pragma once
 
 #include <cmath>
 #include <cstdint>
@@ -114,7 +113,7 @@ public:
 
     inline void update(const T val) {
 #ifdef __GNUC__
-      if( shared->chosenSimd == SIMD_AVX2 ) {
+      if( shared->chosenSimd == SIMDType::SIMD_AVX2 ) {
         updateAVX2(val);
       } else
 #endif
@@ -182,5 +181,3 @@ public:
       }
     }
 };
-
-#endif //PAQ8PX_OLS_HPP

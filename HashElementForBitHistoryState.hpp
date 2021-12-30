@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_HASHELEMENTFORBITHISTORYSTATE_HPP
-#define PAQ8PX_HASHELEMENTFORBITHISTORYSTATE_HPP
+#pragma once
 
 #include <cstdint>
 #include "StateTable.hpp"
@@ -12,5 +11,3 @@ struct HashElementForBitHistoryState { // sizeof(HashElemetForContextMap) = 1
     return StateTable::prio(bitState);
   }
 };
-
-#endif //PAQ8PX_HASHELEMENTFORBITHISTORYSTATE_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_STEMMER_HPP
-#define PAQ8PX_STEMMER_HPP
+#pragma once
 
 #include "Word.hpp"
 
@@ -13,5 +12,3 @@ public:
     virtual auto isVowel(char c) -> bool = 0;
     virtual auto stem(Word *w) -> bool = 0;
 };
-
-#endif //PAQ8PX_STEMMER_HPP

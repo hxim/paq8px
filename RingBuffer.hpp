@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_RINGBUFFER_HPP
-#define PAQ8PX_RINGBUFFER_HPP
+#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -89,5 +88,3 @@ public:
       }
     }
 };
-
-#endif //PAQ8PX_RINGBUFFER_HPP

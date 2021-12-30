@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_APMPOST_HPP
-#define PAQ8PX_APMPOST_HPP
+#pragma once
 
 #include <cstdint>
 #include <cassert>
@@ -37,5 +36,3 @@ public:
       }
     }
 };
-
-#endif //PAQ8PX_APMPOST_HPP

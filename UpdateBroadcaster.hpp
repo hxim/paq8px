@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_UPDATEBROADCASTER_HPP
-#define PAQ8PX_UPDATEBROADCASTER_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include <cassert>
@@ -27,5 +26,3 @@ private:
      */
     auto operator=(UpdateBroadcaster const & /*unused*/) -> UpdateBroadcaster & { return *this; }
 };
-
-#endif //PAQ8PX_UPDATEBROADCASTER_HPP

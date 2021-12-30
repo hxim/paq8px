@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_STRETCH_HPP
-#define PAQ8PX_STRETCH_HPP
+#pragma once
 
 #include <cinttypes>
 
@@ -9,6 +8,3 @@
  */
 
 int stretch(int p);
-
-
-#endif //PAQ8PX_STRETCH_HPP

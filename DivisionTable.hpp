@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DIVISIONTABLE_HPP
-#define PAQ8PX_DIVISIONTABLE_HPP
+#pragma once
 
 /**
  * This class provides a static (common) 1024-element lookup table for integer division
@@ -16,5 +15,3 @@ public:
       return dt;
     }
 };
-
-#endif //PAQ8PX_DIVISIONTABLE_HPP

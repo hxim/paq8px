@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CHARGROUPMODEL_HPP
-#define PAQ8PX_CHARGROUPMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../Shared.hpp"
@@ -33,5 +32,3 @@ public:
     explicit CharGroupModel(const Shared* const sh, uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_CHARGROUPMODEL_HPP

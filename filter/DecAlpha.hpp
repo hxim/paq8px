@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_DECALPHA_HPP
-#define PAQ8PX_DECALPHA_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -24,5 +23,3 @@ public:
   static void Shuffle(std::uint32_t& instruction);
   static void Unshuffle(std::uint32_t& instruction);
 };
-
-#endif //PAQ8PX_DECALPHA_HPP

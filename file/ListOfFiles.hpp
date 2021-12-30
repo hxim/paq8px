@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_LISTOFFILES_HPP
-#define PAQ8PX_LISTOFFILES_HPP
+#pragma once
 
 #include "FileName.hpp"
 #include "../Array.hpp"
@@ -24,5 +23,3 @@ public:
     auto getfilename(int i) -> const char *;
     auto getString() -> String *;
 };
-
-#endif //PAQ8PX_LISTOFFILES_HPP

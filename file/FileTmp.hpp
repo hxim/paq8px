@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILETMP_HPP
-#define PAQ8PX_FILETMP_HPP
+#pragma once
 
 #include "FileDisk.hpp"
 #include "File.hpp"
@@ -52,5 +51,3 @@ public:
     auto curPos() -> uint64_t override;
     auto eof() -> bool override;
 };
-
-#endif //PAQ8PX_FILETMP_HPP

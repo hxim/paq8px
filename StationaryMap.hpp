@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_STATIONARYMAP_HPP
-#define PAQ8PX_STATIONARYMAP_HPP
+#pragma once
 
 #include "IPredictor.hpp"
 #include "Hash.hpp"
@@ -47,5 +46,3 @@ public:
     void update() override;
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_STATIONARYMAP_HPP

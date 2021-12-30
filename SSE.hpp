@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SSE_HPP
-#define PAQ8PX_SSE_HPP
+#pragma once
 
 #include "APM.hpp"
 #include "APM1.hpp"
@@ -53,7 +52,5 @@ private:
 
 public:
     explicit SSE(Shared* const sh);
-    int p(int pr_orig);
+    uint32_t p(uint32_t pr_orig);
 };
-
-#endif //PAQ8PX_SSE_HPP

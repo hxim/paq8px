@@ -224,15 +224,17 @@ void Info::lineModelPredict() {
   uint64_t i = 1024;
   const auto isNewline = c == NEW_LINE || c == 0;
   INJECT_SHARED_pos
-  if( isNewline ) { // a new line has just started (or: zero in asciiz or in binary data)
-    nl2 = nl1;
-    nl1 = pos;
-    firstChar = -1;
-    firstWord = 0;
-    line0 = 0;
-  }
+    if( isNewline ) { // a new line has just started (or: zero in asciiz or in binary data)
+      nl4 = nl3;
+      nl3 = nl2;
+      nl2 = nl1;
+      nl1 = pos;
+      firstChar = -1;
+      firstWord = 0;
+      line0 = 0;
+    }
   INJECT_SHARED_c1
-  line0 = combine64(line0, c1);
+    line0 = combine64(line0, c1);
   cm.set(RH, hash(++i, line0));
 
   uint32_t col = pos - nl1;
@@ -240,24 +242,27 @@ void Info::lineModelPredict() {
     firstChar = groups & 0xffU;
   }
   INJECT_SHARED_buf
-  const uint8_t cAbove = buf[nl2 + col];
-  const uint8_t pCAbove = buf[nl2 + col - 1];
+  const uint8_t cAbove = buf[nl2 + col]; // N
+  const uint8_t pCAbove = buf[nl2 + col - 1]; // NW
 
   const auto isNewLineStart = col == 0 && nl2 > 0;
   const auto isPrevCharMatchAbove = c1 == pCAbove && col != 0 && nl2 != 0;
   const uint32_t aboveCtx = cAbove << 1U | uint32_t(isPrevCharMatchAbove);
-  if( isNewLineStart ) {
+  if (isNewLineStart) {
     lineMatch = 0; //first char not yet known = nothing to match
-  } else if( lineMatch >= 0 && isPrevCharMatchAbove ) {
+  }
+  else if(lineMatch >= 0 && isPrevCharMatchAbove) {
     lineMatch = min(lineMatch + 1, maxLineMatch); //match continues
-  } else {
+  }
+  else {
     lineMatch = -1; //match does not continue
   }
 
   // context: matches with the previous line
   if( lineMatch >= 0 ) {
     cm.set(RH, hash(++i, cAbove, lineMatch));
-  } else {
+  }
+  else {
     cm.skip(RH);
     i++;
   }
@@ -266,6 +271,34 @@ void Info::lineModelPredict() {
   const int lineLength = nl1 - nl2;
   cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, groups & 0xffu)); // english_mc
   cm.set(RH, hash(++i, nl1 - nl2, col, aboveCtx, c1)); // english_mc
+
+
+  //modeling columns in fixed-length lines (such as in silesia/nci)
+  INJECT_SHARED_blockType
+  const bool isTextBlock = isTEXT(blockType);
+  if (isTextBlock) {
+    const uint8_t cAbove2 = buf[nl3 + col]; // NN
+    const uint8_t cAbove3 = buf[nl4 + col]; // NNN
+    const int lineLength2 = nl2 - nl3;
+    const int lineLength3 = nl3 - nl4;
+    if (lineLength >= 2 && cAbove == cAbove2 && lineLength == lineLength2) {
+      cm.set(RH, hash(++i, cAbove));
+    }
+    else {
+      cm.skip(RH);
+      i++;
+    }
+    if (lineLength == lineLength2 && lineLength == lineLength3 && lineLength >= 2) {
+      cm.set(RH, hash(++i, cAbove, cAbove2, cAbove3));
+    }
+    else {
+      cm.skip(RH);
+      i++;
+    }
+  }
+  else {
+    i += 2;
+  }
 
   // modeling line content per column (and NEW_LINE in some extent)
   cm.set(RH, hash(++i, static_cast<uint64_t>(col << 1 | (c1 == SPACE)))); // after space vs after other char in this column // world95.txt
@@ -295,8 +328,8 @@ void Info::predict(const uint8_t pdfTextParserState) {
   const uint32_t lastPos = checksums[w] != chk ? 0 : wordPositions[w]; //last occurrence (position) of a whole word or number
   const uint32_t dist = lastPos == 0 ? 0 : min(llog(pos - lastPos + 120) >> 4, 20);
   const bool word0MayEndNow = lastPos != 0;
-  const uint8_t mayBeCaps = static_cast<const uint8_t>(uint8_t(c4 >> 8U) >= 'A' && uint8_t(c4 >> 8U) <= 'Z' && uint8_t(c4) >= 'A' &&
-                                                       uint8_t(c4) <= 'Z');
+  const uint8_t mayBeCaps = static_cast<const uint8_t>(uint8_t(c4 >> 8U) >= 'A' && uint8_t(c4 >> 8U) <= 'Z' && uint8_t(c4) >= 'A' && uint8_t(c4) <= 'Z');
+                                                       
   INJECT_SHARED_blockType
   const bool isTextBlock = isTEXT(blockType);
 
@@ -304,7 +337,7 @@ void Info::predict(const uint8_t pdfTextParserState) {
   uint64_t i = 0;
 
   cm.set(RH, hash(++i, text0)); //strong
-
+  
   // expressions in normal text
   if( isTextBlock ) {
     cm.set(RH, hash(++i, expr0, expr1, expr2, expr3, expr4));

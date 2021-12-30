@@ -1,7 +1,6 @@
-#ifndef PAQ8PX_CACHE_HPP
-#define PAQ8PX_CACHE_HPP
+#pragma once
 
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "../Array.hpp"
 
 template<class T, const uint32_t Size>
@@ -33,5 +32,3 @@ public:
       return Index++, *((T *) memset(&data[Index & (Size - 1)], 0, sizeof(T)));
     }
 };
-
-#endif //PAQ8PX_CACHE_HPP

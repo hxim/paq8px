@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_SPARSEBITMODEL_HPP
-#define PAQ8PX_SPARSEBITMODEL_HPP
+#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../Shared.hpp"
@@ -22,5 +21,3 @@ public:
     explicit SparseBitModel(const Shared* const sh, uint64_t size);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_SPARSEBITMODEL_HPP

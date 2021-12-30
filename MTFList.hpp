@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_MTFLIST_HPP
-#define PAQ8PX_MTFLIST_HPP
+#pragma once
 
 #include "Array.hpp"
 #include <cstdint>
@@ -18,5 +17,3 @@ public:
     auto getNext() -> int;
     void moveToFront(int i);
 };
-
-#endif //PAQ8PX_MTFLIST_HPP

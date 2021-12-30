@@ -1,10 +1,12 @@
 #include "TextModel.hpp"
 #include "../CharacterNames.hpp"
 
-TextModel::TextModel(Shared* const sh, const uint64_t size) : shared(sh),
+TextModel::TextModel(Shared* const sh, const uint64_t size) : 
+    shared(sh),
     cm(sh, size, nCM2, 64),
     stemmers(Language::Count - 1), languages(Language::Count - 1), dictionaries(Language::Count - 1), wordPos(0x10000),
-    State(Parse::Unknown), pState(State), Lang {{0}, {0}, Language::Unknown, Language::Unknown}, Info {}, parseCtx(0) {
+    State(Parse::Unknown), pState(State), Lang {{0}, {0}, Language::Unknown, Language::Unknown}, Info {}, parseCtx(0)
+{
   stemmers[Language::English - 1] = new EnglishStemmer();
   stemmers[Language::French - 1] = new FrenchStemmer();
   stemmers[Language::German - 1] = new GermanStemmer();
@@ -155,7 +157,7 @@ void TextModel::update() {
             }
           }
         }
-        if(((shared->options & OPTION_TRAINTXT) != 0u) && Lang.id != Language::Unknown && dictionaries[Lang.id - 1] == nullptr ) {
+        if((shared->GetOptionTrainTxt()) && Lang.id != Language::Unknown && dictionaries[Lang.id - 1] == nullptr ) {
           switch( Lang.id ) {
             case Language::English: {
               dictionaries[Lang.id - 1] = new WordEmbeddingDictionary();
@@ -169,7 +171,7 @@ void TextModel::update() {
       pWord = &words[Lang.id](1);
       cWord = &words[Lang.id](0);
       cWord->reset();
-      if((shared->options & OPTION_TRAINTXT) != 0u ) {
+      if(shared->GetOptionTrainTxt()) {
         if( Lang.id != Language::Unknown && dictionaries[Lang.id - 1] != nullptr ) {
           dictionaries[Lang.id - 1]->getWordEmbedding(pWord);
         }

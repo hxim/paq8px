@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_ENDIANNESS16B_HPP
-#define PAQ8PX_ENDIANNESS16B_HPP
+#pragma once
 
 #include "../Encoder.hpp"
 #include "../file/File.hpp"
@@ -21,8 +20,8 @@ public:
 
     auto decode(File * /*in*/, File *out, FMode fMode, uint64_t size, uint64_t &diffFound) -> uint64_t override {
       for( uint64_t i = 0, l = size >> 1U; i < l; i++ ) {
-        uint8_t b1 = encoder->decompressByte();
-        uint8_t b2 = encoder->decompressByte();
+        uint8_t b1 = encoder->decompressByte(&encoder->predictorMain);
+        uint8_t b2 = encoder->decompressByte(&encoder->predictorMain);
         if( fMode == FDECOMPRESS ) {
           out->putChar(b2);
           out->putChar(b1);
@@ -40,9 +39,9 @@ public:
       }
       if((diffFound == 0u) && (size & 1U) > 0 ) {
         if( fMode == FDECOMPRESS ) {
-          out->putChar(encoder->decompressByte());
+          out->putChar(encoder->decompressByte(&encoder->predictorMain));
         } else if( fMode == FCOMPARE ) {
-          if( out->getchar() != encoder->decompressByte()) {
+          if( out->getchar() != encoder->decompressByte(&encoder->predictorMain)) {
             diffFound = size - 1;
           }
         }
@@ -51,5 +50,3 @@ public:
     }
 
 };
-
-#endif //PAQ8PX_ENDIANNESS16B_HPP

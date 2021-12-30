@@ -1,11 +1,10 @@
-#ifndef PAQ8PX_LSTMLAYER_HPP
-#define PAQ8PX_LSTMLAYER_HPP
+#pragma once
 
 #include "Layer.hpp"
 #include "Adam.hpp"
 #include "Activations.hpp"
 #include "PolynomialDecay.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "../SIMDType.hpp"
 #include <vector>
 
@@ -142,5 +141,3 @@ public:
     return weights;
   }
 };
-
-#endif //PAQ8PX_LSTMLAYER_HPP

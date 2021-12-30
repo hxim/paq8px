@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILTERS_HPP
-#define PAQ8PX_FILTERS_HPP
+#pragma once
 
 #include "../Array.hpp"
 #include "../BlockType.hpp"
@@ -170,6 +169,13 @@ struct DetectionInfo {
     DataStart = HeaderStart + HeaderLength;
     DataLength = data_len;
     DataInfo = recordLength;
+  }
+
+  bool SizeVerificationPassed(uint64_t nextBlockStart) {
+    bool passed = DataStart + DataLength <= nextBlockStart;
+    if (!passed)
+      memset(this, 0, sizeof(DetectionInfo));
+    return passed;
   }
 };
 
@@ -510,7 +516,7 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
 
     int zh = parseZlibHeader(((int)zBuf[(zBufPos - 32) & 0xFF]) * 256 + (int)zBuf[(zBufPos - 32 + 1) & 0xFF]);
     bool valid = (i >= 31 && zh != -1);
-    if (!valid && transformOptions->useZlibBrute && i >= 255) {
+    if (!valid && transformOptions->useBruteForceDeflateDetection && i >= 255) {
       uint8_t bType = (zBuf[zBufPos] & 7) >> 1;
       if ((valid = (bType == 1 || bType == 2))) {
         int maximum = 0, used = 0, offset = zBufPos;
@@ -834,7 +840,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
             if ((wavch == 1 || wavch == 2) && (wavbps == 8 || wavbps == 16) && wavD > 0 && wavSize >= wavD + 36 &&
                 wavD % ((wavbps / 8) * wavch) == 0) {
               detectionInfo.AUD_DET(start, (wavbps == 8) ? BlockType::AUDIO : BlockType::AUDIO_LE, wavi - 3, 44 + wavm, wavD, wavch + wavbps / 4 - 3);
-              return detectionInfo;
+              if (detectionInfo.SizeVerificationPassed(start + n))
+                return detectionInfo;
             }
             wavi = 0;
           }
@@ -861,7 +868,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
               int wavD = bswap(buf0); // size of data section
               if ((wavD != 0) && (wavD + 12) == wavLen) {
                 detectionInfo.AUD_DET(start, BlockType::AUDIO_LE, wavi - 3, (12 + wavlist - (wavi - 3) + 1) & ~1, wavD, 1 + 16 / 4 - 3 /*mono, 16-bit*/);
-                return detectionInfo;
+                if (detectionInfo.SizeVerificationPassed(start + n))
+                  return detectionInfo;
               }
               wavi = 0; // fail; bad format
             }
@@ -897,7 +905,10 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
       }
       else if (p == 42 + aiffs) { // Sound Data Chunk
         detectionInfo.AUD_DET(start, BlockType::AUDIO, aiff - 3, 54 + aiffs, buf0 - 8, aiffm);
-        return detectionInfo;
+        if (detectionInfo.SizeVerificationPassed(start + n))
+          return detectionInfo;
+        else
+          aiff = 0; //fail
       }
     }
 
@@ -923,7 +934,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
       }
       if (numPat < 65) {
         detectionInfo.AUD_DET(start, BlockType::AUDIO, i - 1083, 1084 + numPat * 256 * chn, len, 4 /*mono, 8-bit*/);
-        return detectionInfo;
+        if (detectionInfo.SizeVerificationPassed(start + n))
+          return detectionInfo;
       }
       in->setpos(savedPos);
     }
@@ -972,7 +984,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
         }
         if ((ok != 0) && samStart < (1 << 16)) {
           detectionInfo.AUD_DET(start, BlockType::AUDIO, s3mi - 31, samStart, samEnd - samStart, 0 /*mono, 8-bit*/);
-          return detectionInfo;
+          if (detectionInfo.SizeVerificationPassed(start + n))
+            return detectionInfo;
         }
         s3mi = 0;
         in->setpos(savedPos);
@@ -1031,7 +1044,10 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
           else {
             // success
             detectionInfo.MRB_DET(start, BlockType::MRB, mrbPackingMethod, BitCount, mrb - 1, mrbsize - mrbcsize, mrbcsize, mrbw, mrbh);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
+            else
+              mrb = 0;
           }
         }
         else {
@@ -1157,7 +1173,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
           } // too small - not worthy to use the image models
           else {
             detectionInfo.IMG_DET(start, blockType, headerPos, headerSize, widthInBytes, bmpy);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
         }
         bmpi = dibi = 0;
@@ -1280,20 +1297,25 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
         {
           if ((pgmw != 0) && (pgmh != 0) && (pgmc == 0) && pgmn == 4) {
             detectionInfo.IMG_DET(start, BlockType::IMAGE1, pgm - 2, pgmdata - pgm + 3, (pgmw + 7) / 8, pgmh);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if ((pgmw != 0) && (pgmh != 0) && (pgmc != 0) && (pgmn == 5 || (pgmn == 7 && pamd == 1 && pamatr == 6))) {
             detectionInfo.IMG_DET(start, BlockType::IMAGE8GRAY, pgm - 2, pgmdata - pgm + 3, pgmw, pgmh);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if ((pgmw != 0) && (pgmh != 0) && (pgmc != 0) && (pgmn == 6 || (pgmn == 7 && pamd == 3 && pamatr == 6))) {
             detectionInfo.IMG_DET(start, BlockType::IMAGE24, pgm - 2, pgmdata - pgm + 3, pgmw * 3, pgmh);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if ((pgmw != 0) && (pgmh != 0) && (pgmc != 0) && (pgmn == 7 && pamd == 4 && pamatr == 6)) {
             detectionInfo.IMG_DET(start, BlockType::IMAGE32, pgm - 2, pgmdata - pgm + 3, pgmw * 4, pgmh);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
+          pgm = 0; //fail
         }
         else if ((--pgmDataSize) == 0) {
           pgm = 0; // all data was probably text in pixel area: fail
@@ -1326,7 +1348,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
         int z = buf0 & 0xffff;
         if ((rgbx != 0) && (rgby != 0) && (z == 1 || z == 3 || z == 4)) {
           detectionInfo.IMG_DET(start, BlockType::IMAGE8, rgbi - 1, 512, rgbx, rgby * z);
-          return detectionInfo;
+          if (detectionInfo.SizeVerificationPassed(start + n))
+            return detectionInfo;
         }
         rgbi = 0;
       }
@@ -1447,15 +1470,18 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
             in->setpos(start + tga + 11 + tgaid);
             bool isGray = isGrayscalePalette(in);
             detectionInfo.IMG_DET(start, isGray ? BlockType::IMAGE8GRAY : BlockType::IMAGE8, tga - 7, 18 + tgaid + 256 * tgamap, tgax, tgay);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if (tgat == 2) {
             detectionInfo.IMG_DET(start, (tgaz == 24) ? BlockType::IMAGE24 : BlockType::IMAGE32, tga - 7, 18 + tgaid, tgax * (tgaz >> 3), tgay);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if (tgat == 3) {
             detectionInfo.IMG_DET(start, BlockType::IMAGE8GRAY, tga - 7, 18 + tgaid, tgax, tgay);
-            return detectionInfo;
+            if (detectionInfo.SizeVerificationPassed(start + n))
+              return detectionInfo;
           }
           if (tgat == 9 || tgat == 11) {
             int info;
@@ -1506,7 +1532,8 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
               detectionInfo.DataInfo = info;
               detectionInfo.DataStart = start + tga + 11 + tgaid + 256 * tgamap;
               detectionInfo.DataLength = detd;
-              return detectionInfo;
+              if (detectionInfo.SizeVerificationPassed(start + n))
+                return detectionInfo;
             }
             in->setpos(savedPos);
           }
@@ -1753,19 +1780,15 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
 
 //////////////////// Compress, Decompress ////////////////////////////
 
-static void directEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int info = -1) {
+static void directEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int info) {
   // TODO: Large file support
-  en.encodeBlockType(type);
-  en.encodeBlockSize(len);
-  if( info != -1 ) {
-    en.encodeInfo(info);
-  }
+  Block::EncodeBlockHeader(&en, type, len, info);
   fprintf(stderr, "Compressing... ");
   for( uint64_t j = 0; j < len; ++j ) {
     if((j & 0xfff) == 0 ) {
       en.printStatus(j, len);
     }
-    en.compressByte(in->getchar());
+    en.compressByte(&en.predictorMain, in->getchar());
   }
   fprintf(stderr, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
 }
@@ -1790,6 +1813,7 @@ decodeFunc(BlockType type, Encoder &en, File *tmp, uint64_t len, int info, File 
     return e->decode(tmp, out, mode, len, diffFound);
   } else if( type == BlockType::EXE ) {
     auto e = new ExeFilter();
+    e->setBegin(info); 
     e->setEncoder(en);
     return e->decode(tmp, out, mode, len, diffFound);
   } else if( type == BlockType::TEXT_EOL ) {
@@ -1811,6 +1835,7 @@ decodeFunc(BlockType type, Encoder &en, File *tmp, uint64_t len, int info, File 
     return decodeGif(tmp, len, out, mode, diffFound);
   } else if( type == BlockType::RLE ) {
     auto r = new RleFilter();
+    //r->setScanLineSize(info & 0xFFFFFFU); //now it self-encodes this info, but eventually we need to pass it
     return r->decode(tmp, out, mode, len, diffFound);
   } else if( type == BlockType::MRB) {
     uint8_t packingMethod = (info >> 24) & 3; //0..3
@@ -1844,6 +1869,7 @@ static auto encodeFunc(BlockType type, File *in, File *tmp, uint64_t len, int in
     e->encode(in, tmp, len, info, hdrsize);
   } else if( type == BlockType::EXE ) {
     auto e = new ExeFilter();
+    e->setBegin(info); 
     e->encode(in, tmp, len, info, hdrsize);
   } else if( type == BlockType::TEXT_EOL ) {
     auto e = new EolFilter();
@@ -1863,6 +1889,7 @@ static auto encodeFunc(BlockType type, File *in, File *tmp, uint64_t len, int in
     return encodeGif(in, tmp, len, hdrsize) != 0 ? 0 : 1;
   } else if( type == BlockType::RLE ) {
     auto r = new RleFilter();
+    r->setScanLineSize(info & 0xFFFFFFU);
     r->encode(in, tmp, len, info, hdrsize);
   } else if (type == BlockType::MRB) {
     const uint8_t packingMethod = (info >> 24) & 3; //0..3
@@ -1910,7 +1937,7 @@ transformEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int in
     if( diffFound > 0 || tmp.getchar() != EOF) {
       printf("Transform fails at %" PRIu64 ", skipping...\n", diffFound - 1);
       in->setpos(begin);
-      directEncodeBlock(BlockType::DEFAULT, in, len, en);
+      directEncodeBlock(BlockType::DEFAULT, in, len, en, -1);
     } else {
       tmp.setpos(0);
       if (type == BlockType::MRB) {
@@ -1921,8 +1948,8 @@ transformEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int in
       }
       if( hasRecursion(type)) {
         // TODO(epsteina): Large file support
-        en.encodeBlockType(type);
-        en.encodeBlockSize(tmpSize);
+        Block::EncodeBlockType(&en, type);
+        Block::EncodeBlockSize(&en, tmpSize);
         BlockType type2 = static_cast<BlockType>((info >> 24) & 0xFF);
         if( type2 != BlockType::DEFAULT ) {
           String blstrSub0;
@@ -1937,7 +1964,7 @@ transformEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int in
           printf(" %-11s | ->  exploded     |%10d bytes [%d - %d]\n", blstrSub0.c_str(), int(tmpSize), 0, int(tmpSize - 1));
           if (headerSize != 0) {
             printf(" %-11s | --> added header |%10d bytes [%d - %d]\n", blstrSub1.c_str(), headerSize, 0, headerSize - 1);
-            directEncodeBlock(BlockType::HDR, &tmp, headerSize, en);
+            directEncodeBlock(BlockType::HDR, &tmp, headerSize, en, -1);
             printf(" %-11s | --> data         |%10d bytes [%d - %d]\n", blstrSub2.c_str(), int(tmpSize - headerSize), headerSize,
               int(tmpSize - 1));
           }
@@ -1946,12 +1973,12 @@ transformEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &en, int in
           compressRecursive(&tmp, tmpSize, en, blstr, recursionLevel + 1, p1, p2, transformOptions);
         }
       } else {
-        directEncodeBlock(type, &tmp, tmpSize, en, hasInfo(type) ? info : -1);
+        directEncodeBlock(type, &tmp, tmpSize, en, info);
       }
     }
     tmp.close();
   } else {
-    directEncodeBlock(type, in, len, en, hasInfo(type) ? info : -1);
+    directEncodeBlock(type, in, len, en, info);
   }
 }
 
@@ -1965,7 +1992,7 @@ static void composeSubBlockStringToPrint(String& blstr, String& blstrSub, int bl
 }
 
 static void printBlock(const uint64_t begin, const uint64_t len, const BlockType type, const int blockInfo, String& blstrSub, const int recursionLevel) {
-  static const char* typeNames[28] = { "default", "filecontainer", "jpeg", "hdr", "1b-image", "4b-image", "8b-image", "8b-img-grayscale",
+  static const char* typeNames[27] = { "default", "jpeg", "hdr", "1b-image", "4b-image", "8b-image", "8b-img-grayscale",
                                       "24b-image", "32b-image", "audio", "audio - le", "x86/64", "cd", "zlib", "base64", "gif", "png-8b",
                                       "png-8b-grayscale", "png-24b", "png-32b", "text", "text - eol", "rle", "lzw", "dec-alpha", "mrb", "dBase"};
   static const char* audioTypes[4] = { "8b-mono", "8b-stereo", "16b-mono", "16b-stereo" };
@@ -2062,19 +2089,32 @@ static void compressfile(const Shared* const shared, const char *filename, uint6
   assert(en.getMode() == COMPRESS);
   assert(filename && filename[0]);
 
-  en.encodeBlockType(BlockType::FILECONTAINER);
   uint64_t start = en.size();
-  en.encodeBlockSize(fileSize);
+  Block::EncodeBlockSize(&en, fileSize);
 
   FileDisk in;
   in.open(filename, true);
   printf("Block segmentation:\n");
   String blstr;
   TransformOptions transformOptions(shared);
-  compressRecursive(&in, fileSize, en, blstr, 0, 0.0F, 1.0F, &transformOptions);
+  if (shared->GetOptionSkipBlockDetection()) {
+    // skip blockType detection + compress
+    const uint64_t begin = 0;
+    int blNum = 0;
+    const int info = -1;
+    const int recursionLevel = 0;
+    float p1 = 0.0f;
+    float p2 = 1.0f;
+    const float pscale = fileSize != 0 ? (p2 - p1) / fileSize : 0;
+    compressBlock(&in, begin, fileSize, /*ref: */ blNum, BlockType::DEFAULT, info, en, /*in: */ blstr, recursionLevel, /*ref: */ p1, /*ref: */ p2, pscale, &transformOptions);
+  }
+  else {
+    // detect block types + compress
+    compressRecursive(&in, fileSize, en, blstr, 0, 0.0F, 1.0F, &transformOptions);
+  }
   in.close();
 
-  if((shared->options & OPTION_MULTIPLE_FILE_MODE) != 0u ) { //multiple file mode
+  if (shared->GetOptionMultipleFileMode()) { //multiple file mode
     if( verbose ) {
       printf("File size to encode   : 4\n"); //This string must be long enough. "Compressing ..." is still on screen, we need to overwrite it.
     }
@@ -2084,21 +2124,17 @@ static void compressfile(const Shared* const shared, const char *filename, uint6
 }
 
 static auto decompressRecursive(File *out, uint64_t blockSize, Encoder &en, FMode mode, int recursionLevel, TransformOptions *transformOptions) -> uint64_t {
-  BlockType type;
-  uint64_t len = 0;
   uint64_t i = 0;
   uint64_t diffFound = 0;
-  int info = 0;
   while( i < blockSize ) {
-    type = en.decodeBlockType();
-    len = en.decodeBlockSize();
-    if( hasInfo(type)) {
-      info = en.decodeInfo();
-    }
+
+    uint64_t len = Block::DecodeBlockHeader(&en);
+    BlockType type = en.predictorMain.shared->State.blockType;
+    int info = en.predictorMain.shared->State.blockInfo;
     if (type == BlockType::MRB) {
       FileTmp tmp;
       for (uint64_t j = 0; j < len; ++j)
-          tmp.putChar(en.decompressByte());
+          tmp.putChar(en.decompressByte(&en.predictorMain));
       if (mode != FDISCARD) {
         tmp.setpos(0);
         len = decodeFunc(type, en, &tmp, len, info, out, mode, diffFound, transformOptions);
@@ -2124,14 +2160,14 @@ static auto decompressRecursive(File *out, uint64_t blockSize, Encoder &en, FMod
           en.printStatus();
         }
         if( mode == FDECOMPRESS ) {
-          out->putChar(en.decompressByte());
+          out->putChar(en.decompressByte(&en.predictorMain));
         } else if( mode == FCOMPARE ) {
-          if( en.decompressByte() != out->getchar() && (diffFound == 0u)) {
+          if( en.decompressByte(&en.predictorMain) != out->getchar() && (diffFound == 0u)) {
             mode = FDISCARD;
             diffFound = i + j + 1;
           }
         } else {
-          en.decompressByte();
+          en.decompressByte(&en.predictorMain);
         }
       }
     }
@@ -2141,15 +2177,11 @@ static auto decompressRecursive(File *out, uint64_t blockSize, Encoder &en, FMod
 }
 
 // Decompress or compare a file
-static void decompressFile(const Shared *const shared, const char *filename, FMode fMode, Encoder &en) {
+static void decompressFile(const Shared* const shared, const char* filename, FMode fMode, Encoder& en) {
   assert(en.getMode() == DECOMPRESS);
   assert(filename && filename[0]);
 
-  BlockType blocktype = en.decodeBlockType();
-  if( blocktype != BlockType::FILECONTAINER ) {
-    quit("Bad archive.");
-  }
-  uint64_t fileSize = en.decodeBlockSize();
+  uint64_t fileSize = Block::DecodeBlockSize(&en);
 
   FileDisk f;
   if( fMode == FCOMPARE ) {
@@ -2175,5 +2207,3 @@ static void decompressFile(const Shared *const shared, const char *filename, FMo
   }
   f.close();
 }
-
-#endif //PAQ8PX_FILTERS_HPP

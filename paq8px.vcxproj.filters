@@ -297,6 +297,24 @@
     <ClCompile Include="BlockType.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Block.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="model\BlockModel.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\ContextModelBlock.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictorBlock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictorMain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="StateMapPair.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -623,9 +641,6 @@
     <ClInclude Include="ArithmeticEncoder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VLI.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\Activations.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
@@ -721,6 +736,30 @@
     </ClInclude>
     <ClInclude Include="model\IContextModel.hpp">
       <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="Block.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\BlockModel.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\ContextModelBlock.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="file\BitFileDisk.hpp">
+      <Filter>file</Filter>
+    </ClInclude>
+    <ClInclude Include="PredictorBlock.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PredictorMain.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="VLI.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="StateMapPair.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

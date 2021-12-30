@@ -1,11 +1,10 @@
-#ifndef PAQ8PX_AUDIO16BITMODEL_HPP
-#define PAQ8PX_AUDIO16BITMODEL_HPP
+#pragma once
 
 #include "AudioModel.hpp"
 #include "../LMS.hpp"
 #include "../OLS.hpp"
 #include "../SmallStationaryContextMap.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include "../BitCount.hpp"
 #include <cstdint>
 
@@ -47,5 +46,3 @@ public:
     void setParam(int info);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_AUDIO16BITMODEL_HPP

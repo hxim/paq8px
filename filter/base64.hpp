@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_BASE64_HPP
-#define PAQ8PX_BASE64_HPP
+#pragma once
 
 #include "Filter.hpp"
 #include "../Array.hpp"
@@ -191,5 +190,3 @@ public:
       return outLen;
     }
 };
-
-#endif //PAQ8PX_BASE64_HPP

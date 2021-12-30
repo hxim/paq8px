@@ -9,37 +9,35 @@ private:
   Mixer* m;
 
 public:
-  ContextModelJpeg(Shared* const sh, Models* const models) : shared(sh), models(models) {
-    MixerFactory mf{};
-    m = mf.createMixer (
-      sh,
+  ContextModelJpeg(Shared* const sh, Models* const models, const MixerFactory* const mf) : shared(sh), models(models) {
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    m = mf->createMixer (
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + 
       JpegModel::MIXERINPUTS +
       SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
-      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
-      DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
+      TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + 
       LinearPredictionModel::MIXERINPUTS +
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERINPUTS : 0)
+      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       JpegModel::MIXERCONTEXTS +
       SparseMatchModel::MIXERCONTEXTS +
       SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
-      TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
-      DmcForest::MIXERCONTEXTS + NestModel::MIXERCONTEXTS + XMLModel::MIXERCONTEXTS +
+      TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + 
       LinearPredictionModel::MIXERCONTEXTS +
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       JpegModel::MIXERCONTEXTSETS +
       SparseMatchModel::MIXERCONTEXTSETS +
       SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + RecordModel::MIXERCONTEXTSETS + CharGroupModel::MIXERCONTEXTSETS +
-      TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
-      DmcForest::MIXERCONTEXTSETS + NestModel::MIXERCONTEXTSETS + XMLModel::MIXERCONTEXTSETS +
+      TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS +
       LinearPredictionModel::MIXERCONTEXTSETS +
-      (((shared->options & OPTION_LSTM) != 0u) ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      ,
+      useLSTM ? 1 : 0
     );
   }
 
@@ -53,8 +51,9 @@ public:
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
 
-    //?
-    if ((shared->options & OPTION_LSTM) != 0u) {
+    //is it useful?
+    const bool useLSTM = shared->GetOptionUseLSTM();
+    if (useLSTM) {
       LstmModel<>& lstmModel = models->lstmModel();
       lstmModel.mix(*m);
     }
@@ -79,18 +78,10 @@ public:
       textModel.mix(*m);
       WordModel& wordModel = models->wordModel();
       wordModel.mix(*m);
-      IndirectModel& indirectModel = models->indirectModel();
-      indirectModel.mix(*m);
-      DmcForest& dmcForest = models->dmcForest();
-      dmcForest.mix(*m);
-      NestModel& nestModel = models->nestModel();
-      nestModel.mix(*m);
-      XMLModel& xmlModel = models->xmlModel();
-      xmlModel.mix(*m);
       LinearPredictionModel& linearPredictionModel = models->linearPredictionModel();
       linearPredictionModel.mix(*m);
-
-      m->setScaleFactor(940, 80);
+      
+      m->setScaleFactor(1200, 120); 
       return m->p();
     }
 

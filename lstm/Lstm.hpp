@@ -1,12 +1,11 @@
-#ifndef PAQ8PX_LSTM_HPP
-#define PAQ8PX_LSTM_HPP
+#pragma once
 
 #include "LstmLayer.hpp"
 #include "SimdFunctions.hpp"
 #include "Posit.hpp"
 #include "../file/BitFileDisk.hpp"
 #include "../file/OpenFromMyFolder.hpp"
-#include "../utils.hpp"
+#include "../Utils.hpp"
 #include <vector>
 #include <array>
 #include <unordered_map>
@@ -255,7 +254,7 @@ public:
         memcpy(&layer_input[epoch][i + 1][num_cells + input_size], &hidden[i * num_cells], num_cells * sizeof(float));
       }
     }
-    if (simd == SIMD_AVX2)
+    if (simd == SIMDType::SIMD_AVX2)
       SoftMaxSimdAVX2();
     else
       SoftMaxSimdNone();
@@ -370,5 +369,3 @@ public:
     }
   }
 };
-
-#endif //PAQ8PX_LSTM_HPP

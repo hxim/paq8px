@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_FILENAME_HPP
-#define PAQ8PX_FILENAME_HPP
+#pragma once
 
 #include "fileUtils.hpp"
 #include "../String.hpp"
@@ -19,6 +18,3 @@ public:
      */
     void replaceSlashes();
 };
-
-
-#endif //PAQ8PX_FILENAME_HPP

@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_CONTEXTMAP2_HPP
-#define PAQ8PX_CONTEXTMAP2_HPP
+#pragma once
 
 // TODO(epsteina): update this documentation
 /**
@@ -95,5 +94,3 @@ public:
     void setScale(const int Scale);
     void mix(Mixer &m);
 };
-
-#endif //PAQ8PX_CONTEXTMAP2_HPP
