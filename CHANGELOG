@@ -1933,7 +1933,7 @@ paq8px_v206 by Zoltán Gotthardt
   - Now modelling metadata (blocktype, blockinfo and blocksize) separately from file data.
   - Skipping some RecordModel contexts in case of Text blocks.
   - Using block pos instead of file pos for a context in RecordModel (mozilla).
-  - Treat JPEG metadata az BlockType::DEFAULT in NormalModel and in SSE stage.
+  - Treat JPEG metadata as BlockType::DEFAULT in NormalModel and in SSE stage.
   - Removed some models from JPEG metadata modelling.
   - Added fast adapting order-0 StateMap to NormalModel, parameter tuning.
   - Added 2 contexts to WordModel to model columns in fixed-length lines.
@@ -1952,3 +1952,7 @@ paq8px_v206 by Zoltán Gotthardt
   - Fixed compilation on some linux systems (with gcc 7.5.0): utils.hpp->Utils.hpp
 - New command line option:
   - Added -skipdetection command line option to aid compressing binary files with false positive blocktypes detected.
+
+2021.12.30
+  - Yet another fix for proper casing of Utils.hpp
+  - Fixed multiple file mode compression.

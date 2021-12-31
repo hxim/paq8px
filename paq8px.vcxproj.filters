@@ -428,7 +428,7 @@
     <ClInclude Include="UpdateBroadcaster.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="utils.hpp">
+    <ClInclude Include="Utils.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="file\File.hpp">
@@ -760,6 +760,9 @@
     </ClInclude>
     <ClInclude Include="StateMapPair.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\IActivation.hpp">
+      <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

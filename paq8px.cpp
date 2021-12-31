@@ -636,11 +636,10 @@ auto processCommandLine(int argc, char **argv) -> int {
       totalSize += start;
       if(shared.GetOptionMultipleFileMode()) { //multiple file mode
 
-        Block::EncodeBlockType(&en, BlockType::TEXT);
         uint64_t len1 = input.size(); //ASCIIZ filename of listfile - with ending zero
         const String *const s = listoffiles.getString();
         uint64_t len2 = s->size(); //ASCIIZ filenames of files to compress - with ending zero
-        Block::EncodeBlockSize(&en, len1 + len2);
+        Block::EncodeBlockHeader(&en, BlockType::TEXT, len1 + len2, 0);
 
         for( uint64_t i = 0; i < len1; i++ ) {
           en.compressByte(&en.predictorMain, input[i]); //ASCIIZ filename of listfile
@@ -664,10 +663,10 @@ auto processCommandLine(int argc, char **argv) -> int {
       if( output.strsize() != 0 ) {
         quit("Output filename must not be specified when extracting multiple files.");
       }
-      if((Block::DecodeBlockType(&en)) != BlockType::TEXT ) {
+      Block::DecodeBlockHeader(&en);
+      if(shared.State.blockType != BlockType::TEXT ) {
         quit(errmsgInvalidChar);
       }
-      Block::DecodeBlockSize(&en); //we don't really need it
       while((c = en.decompressByte(&en.predictorMain)) != 0 ) {
         if( c == 255 ) {
           quit(errmsgInvalidChar);

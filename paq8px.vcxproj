@@ -398,6 +398,7 @@
     <ClInclude Include="lstm\Activations.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />
     <ClInclude Include="lstm\CosineDecay.hpp" />
+    <ClInclude Include="lstm\IActivation.hpp" />
     <ClInclude Include="lstm\IDecay.hpp" />
     <ClInclude Include="lstm\IOptimizer.hpp" />
     <ClInclude Include="lstm\Layer.hpp" />
@@ -483,7 +484,7 @@
     <ClInclude Include="text\WordEmbeddingDictionary.hpp" />
     <ClInclude Include="TransformOptions.hpp" />
     <ClInclude Include="UpdateBroadcaster.hpp" />
-    <ClInclude Include="utils.hpp" />
+    <ClInclude Include="Utils.hpp" />
     <ClInclude Include="VLI.hpp" />
   </ItemGroup>
   <ItemGroup>

@@ -1,7 +1,7 @@
 #ifndef PAQ8PX_IACTIVATION_HPP
 #define PAQ8PX_IACTIVATION_HPP
 
-#include "../utils.hpp"
+#include "../Utils.hpp"
 
 class IActivation {
 public:
