@@ -1956,3 +1956,7 @@ paq8px_v206 by Zoltán Gotthardt
 2021.12.30
   - Yet another fix for proper casing of Utils.hpp
   - Fixed multiple file mode compression.
+
+paq8px_v207 by Sigvart Brendberg
+2022.04.15
+- Three new ring-0 intra predictors in Image24BitModel
