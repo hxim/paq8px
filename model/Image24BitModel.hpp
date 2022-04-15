@@ -14,7 +14,7 @@
 class Image24BitModel {
 private:
     static constexpr int nSM0 = 13;
-    static constexpr int nSM1 = 79;
+    static constexpr int nSM1 = 81;
     static constexpr int nOLS = 6;
     static constexpr int nSM = nSM0 + nSM1 + nOLS;
     static constexpr int nLSM = 4;
