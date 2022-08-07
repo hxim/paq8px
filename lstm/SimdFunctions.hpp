@@ -13,9 +13,9 @@ namespace {
   */
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64)
+# if (defined(__GNUC__) || defined(__clang__)) && (!defined(__ARM_FEATURE_SIMD32) && !defined(__ARM_NEON))
 __attribute__((target("sse3")))
 #endif
-#if (defined(__GNUC__) || defined(__clang__)) && (!defined(__ARM_FEATURE_SIMD32) && !defined(__ARM_NEON))
 ALWAYS_INLINE float hsum_ps_sse3(__m128 const v) {
   __m128 shuf = _mm_movehdup_ps(v); // broadcast elements 3,1 to 2,0
   __m128 sums = _mm_add_ps(v, shuf);
@@ -26,9 +26,9 @@ ALWAYS_INLINE float hsum_ps_sse3(__m128 const v) {
 #endif
 
 #if defined(__i386__) || defined(__x86_64__) || defined(_M_X64)
+# if (defined(__GNUC__) || defined(__clang__)) && (!defined(__ARM_FEATURE_SIMD32) && !defined(__ARM_NEON))
 __attribute__((target("avx")))
 #endif
-#if (defined(__GNUC__) || defined(__clang__)) && (!defined(__ARM_FEATURE_SIMD32) && !defined(__ARM_NEON))
 ALWAYS_INLINE float hsum256_ps_avx(__m256 const v) {
   __m128 vlow = _mm256_castps256_ps128(v);
   __m128 vhigh = _mm256_extractf128_ps(v, 1); // high 128
