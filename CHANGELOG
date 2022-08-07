@@ -1987,3 +1987,7 @@ paq8px_v207 by Zoltán Gotthardt
 - Added 2 WordModel (linemodel) contexts targeting structured text files with re-occuring line content such as silesia/nci; Tuned other WordModel (linemodel) contexts; Using the RecordLength as LineLength to boost wordmodel (linemodel) performance for DBase and DEC-Alpha content.
 - Use a separate LSTM model for each main context type.
 - Other cosmetic changes.
+
+paq8px_v2207fix1 by Moisés Cardona
+2022.08.07
+- Fixed compiling paq8px on ARM processors using GCC.
