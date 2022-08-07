@@ -47,4 +47,4 @@ endif ()
 #        $<$<CXX_COMPILER_ID:GNU>:
 #        -Wall -Wextra>)
 
-target_link_libraries(paq8px ${ZLIB_LIBRARIES} -static)
+target_link_libraries(paq8px ${ZLIB_LIBRARIES})
