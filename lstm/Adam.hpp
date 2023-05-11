@@ -45,7 +45,7 @@ private:
     __m256 const vec_bias_v = _mm256_set1_ps(bias_v);
     __m256 const vec_lr = _mm256_set1_ps(learning_rate);
     size_t const len = g->size();
-    size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
+    size_t const limit = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW));
     size_t remainder = len & (SIMDW - 1);
 
     for (size_t i = 0; i < limit; i += SIMDW) {

@@ -497,6 +497,7 @@ public:
             maps0[state].setDirect(count / 3);
           break;
         }
+        default: break;
       }
     }
     if (count == 0) {

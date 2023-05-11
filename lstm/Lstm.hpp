@@ -179,7 +179,7 @@ private:
 #endif
   void SoftMaxSimdAVX2() {
     static constexpr size_t SIMDW = 8;
-    size_t const limit = output_size & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW)), len = hidden.size();
+    size_t const limit = output_size & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW)), len = hidden.size();
     size_t remainder = output_size & (SIMDW - 1);
     __m256 v_sum = _mm256_setzero_ps();
     for (size_t i = 0; i < limit; i++)
