@@ -145,6 +145,7 @@ void DECAlpha::Shuffle(uint32_t& instruction) {
                     (instruction & 0x1F);
       break;
     }
+    default: break;
   }
   instruction = bswap(instruction);
 }
@@ -173,5 +174,6 @@ void DECAlpha::Unshuffle(uint32_t& instruction) {
                     (instruction & 0x1F);
       break;
     }
+    default: break;
   }
 }

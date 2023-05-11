@@ -41,8 +41,8 @@ __attribute__((target("avx2,fma")))
 #endif
 float dot256_ps_fma3(float const* x1, float const* x2, size_t const len, float init) {
   static constexpr size_t SIMDW = 8, CACHELINE = 64;
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
-  size_t const limit_x2 = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW * 2));
+  size_t const limit = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW));
+  size_t const limit_x2 = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW * 2));
   size_t remainder = len & (SIMDW - 1), i = SIMDW * 2;
   __m256 sum0 = _mm256_setzero_ps();
   __m256 sum1 = _mm256_setzero_ps();
@@ -69,7 +69,7 @@ __attribute__((target("avx2")))
 #endif
 float sum256_ps(float const* x, size_t const len, float init) {
   static constexpr size_t SIMDW = 8;
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW)), remainder = len & (SIMDW - 1);
+  size_t const limit = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW)), remainder = len & (SIMDW - 1);
   if (limit > 0) {
     __m256 sum = _mm256_loadu_ps(x);
     for (size_t i = SIMDW; i < limit; i += SIMDW)

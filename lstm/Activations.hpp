@@ -21,7 +21,7 @@ private:
     __m256 const c1 = _mm256_set1_ps(0.03138777f);
     __m256 const c2 = _mm256_set1_ps(0.276281267f);
     __m256 const c_log2f = _mm256_set1_ps(1.442695022f);
-    size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
+    size_t const limit = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW));
     size_t remainder = len & (SIMDW - 1);
     for (size_t i = 0; i < limit; i += SIMDW) {
       _mm_prefetch((char*)(f + i + SIMDW), _MM_HINT_T0);
@@ -83,7 +83,7 @@ private:
     static __m256 const c_log2f = _mm256_set1_ps(1.442695022f);
     static __m256 const c_log2f_2 = _mm256_set1_ps(0.721347511f);
     static __m256 const vec_half = _mm256_set1_ps(0.5f);
-    size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
+    size_t const limit = len & static_cast<size_t>(-static_cast<std::ptrdiff_t>(SIMDW));
     size_t remainder = len & (SIMDW - 1);
     for (size_t i = 0; i < limit; i += SIMDW) {
       _mm_prefetch((char*)(f + i + SIMDW), _MM_HINT_T0);

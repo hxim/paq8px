@@ -170,7 +170,7 @@ private:
         //is this position already registered?
         for (uint32_t j = 0; j < numberOfActiveCandidates; j++) {
           MatchInfo* oldcandidate = &matchCandidates[j];
-          if (isSame = oldcandidate->index == matchpos)
+          if ((isSame = oldcandidate->index == matchpos))
             break;
         }
         if (!isSame) { //don't register an already registered sequence
