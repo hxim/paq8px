@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../Utils.hpp"
-#include "../simd.hpp"
+#include "../Simd.hpp"
 #include <cmath>
 #include <numeric>
 

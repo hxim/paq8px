@@ -24,7 +24,7 @@
 #include "file/ListOfFiles.hpp"
 #include "file/fileUtils2.hpp"
 #include "filter/Filters.hpp"
-#include "simd.hpp"
+#include "Simd.hpp"
 
 typedef enum { DoNone, DoCompress, DoExtract, DoCompare, DoList } WHATTODO;
 

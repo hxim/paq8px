@@ -2,7 +2,7 @@
 
 #include "IOptimizer.hpp"
 #include "../Utils.hpp"
-#include "../simd.hpp"
+#include "../Simd.hpp"
 #include <cmath>
 //#define USE_RSQRT
 

@@ -398,7 +398,7 @@
     <ClInclude Include="Shared.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="simd.hpp">
+    <ClInclude Include="Simd.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SimdMixer.hpp">
