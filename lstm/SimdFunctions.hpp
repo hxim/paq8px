@@ -4,6 +4,7 @@
 #include "../Simd.hpp"
 #include <cmath>
 #include <numeric>
+#include <cstddef>  // for ptrdiff_t
 
 namespace {
 
