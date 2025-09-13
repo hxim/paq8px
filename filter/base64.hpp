@@ -123,16 +123,18 @@ public:
     int blocksOut = 0;
     int fle = 0;
     int lineSize = in->getchar();
-    int outLen = in->getchar() + (in->getchar() << 8) + (in->getchar() << 16);
-    uint8_t tlf = (in->getchar());
-    outLen += ((tlf & 63) << 24);
+    int outLen = in->getchar();
+    outLen += (in->getchar()) << 8;
+    outLen += (in->getchar()) << 16;
+    uint8_t tlf = in->getchar();
+    outLen += (tlf & 63) << 24;
     Array<uint8_t> ptr((outLen >> 2) * 4 + 10);
     tlf = (tlf & 192);
     if (tlf == 128) {
       tlf = 10; // LF: 10
     }
     else if (tlf == 64) {
-      tlf = 13; // LF: 13
+      tlf = 13; // CR: 13
     }
     else {
       tlf = 0;
