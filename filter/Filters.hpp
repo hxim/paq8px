@@ -213,8 +213,10 @@ static TextDetectionInfo detectText(File* in, uint64_t blockStart, uint64_t bloc
     buf0 = buf0 << 8 | c;
 
     uint32_t t = TextParserStateInfo::utf8StateTable[c];
-    textParser.UTF8State = TextParserStateInfo::utf8StateTable[256 + textParser.UTF8State + t];
-
+    textParser.UTF8State =
+      t == TextParserStateInfo::utf8Reject ? TextParserStateInfo::utf8Reject : //don't accept the non-pritable ascii chars
+      TextParserStateInfo::utf8StateTable[256 + textParser.UTF8State + t];
+    
     //some exceptions we still accept
     if (textParser.UTF8State == TextParserStateInfo::utf8Reject) { // illegal state
       if (c == 0 && pc >= 32 && pc <= 127 /* asciiz */) {
