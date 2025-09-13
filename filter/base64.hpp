@@ -31,8 +31,8 @@ namespace base64 {
 class Base64Filter : Filter {
 private:
   static char valueB(char c) {
-    const char *p = strchr(base64::table1, c);
-    if( p != nullptr ) {
+    const char* p = strchr(base64::table1, c);
+    if (p != nullptr) {
       return static_cast<char>(p - base64::table1);
     }
     return 0;
@@ -43,7 +43,7 @@ private:
   }
 
 public:
-  void encode(File *in, File *out, uint64_t size, int  /*info*/, int & /*headerSize*/) override {
+  void encode(File* in, File* out, uint64_t size, int  /*info*/, int& /*headerSize*/) override {
     uint64_t inLen = 0;
     int i = 0;
     int lineSize = 0;
@@ -54,20 +54,20 @@ public:
     Array<uint8_t> ptr(b64Mem);
     int olen = 5;
 
-    while( b = in->getchar(), inLen++, (b != '=') && isBase64(b) && inLen <= size ) {
-      if( b == 13 || b == 10 ) {
-        if(lineSize == 0 ) {
+    while (b = in->getchar(), inLen++, (b != '=') && isBase64(b) && inLen <= size) {
+      if (b == 13 || b == 10) {
+        if (lineSize == 0) {
           lineSize = inLen;
           tlf = b;
         }
-        if( tlf != b ) {
+        if (tlf != b) {
           tlf = 0;
         }
         continue;
       }
       src[i++] = b;
-      if( i == 4 ) {
-        for( int j = 0; j < 4; j++ ) {
+      if (i == 4) {
+        for (int j = 0; j < 4; j++) {
           src[j] = valueB(src[j]);
         }
         src[0] = (src[0] << 2) + ((src[1] & 0x30) >> 4);
@@ -81,12 +81,12 @@ public:
       }
     }
 
-    if( i != 0 ) {
-      for( int j = i; j < 4; j++ ) {
+    if (i != 0) {
+      for (int j = i; j < 4; j++) {
         src[j] = 0;
       }
 
-      for( int j = 0; j < 4; j++ ) {
+      for (int j = 0; j < 4; j++) {
         src[j] = valueB(src[j]);
       }
 
@@ -94,7 +94,7 @@ public:
       src[1] = ((src[1] & 0xf) << 4) + ((src[2] & 0x3c) >> 2);
       src[2] = ((src[2] & 0x3) << 6) + src[3];
 
-      for( int j = 0; (j < i - 1); j++ ) {
+      for (int j = 0; (j < i - 1); j++) {
         ptr[olen++] = src[j];
       }
     }
@@ -102,19 +102,21 @@ public:
     ptr[1] = size & 255;
     ptr[2] = (size >> 8) & 255;
     ptr[3] = (size >> 16) & 255;
-    if( tlf != 0 ) {
-      if( tlf == 10 ) {
+    if (tlf != 0) {
+      if (tlf == 10) {
         ptr[4] = 128;
-      } else {
+      }
+      else {
         ptr[4] = 64;
       }
-    } else {
+    }
+    else {
       ptr[4] = (size >> 24) & 63; //1100 0000
     }
     out->blockWrite(&ptr[0], olen);
   }
 
-  uint64_t decode(File *in, File *out, FMode fMode, uint64_t /*size*/, uint64_t &diffFound) override {
+  uint64_t decode(File* in, File* out, FMode fMode, uint64_t /*size*/, uint64_t& diffFound) override {
     uint8_t inn[3];
     int i = 0;
     int len = 0;
@@ -126,26 +128,29 @@ public:
     outLen += ((tlf & 63) << 24);
     Array<uint8_t> ptr((outLen >> 2) * 4 + 10);
     tlf = (tlf & 192);
-    if( tlf == 128 ) {
+    if (tlf == 128) {
       tlf = 10; // LF: 10
-    } else if( tlf == 64 ) {
+    }
+    else if (tlf == 64) {
       tlf = 13; // LF: 13
-    } else {
+    }
+    else {
       tlf = 0;
     }
 
-    while( fle < outLen ) {
+    while (fle < outLen) {
       len = 0;
-      for( i = 0; i < 3; i++ ) {
+      for (i = 0; i < 3; i++) {
         int c = in->getchar();
-        if( c != EOF) {
+        if (c != EOF) {
           inn[i] = static_cast<uint8_t>(c);
           len++;
-        } else {
+        }
+        else {
           inn[i] = 0;
         }
       }
-      if( len != 0 ) {
+      if (len != 0) {
         uint8_t in0 = inn[0];
         uint8_t in1 = inn[1];
         uint8_t in2 = inn[2];
@@ -164,11 +169,12 @@ public:
           break; // give up
         }
       }
-      if( blocksOut >= (lineSize / 4) && lineSize != 0 ) { //no lf if lineSize==0
-        if((blocksOut != 0) && !in->eof() && fle <= outLen ) { //no lf if eof
-          if( tlf != 0 ) {
+      if (blocksOut >= (lineSize / 4) && lineSize != 0) { //no lf if lineSize==0
+        if ((blocksOut != 0) && !in->eof() && fle <= outLen) { //no lf if eof
+          if (tlf != 0) {
             ptr[fle++] = tlf;
-          } else {
+          }
+          else {
             ptr[fle++] = 13;
             ptr[fle++] = 10;
           }
@@ -177,12 +183,13 @@ public:
       }
     }
     //Write out or compare
-    if( fMode == FMode::FDECOMPRESS ) {
+    if (fMode == FMode::FDECOMPRESS) {
       out->blockWrite(&ptr[0], outLen);
-    } else if( fMode == FMode::FCOMPARE ) {
-      for( i = 0; i < outLen; i++ ) {
+    }
+    else if (fMode == FMode::FCOMPARE) {
+      for (i = 0; i < outLen; i++) {
         uint8_t b = ptr[i];
-        if( b != out->getchar() && (diffFound == 0)) {
+        if (b != out->getchar() && (diffFound == 0)) {
           diffFound = static_cast<int>(out->curPos());
         }
       }
