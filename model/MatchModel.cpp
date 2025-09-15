@@ -3,9 +3,9 @@
 MatchModel::MatchModel(Shared* const sh, const uint64_t hashtablesize, const uint64_t mapmemorysize) : 
   shared(sh),
   hashtable(hashtablesize),
-  stateMaps {{sh, 1, 28 * 2 * 8,        1023, StateMapType::Generic},
-             {sh, 1, 8 * 256 * 256 + 1, 1023, StateMapType::Generic},
-             {sh, 1, 256 * 256,         1023, StateMapType::Generic}},
+  stateMaps {{sh, 1, 28 * 2 * 8,    1023, StateMapType::Generic},
+             {sh, 1, 256 * 8 * 256, 1023, StateMapType::Generic},
+             {sh, 1, 256 * 255,     1023, StateMapType::Generic}},
   cm(sh, mapmemorysize, nCM, 64),
   mapL /* LargeStationaryMap : Contexts, HashBits, Scale=64, Rate=16  */
         {sh, nLSM, 20}, // effective bits: ~22
@@ -111,8 +111,8 @@ void MatchModel::mix(Mixer &m) {
     } else {
       denselength = 12 + (min(length - 1, 63) >> 2); // 16..27
     }
-    ctx[0] = (denselength << 4) | (expectedBit << 3) | bpos; // 1..28*2*8
-    ctx[1] = ((expectedByte << 11) | (bpos << 8) | c1) + 1;
+    ctx[0] = 1 + ((denselength << 4) | (expectedBit << 3) | bpos); // 1 .. 28*2*8+1
+    ctx[1] = 1 + ((expectedByte << 11) | (bpos << 8) | c1);        // 1 .. 256*8*256+1
     const int sign = 2 * expectedBit - 1;
     m.add(sign * (min(length, 32) << 5)); // +/- 32..1024
     m.add(sign * (ilog->log(min(length, 65535)) << 2)); // +/-  0..1024
@@ -128,7 +128,7 @@ void MatchModel::mix(Mixer &m) {
   for( uint32_t i = 0; i < nST; i++ ) {
     const uint32_t c = ctx[i];
     if( c != 0 ) {
-      const int p1 = stateMaps[i].p1(c);
+      const int p1 = stateMaps[i].p1(c - 1);
       const int st = stretch(p1);
       m.add(st >> 2);
       m.add((p1 - 2048) >> 3);
