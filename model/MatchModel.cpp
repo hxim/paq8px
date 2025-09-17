@@ -25,7 +25,7 @@ void MatchModel::update() {
   size_t n = max(numberOfActiveCandidates, 1);
   for (size_t i = 0; i < n; i++) {
     MatchInfo* matchInfo = &matchCandidates[i];
-    matchInfo->update(shared);
+    matchInfo->update(shared, MINLEN_RM);
     if (numberOfActiveCandidates != 0 && matchInfo->isInNoMatchMode()) {
       numberOfActiveCandidates--;
       if (numberOfActiveCandidates == i)
@@ -183,4 +183,37 @@ void MatchModel::mix(Mixer &m) {
   shared->State.Match.mode5 = mode5;
   shared->State.Match.expectedByte = length != 0 ? expectedByte : 0;
 
+}
+
+bool MatchModel::isMatch(const uint32_t pos, const uint32_t MINLEN) const {
+  INJECT_SHARED_buf
+    for (uint32_t length = 1; length <= MINLEN; length++) {
+      if (buf(length) != buf[pos - length])
+        return false;
+    }
+  return true;
+}
+
+void MatchModel::AddCandidates(HashElementForMatchPositions* matches, uint32_t LEN) {
+  uint32_t i = 0;
+  INJECT_SHARED_pos
+    while (numberOfActiveCandidates < N && i < HashElementForMatchPositions::N) {
+      uint32_t matchpos = matches->matchPositions[i];
+      if (matchpos == 0)
+        break;
+      if (isMatch(matchpos, LEN)) {
+        bool isSame = false;
+        //is this position already registered?
+        for (uint32_t j = 0; j < numberOfActiveCandidates; j++) {
+          MatchInfo* oldcandidate = &matchCandidates[j];
+          if (isSame = oldcandidate->index == matchpos)
+            break;
+        }
+        if (!isSame) { //don't register an already registered sequence
+          matchCandidates[numberOfActiveCandidates].registerMatch(matchpos, LEN, LEN1);
+          numberOfActiveCandidates++;
+        }
+      }
+      i++;
+    }
 }

@@ -318,6 +318,9 @@
     <ClCompile Include="SimdMixer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="model\MatchInfo.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -787,6 +790,9 @@
     </ClInclude>
     <ClInclude Include="MixerFunctions_SIMD_SSE2.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\MatchInfo.hpp">
+      <Filter>model</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
