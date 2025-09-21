@@ -8,8 +8,8 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "208fix1"  //update version here before publishing your changes
-#define PROGYEAR     "2023"
+#define PROGVERSION  "209"  //update version here before publishing your changes
+#define PROGYEAR     "2025"
 
 
 #include "Utils.hpp"

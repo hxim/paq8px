@@ -2013,4 +2013,24 @@ paq8px_v208 by Zoltán Gotthardt
 paq8px_v208fix1 by Zoltán Gotthardt
 2023.05.10
 - Cosmetic: Removed unused 'rate' parameter from StationaryMap and LargeStationaryMap.
-- Fixed jpeg model (quantization table parsing).
+- Fixed jpeg model (quantization table parsing) (thank you, Kaitz!)
+
+
+paq8px_v209 by Zoltán Gotthardt
+2025.09.21
+- Model improvements
+  - Initialize mixer weights to reasonable numbers instead of 0.
+  - Fixed slightly incorrect matchmodel context.
+- Fixes
+  - Fixed block detection: sometimes end of block position was off by 1 byte.
+  - Fixed (text) block detection: improved utf8 parsing by properly rejecting non-printable ascii chars.
+- Build enhancements and fixes
+  - Updated zlib to 1.3.1.1
+  - Updated Visual Studio solution to 2022, platform toolset to v143
+  - Upgraded mingw-w64 from 10.0.0 (gcc-9.3.0) to 13.0.0 (gcc-15.2.0)
+  - Enhanced minGW-w64 build script.
+  - Fixed evaluation order issue in base64 decode with msvc.
+  - Visual Studio solution: removed zlib as nuget package, added project instead.
+  - Added/Updated build scripts and CMakeLists.txt: clang on linux, cross compiling for ARM NEON on linux, and cmake on linux.
+  - Fixed build with clang.
+  Enhanced and rewrote README in markdown format, added current benchmark results.
