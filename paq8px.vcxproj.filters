@@ -318,6 +318,9 @@
     <ClCompile Include="SimdMixer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="model\MatchInfo.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -398,7 +401,7 @@
     <ClInclude Include="Shared.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="simd.hpp">
+    <ClInclude Include="Simd.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SimdMixer.hpp">
@@ -788,8 +791,8 @@
     <ClInclude Include="MixerFunctions_SIMD_SSE2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="packages.config" />
+    <ClInclude Include="model\MatchInfo.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

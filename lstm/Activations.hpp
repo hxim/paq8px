@@ -5,6 +5,7 @@
 #include "../SIMDType.hpp"
 #include "SimdFunctions.hpp"
 #include <cmath>
+#include <cstddef>  // for ptrdiff_t
 
 template <SIMDType simd>
 class Tanh :

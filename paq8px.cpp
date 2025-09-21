@@ -8,8 +8,8 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "208fix1"  //update version here before publishing your changes
-#define PROGYEAR     "2023"
+#define PROGVERSION  "209"  //update version here before publishing your changes
+#define PROGYEAR     "2025"
 
 
 #include "Utils.hpp"
@@ -24,7 +24,7 @@
 #include "file/ListOfFiles.hpp"
 #include "file/fileUtils2.hpp"
 #include "filter/Filters.hpp"
-#include "simd.hpp"
+#include "Simd.hpp"
 
 typedef enum { DoNone, DoCompress, DoExtract, DoCompare, DoList } WHATTODO;
 

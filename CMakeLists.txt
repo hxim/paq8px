@@ -1,50 +1,96 @@
 cmake_minimum_required(VERSION 3.10)
-project(paq8px)
+project(paq8px LANGUAGES CXX)
 
-find_package(ZLIB)
+# --------------------------------------
+# Build options
+# --------------------------------------
+option(NATIVECPU "Whether to build for your CPU (vs. general public)" OFF)
+option(DISABLE_ZLIB "Whether to disable zlib" OFF)
+option(NDEBUG "Suppress asserts and array bound checks" ON)
+
+# --------------------------------------
+# Compiler settings
+# --------------------------------------
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+# Base optimization flags
+set(BASE_FLAGS
+    -O3
+    -floop-strip-mine
+    -funroll-loops
+    -ftree-vectorize
+    -fgcse-sm
+    -falign-loops=16
+)
+
+# Architecture-specific flags
+if (NATIVECPU)
+    add_compile_options(-march=native -mtune=native)
+else()
+    if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i.86")
+        add_compile_options(-march=nocona -mtune=generic)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
+        add_compile_options(-march=armv7-a -mtune=cortex-a8)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+        add_compile_options(-march=armv8-a)
+    elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
+        add_compile_options(-march=rv64gc -mabi=lp64d)
+    else()
+        message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}, using generic optimizations")
+    endif()
+endif()
+
+add_compile_options(${BASE_FLAGS})
+
+
+# --------------------------------------
+# NDEBUG
+# --------------------------------------
+if (NDEBUG)
+    add_compile_definitions(NDEBUG)
+endif()
+
+# --------------------------------------
+# Zlib handling
+# --------------------------------------
+if (DISABLE_ZLIB)
+    message(STATUS "Zlib disabled by user")
+    add_compile_definitions(DISABLE_ZLIB)
+else()
+    find_package(ZLIB REQUIRED)
+endif()
+
+# --------------------------------------
+# Collect source files
+# --------------------------------------
+file(GLOB PAQ_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/file/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/filter/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/model/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/text/*.cpp"
+)
+
+# --------------------------------------
+# Create executable
+# --------------------------------------
+add_executable(paq8px ${PAQ_SOURCES})
+
+# Link Zlib if available
+if (NOT DISABLE_ZLIB)
+    target_include_directories(paq8px PRIVATE ${ZLIB_INCLUDE_DIRS})
+    target_link_libraries(paq8px PRIVATE ${ZLIB_LIBRARIES})
+endif()
+
+# --------------------------------------
+# IPO / LTO
+# --------------------------------------
 include(CheckIPOSupported)
 check_ipo_supported(RESULT supported OUTPUT error)
-
-option(NATIVECPU "Whether to build for your cpu (vs. the general public)" OFF)
-option(DISABLE_ZLIB "Whether to disable zlib" OFF)
-option(NDEBUG "Whether to suppress asserts and array bound checks" ON)
-
-if (NATIVECPU)
-    add_definitions(-march=native -mtune=native)
-else ()
-    add_definitions(-march=nocona -mtune=generic)
-endif (NATIVECPU)
-
-if (DISABLE_ZLIB)
-    add_definitions(-DDISABLE_ZLIB)
-endif (DISABLE_ZLIB)
-
-if (NDEBUG)
-    add_definitions(-DNDEBUG)
-endif (NDEBUG)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_FLAGS "-O3 -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16")
-
-add_executable(paq8px ProgramChecker.cpp paq8px.cpp MTFList.cpp Random.cpp String.cpp Predictor.cpp Models.cpp model/ExeModel.cpp APM1.cpp model/Image1BitModel.cpp model/Image4BitModel.cpp model/SparseModel.cpp Ilog.cpp model/ContextModel.cpp model/ContextModelAudio16.cpp model/ContextModelAudio8.cpp model/ContextModelDec.cpp model/ContextModelGeneric.cpp model/ContextModelImage1.cpp model/ContextModelImage24.cpp model/ContextModelImage4.cpp model/ContextModelImage8.cpp model/ContextModelJpeg.cpp model/ContextModelText.cpp SSE.cpp UpdateBroadcaster.cpp model/Audio8BitModel.cpp Shared.cpp text/TextModel.cpp file/File.cpp file/FileDisk.cpp file/FileName.cpp file/FileTmp.cpp file/ListOfFiles.cpp file/OpenFromMyFolder.cpp model/Audio16BitModel.cpp model/AudioModel.cpp model/CharGroupModel.cpp model/DmcForest.cpp model/DmcModel.cpp model/DmcNode.cpp model/Image24BitModel.cpp model/IndirectModel.cpp model/JpegModel.cpp model/LinearPredictionModel.cpp model/MatchModel.cpp model/NestModel.cpp model/NormalModel.cpp model/RecordModel.cpp model/SparseMatchModel.cpp model/WordModel.cpp model/XMLModel.cpp text/English.cpp text/EnglishStemmer.cpp text/French.cpp text/FrenchStemmer.cpp text/German.cpp text/GermanStemmer.cpp text/Stemmer.cpp text/Word.cpp text/WordEmbeddingDictionary.cpp StationaryMap.cpp StateTable.cpp StateMap.cpp SmallStationaryContextMap.cpp MixerFactory.cpp Mixer.cpp IndirectMap.cpp DummyMixer.cpp ContextMap2.cpp ContextMap.cpp APM.cpp APMPost.cpp AdaptiveMap.cpp filter/DecAlpha.cpp filter/LZWDictionary.cpp filter/TextParserStateInfo.cpp model/Image8BitModel.cpp Encoder.cpp model/WordModelInfo.cpp ArithmeticEncoder.cpp model/SparseBitModel.cpp model/ChartModel.cpp LargeStationaryMap.cpp BitCount.cpp BlockType.cpp Squash.cpp Stretch.cpp Block.cpp model/BlockModel.cpp model/ContextModelBlock.cpp PredictorBlock.cpp PredictorMain.cpp StateMapPair.cpp SimdMixer.cpp)
-#add_executable(experiment test.cpp ProgramChecker.cpp MTFList.cpp Random.cpp String.cpp Predictor.cpp Models.cpp model/ExeModel.cpp APM1.cpp model/Image1BitModel.cpp model/Image4BitModel.cpp model/SparseModel.cpp Ilog.cpp model/ContextModel.cpp model/ContextModelAudio16.cpp model/ContextModelAudio8.cpp model/ContextModelDec.cpp model/ContextModelGeneric.cpp model/ContextModelImage1.cpp model/ContextModelImage24.cpp model/ContextModelImage4.cpp model/ContextModelImage8.cpp model/ContextModelJpeg.cpp model/ContextModelText.cpp SSE.cpp UpdateBroadcaster.cpp model/Audio8BitModel.cpp Shared.cpp text/TextModel.cpp file/File.cpp file/FileDisk.cpp file/FileName.cpp file/FileTmp.cpp file/ListOfFiles.cpp file/OpenFromMyFolder.cpp model/Audio16BitModel.cpp model/AudioModel.cpp model/CharGroupModel.cpp model/DmcForest.cpp model/DmcModel.cpp model/DmcNode.cpp model/Image24BitModel.cpp model/IndirectModel.cpp model/JpegModel.cpp model/LinearPredictionModel.cpp model/MatchModel.cpp model/NestModel.cpp model/NormalModel.cpp model/RecordModel.cpp model/SparseMatchModel.cpp model/WordModel.cpp model/XMLModel.cpp text/English.cpp text/EnglishStemmer.cpp text/French.cpp text/FrenchStemmer.cpp text/German.cpp text/GermanStemmer.cpp text/Stemmer.cpp text/Word.cpp text/WordEmbeddingDictionary.cpp StationaryMap.cpp StateTable.cpp StateMap.cpp SmallStationaryContextMap.cpp MixerFactory.cpp Mixer.cpp IndirectMap.cpp DummyMixer.cpp ContextMap2.cpp ContextMap.cpp APM.cpp APMPost.cpp AdaptiveMap.cpp filter/DecAlpha.cpp filter/LZWDictionary.cpp filter/TextParserStateInfo.cpp model/Image8BitModel.cpp Encoder.cpp model/WordModelInfo.cpp AritmeticEncoder.cpp model/SparseBitModel.cpp model/ChartModel.cpp LargeStationaryMap.cpp BitCount.cpp BlockType.cpp Squash.cpp Stretch.cpp Block.cpp model\BlockModel.cpp model\ContextModelBlock.cpp PredictorBlock.cpp PredictorMain.cpp StateMapPair.cpp SimdMixer.cpp)
-#add_executable(train_bench bench/train.cpp)
-
 if (supported)
     message(STATUS "IPO / LTO enabled")
     set_property(TARGET paq8px PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-    #set_property(TARGET experiment PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-    #set_property(TARGET train_bench PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-else ()
+else()
     message(STATUS "IPO / LTO not supported: <${error}>")
-endif ()
-#target_compile_options(paq8px PRIVATE
-#        $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:
-#        -Wall -Wextra -Weverything>
-#        $<$<CXX_COMPILER_ID:MSVC>:
-#        /W4>
-#        $<$<CXX_COMPILER_ID:GNU>:
-#        -Wall -Wextra>)
-
-target_link_libraries(paq8px ${ZLIB_LIBRARIES})
+endif()

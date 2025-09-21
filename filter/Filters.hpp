@@ -213,15 +213,17 @@ static TextDetectionInfo detectText(File* in, uint64_t blockStart, uint64_t bloc
     buf0 = buf0 << 8 | c;
 
     uint32_t t = TextParserStateInfo::utf8StateTable[c];
-    textParser.UTF8State = TextParserStateInfo::utf8StateTable[256 + textParser.UTF8State + t];
-
+    textParser.UTF8State =
+      t == TextParserStateInfo::utf8Reject ? TextParserStateInfo::utf8Reject : //don't accept the non-pritable ascii chars
+      TextParserStateInfo::utf8StateTable[256 + textParser.UTF8State + t];
+    
     //some exceptions we still accept
     if (textParser.UTF8State == TextParserStateInfo::utf8Reject) { // illegal state
       if (c == 0 && pc >= 32 && pc <= 127 /* asciiz */) {
         textParser.UTF8State = TextParserStateInfo::utf8Accept;
       }
     }
-
+    
     if (c == NEW_LINE) {
       if (pc != CARRIAGE_RETURN) {
         textParser.EOLType = 2; // mixed or LF-only
@@ -238,17 +240,17 @@ static TextDetectionInfo detectText(File* in, uint64_t blockStart, uint64_t bloc
       }
     }
 
-    if( textParser.UTF8State == TextParserStateInfo::utf8Reject ) { // illegal state
+    if (textParser.UTF8State == TextParserStateInfo::utf8Reject) { // illegal state
       textParser.invalidCount = textParser.invalidCount * (TextParserStateInfo::TEXT_ADAPT_RATE - 1) / TextParserStateInfo::TEXT_ADAPT_RATE + TextParserStateInfo::TEXT_ADAPT_RATE;
       textParser.UTF8State = TextParserStateInfo::utf8Accept; // reset state
-      if( textParser.invalidCount >= TextParserStateInfo::TEXT_MAX_MISSES * TextParserStateInfo::TEXT_ADAPT_RATE ) {
+      if (textParser.invalidCount >= TextParserStateInfo::TEXT_MAX_MISSES * TextParserStateInfo::TEXT_ADAPT_RATE) {
 
         //end of text block
         //if we have a large enough valid textblock, get it
         if (textParser.Start == 0 && textParser.isLargeText()) {
           detectionInfo.Type = textParser.EOLType == 1 ? BlockType::TEXT_EOL : BlockType::TEXT;
           detectionInfo.DataStart = blockStart;
-          detectionInfo.DataLength = textParser.End;
+          detectionInfo.DataLength = textParser.End + 1;
           return detectionInfo;
         }
 

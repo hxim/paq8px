@@ -2,8 +2,9 @@
 
 #include "IOptimizer.hpp"
 #include "../Utils.hpp"
-#include "../simd.hpp"
+#include "../Simd.hpp"
 #include <cmath>
+#include <cstddef>  // for ptrdiff_t
 //#define USE_RSQRT
 
 template <SIMDType simd, std::uint16_t B1, uint8_t E1, std::uint16_t B2, uint8_t E2, std::uint16_t C, uint8_t E3>

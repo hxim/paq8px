@@ -10,6 +10,7 @@
 #include <array>
 #include <unordered_map>
 #include <memory>
+#include <cstddef>  // for ptrdiff_t
 
 namespace LSTM {
   struct Shape {
