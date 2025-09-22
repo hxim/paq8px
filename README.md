@@ -384,7 +384,7 @@ Below are compressed sizes for `paq8px v209` under various options, compared wit
 |**Compression time (approx. sec)**| **310** |  **1187** | **1562** | **1567**| **n/a**|
 
 With fair options (`-12LT`), `paq8px v209` achieves results close to `cmix v21`.  
-With unfair options (`-12RT`), results surpass cmix, but these should be excluded (see [Notes on Benchmarking Notes](#benchmarking-notes)).
+With unfair options (`-12RT`), results surpass cmix, but these should be excluded (see [Benchmarking Notes](#benchmarking-notes)).
 
 At the time of writing, `paq8px v209` likely ranks #2 on Calgary behind `cmix v21`.
 
@@ -445,7 +445,7 @@ The benchmark has not been rerun for later versions.
 
 ### Large Text Compression Benchmark (LTCB)
 
-paq8px v206 **ranked #10** at [Large Text Compression Benchmark](https://www.mattmahoney.net/dc/text.html) at the time of writing.  
+`paq8px v206` **ranked #10** at [Large Text Compression Benchmark](https://www.mattmahoney.net/dc/text.html) at the time of writing.  
 Note, that unlike paq8px, most higher-ranked compressors are tuned specifically for enwik8/enwik9, and often apply enwik-specific preprocessing (e.g., word replacement, article reordering).  
 
 The benchmark has not been rerun for later versions.
@@ -466,7 +466,7 @@ The official site was last updated in 2011. At that time paq8px was **ranked #1*
 
 See `paq8px` evolution on the MaximumCompression benchmark up until paq8px v207fix1 in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=75636&viewfull=1#post75636) from 2022.
 
-Compressed sizes for v209 with compression option `-12L` (-12Ls for rafale.bmp).
+Compressed sizes for v209 with compression option `-12L` (`-12Ls` for rafale.bmp).
 
 | File          |      -12L |
 |:--------------|----------:|
@@ -483,16 +483,16 @@ Compressed sizes for v209 with compression option `-12L` (-12Ls for rafale.bmp).
 |**Total compressed size**  | **6'455'101** |
 |**Compression time (sec)**| **30'074** |
 
-To the best of our knowledge, `paq8px`'s latest version, v209, would still **rank #1** at the time of writing.
+To the best of our knowledge, `paq8px`'s latest version, `v209`, would still **rank #1** at the time of writing.
 
 ### fenwik9 benchmark
 
-paq8px v206fix1 **ranked #1** in the [fenwik9 benchmark](https://encode.su/threads/3873-fenwik9-benchmark-results).  
+`paq8px v206fix1` **ranked #1** in the [fenwik9 benchmark](https://encode.su/threads/3873-fenwik9-benchmark-results).  
 This is a non-standard but exhaustive single-file benchmark maintained by Sportman.
 
 ### World English Bible benchmark (WEB)
 
-paq8px v208fix1 **ranked #1** in the [World English Bible benchmark](https://encode.su/threads/4314-World-English-Bible-benchmark-results).  
+`paq8px v208fix1` **ranked #1** in the [World English Bible benchmark](https://encode.su/threads/4314-World-English-Bible-benchmark-results).  
 This is a non-standard but exhaustive single-file benchmark maintained by Sportman.
 
 
@@ -500,7 +500,7 @@ This is a non-standard but exhaustive single-file benchmark maintained by Sportm
 
 > [!WARNING]
 > 1) Using `-R` to load pre-trained LSTM weight repositories is unfair if the target file to be compressed was part of the training data.  
-> 2) Benchmarks and leaderboards change over time rankings may shift.
+> 2) Benchmarks and leaderboards change over time - rankings may shift.
 > 3) Hardware does not affect compression ratio and memory use, but it does affect runtime; reported times are approximate and for context only.
 
 <a id="timeline"></a>
@@ -508,7 +508,7 @@ This is a non-standard but exhaustive single-file benchmark maintained by Sportm
 
 `paq8px` is a branch of the PAQ compressor series, descended from earlier versions such as PAQ7 and the PAQ8 variants (e.g., PAQ8A-PAQ8P).
 
-Development began in **2009** and remains active, supported by a global community of contributors. 
+Development began in 2009 and remains active, supported by a global community of contributors. 
 
 Work has focused on expanding model coverage (images, audio, executables, text) with emphasis on compression ratio.
 
