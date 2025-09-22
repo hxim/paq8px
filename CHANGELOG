@@ -2034,3 +2034,8 @@ paq8px_v209 by Zoltán Gotthardt
   - Added/Updated build scripts and CMakeLists.txt: clang on linux, cross compiling for ARM NEON on linux, and cmake on linux.
   - Fixed build with clang.
   Enhanced and rewrote README in markdown format, added current benchmark results.
+
+
+paq8px_v209fix1 by Zoltán Gotthardt
+2025.09.22
+- Fixed MatchModel context allocation.
