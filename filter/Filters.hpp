@@ -2406,6 +2406,8 @@ static uint64_t decompressRecursive(File *out, uint64_t blockSize, Encoder &en, 
   while( i < blockSize ) {
 
     uint64_t len = Block::DecodeBlockHeader(&en);
+    if (len == 0)
+        return 0;
     BlockType type = en.predictorMain.shared->State.blockType;
     int info = en.predictorMain.shared->State.blockInfo;
     if (type == BlockType::MRB) {
