@@ -26,13 +26,17 @@ where gcc.exe >nul 2>&1 || (
   exit /b 1
 )
 
+rem * Set MAKE for parallel LTO
+rem * Why: GCC's LTO wrapper needs a 'make' executable to coordinate parallel compilation jobs, and it can't find it automatically. 
+rem * By explicitly setting MAKE=mingw32-make, we tell it where to look.
+set MAKE=mingw32-make
 
 rem * Set compiler options (release by default)
-set options=-DNDEBUG -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto -fwhole-program -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
+set options=-DNDEBUG -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
 
 rem * Override for debug build if specified
 if /i "%1"=="diag" (
-  set options=-Wall -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto -fwhole-program -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
+  set options=-Wall -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
   echo Building with warnings and activating asserts during runtime.
   echo When done, see warnings in _error1_zlib.txt and _error2_paq.txt
 )
