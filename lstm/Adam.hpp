@@ -16,9 +16,9 @@ private:
 #ifdef X64_SIMD_AVAILABLE
 
 #if (defined(__GNUC__) || defined(__clang__))
-  __attribute__((target("avx2,fma")))
+  __attribute__((target("avx")))
 #endif
-    void RunSimdAVX2(
+    void RunSimdAVX(
       std::valarray<float>* g,
       std::valarray<float>* v,
       std::valarray<float>* w,
@@ -40,35 +40,39 @@ private:
 
     for (size_t i = 0; i < limit; i += SIMDW) {
       __m256 vec_gi = _mm256_loadu_ps(&(*g)[i]);
-      __m256 vec_vi = _mm256_mul_ps(
-        _mm256_loadu_ps(&(*v)[i]),
-        vec_beta2
-      );
+      __m256 vec_vi = _mm256_loadu_ps(&(*v)[i]);
 
       // v = beta2 * v + (1 - beta2) * g^2
+      vec_vi = _mm256_mul_ps(vec_vi, vec_beta2);
       __m256 vec_gi_sq = _mm256_mul_ps(vec_gi, vec_gi);
-      vec_vi = _mm256_fmadd_ps(vec_gi_sq, vec_beta2_complement, vec_vi);
+      __m256 vec_term = _mm256_mul_ps(vec_gi_sq, vec_beta2_complement);
+      vec_vi = _mm256_add_ps(vec_vi, vec_term);
       _mm256_storeu_ps(&(*v)[i], vec_vi);
 
       // scaled_gradient = g / (sqrt(v / bias_v) + eps)
       __m256 vec_v_corrected = _mm256_div_ps(vec_vi, vec_bias_v);
-      __m256 vec_denom = _mm256_add_ps(_mm256_sqrt_ps(vec_v_corrected), vec_eps);
+      __m256 vec_sqrt = _mm256_sqrt_ps(vec_v_corrected);
+      __m256 vec_denom = _mm256_add_ps(vec_sqrt, vec_eps);
       __m256 vec_scaled_grad = _mm256_div_ps(vec_gi, vec_denom);
 
       // w = w - lr * scaled_gradient
       __m256 vec_wi = _mm256_loadu_ps(&(*w)[i]);
-      _mm256_storeu_ps(
-        &(*w)[i],
-        _mm256_fnmadd_ps(vec_lr, vec_scaled_grad, vec_wi)
-      );
+      __m256 vec_update = _mm256_mul_ps(vec_lr, vec_scaled_grad);
+      vec_wi = _mm256_sub_ps(vec_wi, vec_update);
+      _mm256_storeu_ps(&(*w)[i], vec_wi);
     }
 
     for (; remainder > 0; remainder--) {
       const size_t i = len - remainder;
       float g_val = (*g)[i];
-      (*v)[i] = (*v)[i] * beta2 + (1.f - beta2) * (g_val * g_val);
-      float scaled_gradient = g_val / (std::sqrt((*v)[i] / bias_v) + eps);
-      (*w)[i] -= learning_rate * scaled_gradient;
+      float v_old = (*v)[i];
+      float g_sq = g_val * g_val;
+      float v_new = v_old * beta2 + (1.f - beta2) * g_sq;
+      (*v)[i] = v_new;
+      float v_corrected = v_new / bias_v;
+      float denom = std::sqrt(v_corrected) + eps;
+      float scaled_gradient = g_val / denom;
+      (*w)[i] = (*w)[i] - learning_rate * scaled_gradient;
     }
   };
 #endif
@@ -85,9 +89,14 @@ private:
 
     for (int i = 0; i < g->size(); i++) {
       float g_val = (*g)[i];
-      (*v)[i] = (*v)[i] * beta2 + (1.0f - beta2) * (g_val * g_val);
-      float scaled_gradient = g_val / (std::sqrt((*v)[i] / bias_v) + eps);
-      (*w)[i] -= learning_rate * scaled_gradient;
+      float v_old = (*v)[i];
+      float g_sq = g_val * g_val;
+      float v_new = v_old * beta2 + (1.0f - beta2) * g_sq;
+      (*v)[i] = v_new;
+      float v_corrected = v_new / bias_v;
+      float denom = std::sqrt(v_corrected) + eps;
+      float scaled_gradient = g_val / denom;
+      (*w)[i] = (*w)[i] - learning_rate * scaled_gradient;
     }
   }
 
@@ -101,7 +110,7 @@ public:
   {
     if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-      RunSimdAVX2(g, v, w, learning_rate, time_step);
+      RunSimdAVX(g, v, w, learning_rate, time_step);
 #endif
     }
     else {
