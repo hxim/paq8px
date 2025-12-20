@@ -1,11 +1,10 @@
-#pragma once
+﻿#pragma once
 
 #include "IOptimizer.hpp"
 #include "../Utils.hpp"
 #include "../Simd.hpp"
 #include <cmath>
 #include <cstddef>  // for ptrdiff_t
-//#define USE_RSQRT
 
 template <SIMDType simd, std::uint16_t B1, uint8_t E1, std::uint16_t B2, uint8_t E2, std::uint16_t C, uint8_t E3>
 class Adam :
@@ -34,10 +33,6 @@ private:
     static __m256 const vec_eps = _mm256_set1_ps(eps);
     static __m256 const vec_beta1_complement = _mm256_set1_ps(1.f - beta1);
     static __m256 const vec_beta2_complement = _mm256_set1_ps(1.f - beta2);
-# ifdef USE_RSQRT
-    static __m256 const vec_three = _mm256_set1_ps(3.f);
-    static __m256 const vec_half = _mm256_set1_ps(0.5f);
-# endif
 
     double const t = static_cast<double>(time_step);
     float const bias_m = 1.f - static_cast<float>(std::pow(beta1, t));
@@ -69,36 +64,7 @@ private:
       vec_vi = _mm256_fmadd_ps(vec_gi, vec_beta2_complement, vec_vi);
       __m256 vec_wi = _mm256_loadu_ps(&(*w)[i]);
       __m256 vec_n = _mm256_add_ps(_mm256_div_ps(vec_vi, vec_bias_v), vec_eps);
-# ifdef USE_RSQRT
-      __m256 vec_rsqrt = _mm256_rsqrt_ps(vec_n);
-      _mm256_storeu_ps(&(*v)[i], vec_vi);
-      // one Newton-Raphson iteration to improve precision
-      vec_rsqrt = _mm256_mul_ps(
-        _mm256_mul_ps(
-          vec_half,
-          vec_rsqrt
-        ),
-        _mm256_fnmadd_ps(
-          _mm256_mul_ps(
-            vec_n,
-            vec_rsqrt
-          ),
-          vec_rsqrt,
-          vec_three
-        )
-      );
-      _mm256_storeu_ps(
-        &(*w)[i],
-        _mm256_fnmadd_ps(
-          vec_lr,
-          _mm256_mul_ps(
-            vec_mi,
-            vec_rsqrt
-          ),
-          vec_wi
-        )
-      );
-# else
+
       _mm256_storeu_ps(&(*v)[i], vec_vi);
       _mm256_storeu_ps(
         &(*w)[i],
@@ -111,7 +77,6 @@ private:
           vec_wi
         )
       );
-# endif
     }
     for (; remainder > 0; remainder--) {
       const size_t i = len - remainder;
