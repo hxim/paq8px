@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "SimdFunctions.hpp"
 #include "IOptimizer.hpp"
@@ -12,7 +12,6 @@ class Layer {
   static_assert(std::is_base_of<IDecay, Decay>::value, "Decay must implement IDecay interface");
 private:
   std::valarray<std::valarray<float>> update;
-  std::valarray<std::valarray<float>> m;
   std::valarray<std::valarray<float>> v;
   std::valarray<std::valarray<float>> transpose;
   std::valarray<std::valarray<float>> norm;
@@ -21,12 +20,10 @@ private:
   
   std::valarray<float> gamma; 
   std::valarray<float> gamma_u; 
-  std::valarray<float> gamma_m; 
   std::valarray<float> gamma_v;
 
   std::valarray<float> beta;
   std::valarray<float> beta_u;
-  std::valarray<float> beta_m;
   std::valarray<float> beta_v;
 
   size_t input_size;
@@ -55,7 +52,6 @@ public:
     size_t const horizon
   ) :
     update(std::valarray<float>(input_size), num_cells),
-    m(std::valarray<float>(input_size), num_cells),
     v(std::valarray<float>(input_size), num_cells),
     transpose(std::valarray<float>(num_cells), input_size - output_size - auxiliary_input_size), //457-256-0 = 201
     norm(std::valarray<float>(num_cells), horizon),
@@ -64,12 +60,10 @@ public:
 
     gamma(1.f, num_cells), 
     gamma_u(num_cells), 
-    gamma_m(num_cells), 
     gamma_v(num_cells),
 
     beta(num_cells),
     beta_u(num_cells), 
-    beta_m(num_cells), 
     beta_v(num_cells),
 
     input_size(input_size), 
@@ -186,9 +180,9 @@ public:
     if (epoch == 0) {
       decay.Apply(learning_rate, time_step);
       for (size_t cell_index = 0; cell_index < num_cells; cell_index++)
-        optimizer.Run(&update[cell_index], &m[cell_index], &v[cell_index], &weights[cell_index], learning_rate, time_step);
-      optimizer.Run(&gamma_u, &gamma_m, &gamma_v, &gamma, learning_rate, time_step);
-      optimizer.Run(&beta_u, &beta_m, &beta_v, &beta, learning_rate, time_step);
+        optimizer.Run(&update[cell_index], &v[cell_index], &weights[cell_index], learning_rate, time_step);
+      optimizer.Run(&gamma_u, &gamma_v, &gamma, learning_rate, time_step);
+      optimizer.Run(&beta_u, &beta_v, &beta, learning_rate, time_step);
     }
   }
 
@@ -202,11 +196,10 @@ public:
     }
     for (size_t i = 0; i < num_cells; i++) {
       error[i] = 0.f;
-      gamma[i] = 1.f, gamma_u[i] = 0.f, gamma_m[i] = 0.f, gamma_v[i] = 0.f;
-      beta[i] = 0.f, beta_u[i] = 0.f, beta_m[i] = 0.f, beta_v[i] = 0.f;
+      gamma[i] = 1.f, gamma_u[i] = 0.f, gamma_v[i] = 0.f;
+      beta[i] = 0.f, beta_u[i] = 0.f, beta_v[i] = 0.f;
       for (size_t j = 0; j < input_size; j++) {
         update[i][j] = 0.f;
-        m[i][j] = 0.f;
         v[i][j] = 0.f;
       }
     }

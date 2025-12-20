@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Layer.hpp"
 #include "Adam.hpp"
@@ -27,9 +27,9 @@ private:
   size_t input_size;
   size_t output_size;
 
-  Layer<simd, Adam<simd, 25, 3, 9999, 4, 1, 6>, Logistic<simd>, PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> forget_gate; // initial learning rate: 7*10^-3; final learning rate = 1*10^-3; decay multiplier: 5*10^-4; power for decay: 1/2 (i.e. sqrt); Steps: 0
-  Layer<simd, Adam<simd, 25, 3, 9999, 4, 1, 6>, Tanh<simd>,     PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> input_node;
-  Layer<simd, Adam<simd, 25, 3, 9999, 4, 1, 6>, Logistic<simd>, PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> output_gate;
+  Layer<simd, Adam<simd, 9999, 4, 1, 6>, Logistic<simd>, PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> forget_gate; // initial learning rate: 7*10^-3; final learning rate = 1*10^-3; decay multiplier: 5*10^-4; power for decay: 1/2 (i.e. sqrt); Steps: 0
+  Layer<simd, Adam<simd, 9999, 4, 1, 6>, Tanh<simd>,     PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> input_node;
+  Layer<simd, Adam<simd, 9999, 4, 1, 6>, Logistic<simd>, PolynomialDecay<7, 3, 1, 3, 5, 4, 1, 2>, T> output_gate;
 
   void Clamp(std::valarray<float>* x) {
     for (size_t i = 0; i < x->size(); i++)
