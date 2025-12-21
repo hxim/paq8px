@@ -18,8 +18,6 @@ private:
     std::valarray<std::valarray<float>> input_gate_state;
     std::valarray<std::valarray<float>> last_state;
     
-    float gradient_clip;
-    
     size_t num_cells;
     size_t epoch;
     size_t horizon;
@@ -30,7 +28,6 @@ private:
     Layer input_node;
     Layer output_gate;
 
-    void Clamp(std::valarray<float>* x);
     static float Rand(float range);
 
 public:
@@ -43,7 +40,6 @@ public:
         size_t output_size,
         size_t num_cells,
         size_t horizon,
-        float gradient_clip,
         float range = 0.4f);
 
     void ForwardPass(

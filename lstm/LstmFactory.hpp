@@ -13,6 +13,5 @@ public:
         size_t num_cells,
         size_t num_layers,
         size_t horizon,
-        float learning_rate,
-        float gradient_clip);
+        float learning_rate);
 };

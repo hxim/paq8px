@@ -6,11 +6,6 @@
 #include "LstmLayer.hpp"
 #include "SimdFunctions.hpp"
 
-void LstmLayer::Clamp(std::valarray<float>* x) {
-    for (size_t i = 0; i < x->size(); i++)
-        (*x)[i] = std::max<float>(std::min<float>(gradient_clip, (*x)[i]), -gradient_clip);
-}
-
 float LstmLayer::Rand(float const range) {
     return ((static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) - 0.5f) * range;
 }
@@ -22,7 +17,6 @@ LstmLayer::LstmLayer(
     size_t const output_size,
     size_t const num_cells,
     size_t const horizon,
-    float const gradient_clip,
     float const range)
     : simd(simdType)
     , state(num_cells)
@@ -31,7 +25,6 @@ LstmLayer::LstmLayer(
     , tanh_state(std::valarray<float>(num_cells), horizon)
     , input_gate_state(std::valarray<float>(num_cells), horizon)
     , last_state(std::valarray<float>(num_cells), horizon)
-    , gradient_clip(gradient_clip)
     , num_cells(num_cells)
     , epoch(0)
     , horizon(horizon)
@@ -124,10 +117,6 @@ void LstmLayer::BackwardPass(
     forget_gate.BackwardPass(input, hidden_error, &stored_error, update_steps, epoch, layer, input_symbol);
     input_node.BackwardPass(input, hidden_error, &stored_error, update_steps, epoch, layer, input_symbol);
     output_gate.BackwardPass(input, hidden_error, &stored_error, update_steps, epoch, layer, input_symbol);
-    
-    Clamp(&state_error);
-    Clamp(&stored_error);
-    Clamp(hidden_error);
 }
 
 void LstmLayer::Reset() {

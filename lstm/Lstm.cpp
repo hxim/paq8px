@@ -129,8 +129,7 @@ void LSTM::Model::SaveToDisk(const char* const dictionary, int32_t bits, int32_t
 Lstm::Lstm(
   SIMDType simdType,
   LSTM::Shape shape,
-  float const learning_rate,
-  float const gradient_clip)
+  float const learning_rate)
   : simd(simdType)
   , layer_input(std::valarray<std::valarray<float>>(std::valarray<float>(shape.input_size + 1 + shape.num_cells * 2), shape.num_layers), shape.horizon)
   , output_layer(std::valarray<std::valarray<float>>(std::valarray<float>(shape.num_cells* shape.num_layers + 1), shape.output_size), shape.horizon)
@@ -164,8 +163,7 @@ Lstm::Lstm(
           input_size,
           output_size,
           num_cells,
-          horizon,
-          gradient_clip
+          horizon
         )
       )
     );

@@ -71,8 +71,7 @@ public:
     Lstm(
         SIMDType simdType,
         LSTM::Shape shape,
-        float learning_rate,
-        float gradient_clip);
+        float learning_rate);
 
     std::valarray<float>& Predict(uint8_t input);
     void Perceive(uint8_t input);
