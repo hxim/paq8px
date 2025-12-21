@@ -53,7 +53,7 @@ rem * Build response file with quoted full paths to *.cpp files
 echo Building source file list...
 > _sources.txt (
   rem Process .cpp files in parent directory and specified subfolders
-  for %%D in (. file filter model text) do (
+  for %%D in (. file filter model text lstm) do (
       for /f "delims=" %%F in ('dir /b /a:-d "%parent_dir%\%%D\*.cpp" 2^>nul') do (
       rem Convert relative path to full path and quote it
       pushd "%parent_dir%\%%D"

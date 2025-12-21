@@ -28,6 +28,9 @@
     <Filter Include="Header Files\lstm">
       <UniqueIdentifier>{73abd1bc-6333-4b69-a064-57ad2414ab30}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lstm">
+      <UniqueIdentifier>{8f5067c9-8034-446b-9c68-459af4204534}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="paq8px.cpp">
@@ -320,6 +323,36 @@
     </ClCompile>
     <ClCompile Include="model\MatchInfo.cpp">
       <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\SimdFunctions.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Activations.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Layer.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmLayer.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\PolynomialDecay.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmFactory.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmModel.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\SimdLstmModel.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Lstm.cpp">
+      <Filter>Source Files\lstm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -650,15 +683,6 @@
     <ClInclude Include="lstm\Adam.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\CosineDecay.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IDecay.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IOptimizer.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\Layer.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
@@ -763,9 +787,6 @@
     </ClInclude>
     <ClInclude Include="StateMapPair.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IActivation.hpp">
-      <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="filter\png.hpp">
       <Filter>filter</Filter>
