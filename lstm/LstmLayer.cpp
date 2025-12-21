@@ -1,9 +1,10 @@
-﻿#include "LstmLayer.hpp"
-#include "SimdFunctions.hpp"
-#include <cmath>
+﻿#include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <cassert>
+
+#include "LstmLayer.hpp"
+#include "SimdFunctions.hpp"
 
 void LstmLayer::Clamp(std::valarray<float>* x) {
     for (size_t i = 0; i < x->size(); i++)
@@ -75,7 +76,8 @@ void LstmLayer::ForwardPass(
         input_gate_state[epoch][i] = 1.0f - forget_gate.state[epoch][i];
         state[i] = state[i] * forget_gate.state[epoch][i] + 
                    input_node.state[epoch][i] * input_gate_state[epoch][i];
-        tanh_state[epoch][i] = tanha(state[i]);
+
+        tanh_state[epoch][i] = tanh_pade_clipped(state[i]);
         (*hidden)[hidden_start + i] = output_gate.state[epoch][i] * tanh_state[epoch][i];
     }
 

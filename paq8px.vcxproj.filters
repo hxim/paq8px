@@ -327,9 +327,6 @@
     <ClCompile Include="lstm\SimdFunctions.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\Activations.cpp">
-      <Filter>Source Files\lstm</Filter>
-    </ClCompile>
     <ClCompile Include="lstm\Adam.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
@@ -677,9 +674,6 @@
     <ClInclude Include="ArithmeticEncoder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\Activations.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\Adam.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
@@ -814,6 +808,9 @@
     </ClInclude>
     <ClInclude Include="model\MatchInfo.hpp">
       <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Posit.hpp">
+      <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

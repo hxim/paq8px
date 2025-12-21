@@ -269,7 +269,6 @@
     <ClCompile Include="Ilog.cpp" />
     <ClCompile Include="IndirectMap.cpp" />
     <ClCompile Include="LargeStationaryMap.cpp" />
-    <ClCompile Include="lstm\Activations.cpp" />
     <ClCompile Include="lstm\Adam.cpp" />
     <ClCompile Include="lstm\Layer.cpp" />
     <ClCompile Include="lstm\Lstm.cpp" />
@@ -413,7 +412,6 @@
     <ClInclude Include="LargeIndirectContext.hpp" />
     <ClInclude Include="LargeStationaryMap.hpp" />
     <ClInclude Include="LMS.hpp" />
-    <ClInclude Include="lstm\Activations.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />
     <ClInclude Include="lstm\Layer.hpp" />
     <ClInclude Include="lstm\Lstm.hpp" />
@@ -421,6 +419,7 @@
     <ClInclude Include="lstm\LstmLayer.hpp" />
     <ClInclude Include="lstm\LstmModel.hpp" />
     <ClInclude Include="lstm\PolynomialDecay.hpp" />
+    <ClInclude Include="lstm\Posit.hpp" />
     <ClInclude Include="lstm\SimdFunctions.hpp" />
     <ClInclude Include="lstm\SimdLstmModel.hpp" />
     <ClInclude Include="Mixer.hpp" />

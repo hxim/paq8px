@@ -83,8 +83,8 @@ void SIMDLstmModel::mix(Mixer& m) {
     
     if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-        num = sum256_ps(&this->probs[this->mid + 1], this->top - this->mid, 0.f);
-        denom = sum256_ps(&this->probs[this->bot], this->mid + 1 - this->bot, num);
+        num = sum256_ps_avx2(&this->probs[this->mid + 1], this->top - this->mid, 0.f);
+        denom = sum256_ps_avx2(&this->probs[this->bot], this->mid + 1 - this->bot, num);
 #endif
     } else {
         num = 0.0f;

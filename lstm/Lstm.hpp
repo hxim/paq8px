@@ -52,6 +52,7 @@ private:
     std::vector<std::unique_ptr<LstmLayer>> layers;
     std::valarray<std::valarray<std::valarray<float>>> layer_input, output_layer;
     std::valarray<std::valarray<float>> output;
+    std::valarray<std::valarray<float>> logits;
     std::valarray<float> hidden, hidden_error;
     std::vector<uint8_t> input_history;
     uint64_t saved_timestep;

@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "Adam.hpp"
-#include "Activations.hpp"
+#include "SimdFunctions.hpp"
 #include "PolynomialDecay.hpp"
 #include "../SIMDType.hpp"
 #include <cstdint>

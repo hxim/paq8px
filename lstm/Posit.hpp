@@ -1,5 +1,4 @@
-#ifndef PAQ8PX_POSIT_HPP
-#define PAQ8PX_POSIT_HPP
+﻿#pragma once
 
 #include "../Clz.hpp"
 
@@ -53,5 +52,3 @@ public:
     return num.f;
   }
 };
-
-#endif //PAQ8PX_POSIT_HPP
