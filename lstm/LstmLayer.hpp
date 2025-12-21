@@ -6,7 +6,6 @@
 #include <vector>
 #include <cstdint>
 
-template <typename T>
 class LstmLayer {
 private:
     SIMDType simd;
@@ -27,9 +26,9 @@ private:
     size_t input_size;
     size_t output_size;
 
-    Layer<T> forget_gate;
-    Layer<T> input_node;
-    Layer<T> output_gate;
+    Layer forget_gate;
+    Layer input_node;
+    Layer output_gate;
 
     void Clamp(std::valarray<float>* x);
     static float Rand(float range);
@@ -49,7 +48,7 @@ public:
 
     void ForwardPass(
         std::valarray<float> const& input,
-        T input_symbol,
+        uint8_t input_symbol,
         std::valarray<float>* hidden,
         size_t hidden_start);
 
@@ -57,7 +56,7 @@ public:
         std::valarray<float> const& input,
         size_t epoch,
         size_t layer,
-        T input_symbol,
+        uint8_t input_symbol,
         std::valarray<float>* hidden_error);
 
     void Reset();

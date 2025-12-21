@@ -1,23 +1,20 @@
-#include "LstmLayer.hpp"
+﻿#include "LstmLayer.hpp"
 #include "SimdFunctions.hpp"
 #include <cmath>
 #include <cstdlib>
 #include <algorithm>
 #include <cassert>
 
-template <typename T>
-void LstmLayer<T>::Clamp(std::valarray<float>* x) {
+void LstmLayer::Clamp(std::valarray<float>* x) {
     for (size_t i = 0; i < x->size(); i++)
         (*x)[i] = std::max<float>(std::min<float>(gradient_clip, (*x)[i]), -gradient_clip);
 }
 
-template <typename T>
-float LstmLayer<T>::Rand(float const range) {
+float LstmLayer::Rand(float const range) {
     return ((static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) - 0.5f) * range;
 }
 
-template <typename T>
-LstmLayer<T>::LstmLayer(
+LstmLayer::LstmLayer(
     SIMDType simdType,
     size_t const input_size,
     size_t const auxiliary_input_size,
@@ -62,10 +59,9 @@ LstmLayer<T>::LstmLayer(
     }
 }
 
-template <typename T>
-void LstmLayer<T>::ForwardPass(
+void LstmLayer::ForwardPass(
     std::valarray<float> const& input,
-    T const input_symbol,
+    uint8_t const input_symbol,
     std::valarray<float>* hidden,
     size_t const hidden_start)
 {
@@ -88,12 +84,11 @@ void LstmLayer<T>::ForwardPass(
         epoch = 0;
 }
 
-template <typename T>
-void LstmLayer<T>::BackwardPass(
+void LstmLayer::BackwardPass(
     std::valarray<float> const& input,
     size_t const epoch,
     size_t const layer,
-    T const input_symbol,
+    uint8_t const input_symbol,
     std::valarray<float>* hidden_error)
 {
     for (size_t i = 0; i < num_cells; i++) {
@@ -133,8 +128,7 @@ void LstmLayer<T>::BackwardPass(
     Clamp(hidden_error);
 }
 
-template <typename T>
-void LstmLayer<T>::Reset() {
+void LstmLayer::Reset() {
     forget_gate.Reset();
     input_node.Reset();
     output_gate.Reset();
@@ -157,16 +151,10 @@ void LstmLayer<T>::Reset() {
     update_steps = 0;
 }
 
-template <typename T>
-std::vector<std::valarray<std::valarray<float>>*> LstmLayer<T>::Weights() {
+std::vector<std::valarray<std::valarray<float>>*> LstmLayer::Weights() {
     std::vector<std::valarray<std::valarray<float>>*> weights;
     weights.push_back(&forget_gate.weights);
     weights.push_back(&input_node.weights);
     weights.push_back(&output_gate.weights);
     return weights;
 }
-
-// Explicit template instantiation
-template class LstmLayer<uint8_t>;
-template class LstmLayer<uint16_t>;
-template class LstmLayer<uint32_t>;

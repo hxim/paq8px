@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "text/TextModel.hpp"
 #include "model/Audio16BitModel.hpp"
@@ -67,15 +67,15 @@ public:
   auto audio16BitModel() -> Audio16BitModel &;
   auto decAlphaModel() -> DECAlphaModel &;
 
-  auto lstmModelText()->LstmModel<>&;
-  auto lstmModelGeneric()->LstmModel<>&;
-  auto lstmModelExe()->LstmModel<>&;
-  auto lstmModelDec()->LstmModel<>&;
-  auto lstmModelAudio8()->LstmModel<>&;
-  auto lstmModelAudio16()->LstmModel<>&;
-  auto lstmModelImage1()->LstmModel<>&;
-  auto lstmModelImage4()->LstmModel<>&;
-  auto lstmModelImage8()->LstmModel<>&;
-  auto lstmModelImage24()->LstmModel<>&;
-  auto lstmModelJpeg()->LstmModel<>&;
+  auto lstmModelText()->LstmModel &;
+  auto lstmModelGeneric()->LstmModel &;
+  auto lstmModelExe()->LstmModel &;
+  auto lstmModelDec()->LstmModel &;
+  auto lstmModelAudio8()->LstmModel &;
+  auto lstmModelAudio16()->LstmModel &;
+  auto lstmModelImage1()->LstmModel &;
+  auto lstmModelImage4()->LstmModel &;
+  auto lstmModelImage8()->LstmModel &;
+  auto lstmModelImage24()->LstmModel &;
+  auto lstmModelJpeg()->LstmModel &;
 };

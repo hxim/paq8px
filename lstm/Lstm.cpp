@@ -123,10 +123,7 @@ void LSTM::Model::SaveToDisk(const char* const dictionary, int32_t bits, int32_t
     file.close();
 }
 
-// Lstm<T> Implementation
-
-template <typename T>
-Lstm<T>::Lstm(
+Lstm::Lstm(
     SIMDType simdType,
     LSTM::Shape shape,
     float const learning_rate,
@@ -156,8 +153,8 @@ Lstm<T>::Lstm(
 
     for (size_t i = 0; i < shape.num_layers; i++) {
         layers.push_back(
-            std::unique_ptr<LstmLayer<T>>(
-                new LstmLayer<T>(
+            std::unique_ptr<LstmLayer>(
+                new LstmLayer(
                     simdType,
                     layer_input[0][i].size() + output_size,
                     input_size,
@@ -173,11 +170,10 @@ Lstm<T>::Lstm(
 
 #ifdef X64_SIMD_AVAILABLE
 
-template <typename T>
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx2,fma")))
 #endif
-void Lstm<T>::SoftMaxSimdAVX2() {
+void Lstm::SoftMaxSimdAVX2() {
     static constexpr size_t SIMDW = 8;
     size_t const limit = output_size & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
     size_t const len = hidden.size();
@@ -206,8 +202,7 @@ void Lstm<T>::SoftMaxSimdAVX2() {
 
 #endif
 
-template <typename T>
-void Lstm<T>::SoftMaxSimdNone() {
+void Lstm::SoftMaxSimdNone() {
     for (size_t i = 0; i < output_size; ++i)
         output[epoch][i] = expa(SumOfProducts(&hidden[0], &output_layer[epoch][i][0], hidden.size()));
     
@@ -219,8 +214,7 @@ void Lstm<T>::SoftMaxSimdNone() {
         output[epoch][i] /= s;
 }
 
-template <typename T>
-std::valarray<float>& Lstm<T>::Predict(T const input) {
+std::valarray<float>& Lstm::Predict(uint8_t const input) {
     for (size_t i = 0; i < layers.size(); i++) {
         memcpy(&layer_input[epoch][i][input_size], &hidden[i * num_cells], num_cells * sizeof(float));
         layers[i]->ForwardPass(layer_input[epoch][i], input, &hidden, i * num_cells);
@@ -244,10 +238,9 @@ std::valarray<float>& Lstm<T>::Predict(T const input) {
     return output[epoch_];
 }
 
-template <typename T>
-void Lstm<T>::Perceive(const T input) {
+void Lstm::Perceive(const uint8_t input) {
     size_t const last_epoch = ((epoch > 0) ? epoch : horizon) - 1;
-    T const old_input = input_history[last_epoch];
+    uint8_t const old_input = input_history[last_epoch];
     input_history[last_epoch] = input;
 
     if (epoch == 0) {
@@ -260,7 +253,7 @@ void Lstm<T>::Perceive(const T input) {
                         hidden_error[j] += output_layer[epoch_][i][j + offset] * error;
                 }
                 size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : horizon) - 1;
-                T const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
+                uint8_t const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
                 layers[layer]->BackwardPass(layer_input[epoch_][layer], epoch_, layer, input_symbol, &hidden_error);
             }
         }
@@ -274,19 +267,16 @@ void Lstm<T>::Perceive(const T input) {
     }
 }
 
-template <typename T>
-uint64_t Lstm<T>::GetCurrentTimeStep() const {
+uint64_t Lstm::GetCurrentTimeStep() const {
     return layers[0]->update_steps;
 }
 
-template <typename T>
-void Lstm<T>::SetTimeStep(uint64_t const t) {
+void Lstm::SetTimeStep(uint64_t const t) {
     for (size_t i = 0; i < layers.size(); i++)
         layers[i]->update_steps = t;
 }
 
-template <typename T>
-void Lstm<T>::Reset() {
+void Lstm::Reset() {
     for (size_t i = 0; i < output_layer.size(); i++) {
         for (size_t j = 0; j < output_size; j++) {
             for (size_t k = 0; k < output_layer[0][j].size(); k++)
@@ -318,8 +308,7 @@ void Lstm<T>::Reset() {
     epoch = 0;
 }
 
-template <typename T>
-void Lstm<T>::LoadModel(LSTM::Model& model) {
+void Lstm::LoadModel(LSTM::Model& model) {
     Reset();
     SetTimeStep(model.timestep);
 
@@ -341,8 +330,7 @@ void Lstm<T>::LoadModel(LSTM::Model& model) {
     }
 }
 
-template <typename T>
-void Lstm<T>::SaveModel(LSTM::Model& model) {
+void Lstm::SaveModel(LSTM::Model& model) {
     model.timestep = GetCurrentTimeStep();
     size_t const last_epoch = ((epoch > 0) ? epoch : horizon) - 1;
     
@@ -361,8 +349,3 @@ void Lstm<T>::SaveModel(LSTM::Model& model) {
         }
     }
 }
-
-// Explicit template instantiation
-template class Lstm<uint8_t>;
-template class Lstm<uint16_t>;
-template class Lstm<uint32_t>;

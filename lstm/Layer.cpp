@@ -1,9 +1,8 @@
-#include "Layer.hpp"
+﻿#include "Layer.hpp"
 #include "SimdFunctions.hpp"
 #include <cstring>
 
-template<typename T>
-Layer<T>::Layer(
+Layer::Layer(
     SIMDType simdType,
     size_t input_size,
     size_t auxiliary_input_size,
@@ -48,10 +47,9 @@ Layer<T>::Layer(
 {
 }
 
-template<typename T>
-void Layer<T>::ForwardPass(
+void Layer::ForwardPass(
     std::valarray<float> const& input,
-    T const input_symbol,
+    uint8_t const input_symbol,
     size_t const epoch)
 {
     for (size_t i = 0; i < num_cells; i++) {
@@ -82,15 +80,14 @@ void Layer<T>::ForwardPass(
     }
 }
 
-template<typename T>
-void Layer<T>::BackwardPass(
+void Layer::BackwardPass(
     std::valarray<float> const& input,
     std::valarray<float>* hidden_error,
     std::valarray<float>* stored_error,
     uint64_t const time_step,
     size_t const epoch,
     size_t const layer,
-    T const input_symbol)
+    uint8_t const input_symbol)
 {
     if (epoch == horizon - 1) {
         memset(&gamma_u[0], 0, num_cells * sizeof(float));
@@ -161,8 +158,7 @@ void Layer<T>::BackwardPass(
     }
 }
 
-template<typename T>
-void Layer<T>::Reset() {
+void Layer::Reset() {
     for (size_t i = 0; i < horizon; i++) {
         inverse_variance[i] = 0.f;
         for (size_t j = 0; j < num_cells; j++) {
@@ -190,8 +186,3 @@ void Layer<T>::Reset() {
             transpose[i][j] = 0.f;
     }
 }
-
-// Explicit template instantiation
-template class Layer<uint8_t>;
-template class Layer<uint16_t>;
-template class Layer<uint32_t>;

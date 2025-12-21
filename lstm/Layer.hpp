@@ -7,7 +7,6 @@
 #include <cstdint>
 #include <valarray>
 
-template<typename T>
 class Layer {
 private:
     SIMDType simd;
@@ -67,7 +66,7 @@ public:
 
     void ForwardPass(
         std::valarray<float> const& input,
-        T input_symbol,
+        uint8_t input_symbol,
         size_t epoch);
 
     void BackwardPass(
@@ -77,7 +76,7 @@ public:
         uint64_t time_step,
         size_t epoch,
         size_t layer,
-        T input_symbol);
+        uint8_t input_symbol);
 
     void Reset();
 };

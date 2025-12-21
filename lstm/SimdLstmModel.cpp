@@ -3,8 +3,7 @@
 #include <cstring>
 #include <algorithm>
 
-template <size_t Bits>
-SIMDLstmModel<Bits>::SIMDLstmModel(
+SIMDLstmModel::SIMDLstmModel(
     const Shared* const sh,
     SIMDType simdType,
     size_t const num_cells,
@@ -12,9 +11,9 @@ SIMDLstmModel<Bits>::SIMDLstmModel(
     size_t const horizon,
     float const learning_rate,
     float const gradient_clip)
-    : LstmModel<Bits>(sh)
+    : LstmModel(sh)
     , simd(simdType)
-    , shape{ 0, this->Size, num_cells, num_layers, horizon }
+    , shape{ 0, this->alphabetSize, num_cells, num_layers, horizon }
     , lstm(simdType, shape, learning_rate, gradient_clip)
     , modelType(LSTM::Model::Type::Default)
     , pModelType(LSTM::Model::Type::Default)
@@ -32,8 +31,7 @@ SIMDLstmModel<Bits>::SIMDLstmModel(
     }
 }
 
-template <size_t Bits>
-void SIMDLstmModel<Bits>::mix(Mixer& m) {
+void SIMDLstmModel::mix(Mixer& m) {
     uint8_t const bpos = this->shared->State.bitPosition;
     uint8_t const y = this->shared->State.y;
     uint8_t const c0 = this->shared->State.c0;
@@ -47,8 +45,8 @@ void SIMDLstmModel<Bits>::mix(Mixer& m) {
         uint8_t const c1 = this->shared->State.c1;
         lstm.Perceive(c1);
         auto const& output = lstm.Predict(c1);
-        memcpy(&this->probs[0], &output[0], (1 << Bits) * sizeof(float));
-        this->top = (1 << Bits) - 1;
+        memcpy(&this->probs[0], &output[0], this->alphabetSize * sizeof(float));
+        this->top = this->alphabetSize - 1;
         this->bot = 0;
         
         if ((this->shared->GetOptionTrainLSTM()) && (this->shared->State.blockPos == 0)) {
@@ -127,7 +125,3 @@ void SIMDLstmModel<Bits>::mix(Mixer& m) {
     m.set((bpos << 8) | this->expected, 8 * 256);
     m.set(static_cast<uint32_t>(lstm.epoch) << 3 | bpos, 100 * 8);
 }
-
-// Explicit template instantiation
-template class SIMDLstmModel<8>;
-template class SIMDLstmModel<16>;

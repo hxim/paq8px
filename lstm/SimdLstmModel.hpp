@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "LstmModel.hpp"
 #include "Lstm.hpp"
@@ -11,12 +11,11 @@
 #include "../Shared.hpp"
 #include "../SIMDType.hpp"
 
-template <size_t Bits = 8>
-class SIMDLstmModel : public LstmModel<Bits> {
+class SIMDLstmModel : public LstmModel {
 private:  
     SIMDType simd;
     LSTM::Shape shape;
-    Lstm<uint8_t> lstm;
+    Lstm lstm;
     LSTM::Repository repo;
     LSTM::Model::Type modelType, pModelType;
     BlockType pBlockType;

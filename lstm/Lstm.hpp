@@ -46,15 +46,14 @@ namespace LSTM {
     using Repository = typename std::unordered_map<LSTM::Model::Type, std::unique_ptr<LSTM::Model>>;
 }
 
-template <typename T>
 class Lstm {
 private:
     SIMDType simd;
-    std::vector<std::unique_ptr<LstmLayer<T>>> layers;
+    std::vector<std::unique_ptr<LstmLayer>> layers;
     std::valarray<std::valarray<std::valarray<float>>> layer_input, output_layer;
     std::valarray<std::valarray<float>> output;
     std::valarray<float> hidden, hidden_error;
-    std::vector<T> input_history;
+    std::vector<uint8_t> input_history;
     uint64_t saved_timestep;
     float learning_rate;
     size_t num_cells, horizon, input_size, output_size;
@@ -74,8 +73,8 @@ public:
         float learning_rate,
         float gradient_clip);
 
-    std::valarray<float>& Predict(T input);
-    void Perceive(T input);
+    std::valarray<float>& Predict(uint8_t input);
+    void Perceive(uint8_t input);
     uint64_t GetCurrentTimeStep() const;
     void SetTimeStep(uint64_t t);
     void Reset();

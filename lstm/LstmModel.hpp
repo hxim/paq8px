@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../Shared.hpp"
 #include "../Mixer.hpp"
@@ -7,13 +7,12 @@
 #include <valarray>
 #include <cstdint>
 
-template <size_t Bits = 8>
 class LstmModel {
 public:
     static constexpr int MIXERINPUTS = 5;
     static constexpr int MIXERCONTEXTS = 8 * 256 + 8 * 100;
     static constexpr int MIXERCONTEXTSETS = 2;
-    static constexpr size_t Size = 1u << Bits;
+    static constexpr size_t alphabetSize = 1llu << 8;
 
 protected:  
     const Shared* const shared;
