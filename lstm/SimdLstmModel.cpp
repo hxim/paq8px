@@ -12,7 +12,7 @@ SIMDLstmModel::SIMDLstmModel(
     float const learning_rate)
     : LstmModel(sh)
     , simd(simdType)
-    , shape{ 0, this->alphabetSize, num_cells, num_layers, horizon }
+    , shape{ this->alphabetSize, num_cells, num_layers, horizon }
     , lstm(simdType, shape, learning_rate)
     , modelType(LSTM::Model::Type::Default)
     , pModelType(LSTM::Model::Type::Default)

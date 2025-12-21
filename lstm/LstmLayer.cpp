@@ -13,7 +13,6 @@ float LstmLayer::Rand(float const range) {
 LstmLayer::LstmLayer(
     SIMDType simdType,
     size_t const input_size,
-    size_t const auxiliary_input_size,
     size_t const output_size,
     size_t const num_cells,
     size_t const horizon,
@@ -28,13 +27,11 @@ LstmLayer::LstmLayer(
     , num_cells(num_cells)
     , epoch(0)
     , horizon(horizon)
-    , input_size(auxiliary_input_size)
-    , output_size(output_size)
-    , forget_gate(simdType, input_size, auxiliary_input_size, output_size, num_cells, horizon,
+    , forget_gate(simdType, input_size, output_size, num_cells, horizon,
                   false, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
-    , input_node(simdType, input_size, auxiliary_input_size, output_size, num_cells, horizon,
+    , input_node(simdType, input_size, output_size, num_cells, horizon,
                  true, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
-    , output_gate(simdType, input_size, auxiliary_input_size, output_size, num_cells, horizon,
+    , output_gate(simdType, input_size, output_size, num_cells, horizon,
                   false, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
     , update_steps(0)
 {

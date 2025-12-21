@@ -5,7 +5,6 @@
 Layer::Layer(
   SIMDType simdType,
   size_t input_size,
-  size_t auxiliary_input_size,
   size_t output_size,
   size_t num_cells,
   size_t horizon,
@@ -21,7 +20,7 @@ Layer::Layer(
   : simd(simdType)
   , update(std::valarray<float>(input_size), num_cells)
   , v(std::valarray<float>(input_size), num_cells)
-  , transpose(std::valarray<float>(num_cells), input_size - output_size - auxiliary_input_size)
+  , transpose(std::valarray<float>(num_cells), input_size - output_size)
   , norm(std::valarray<float>(num_cells), horizon)
   , inverse_variance(horizon)
   , gamma(1.f, num_cells)
@@ -31,7 +30,6 @@ Layer::Layer(
   , beta_u(num_cells)
   , beta_v(num_cells)
   , input_size(input_size)
-  , auxiliary_input_size(auxiliary_input_size)
   , output_size(output_size)
   , num_cells(num_cells)
   , horizon(horizon)
@@ -97,7 +95,7 @@ void Layer::BackwardPass(
 
     for (size_t i = 0; i < num_cells; i++) {
       memset(&update[i][0], 0, input_size * sizeof(float));
-      size_t offset = output_size + auxiliary_input_size;
+      size_t offset = output_size;
       for (size_t j = 0; j < transpose.size(); j++)
         transpose[j][i] = weights[i][j + offset];
     }

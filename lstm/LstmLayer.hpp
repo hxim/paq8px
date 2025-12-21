@@ -21,8 +21,6 @@ private:
     size_t num_cells;
     size_t epoch;
     size_t horizon;
-    size_t input_size;
-    size_t output_size;
 
     Layer forget_gate;
     Layer input_node;
@@ -36,7 +34,6 @@ public:
     LstmLayer(
         SIMDType simdType,
         size_t input_size,
-        size_t auxiliary_input_size,
         size_t output_size,
         size_t num_cells,
         size_t horizon,

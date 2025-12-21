@@ -16,7 +16,7 @@ LSTM::Model::Model(LSTM::Shape const shape)
     for (size_t j = 0; j < 3; j++) {
       (*weights[i])[j].resize(shape.num_cells);
       for (size_t k = 0; k < shape.num_cells; k++)
-        (*weights[i])[j][k].resize(1 + shape.input_size + shape.num_cells * (i > 0 ? 2 : 1) + shape.output_size);
+        (*weights[i])[j][k].resize(1 + shape.num_cells * (i > 0 ? 2 : 1) + shape.output_size);
     }
   }
 }
@@ -131,7 +131,7 @@ Lstm::Lstm(
   LSTM::Shape shape,
   float const learning_rate)
   : simd(simdType)
-  , layer_input(std::valarray<std::valarray<float>>(std::valarray<float>(shape.input_size + 1 + shape.num_cells * 2), shape.num_layers), shape.horizon)
+  , layer_input(std::valarray<std::valarray<float>>(std::valarray<float>(1 + shape.num_cells * 2), shape.num_layers), shape.horizon)
   , output_layer(std::valarray<std::valarray<float>>(std::valarray<float>(shape.num_cells* shape.num_layers + 1), shape.output_size), shape.horizon)
   , output(std::valarray<float>(1.0f / shape.output_size, shape.output_size), shape.horizon)
   , logits(std::valarray<float>(shape.output_size), shape.horizon)
@@ -142,14 +142,13 @@ Lstm::Lstm(
   , learning_rate(learning_rate)
   , num_cells(shape.num_cells)
   , horizon(shape.horizon)
-  , input_size(shape.input_size)
   , output_size(shape.output_size)
   , epoch(0)
 {
   hidden[hidden.size() - 1] = 1.f; // bias
 
   for (size_t epoch = 0; epoch < horizon; epoch++) {
-    layer_input[epoch][0].resize(1 + num_cells + input_size);
+    layer_input[epoch][0].resize(1 + num_cells);
     for (size_t i = 0; i < shape.num_layers; i++)
       layer_input[epoch][i][layer_input[epoch][i].size() - 1] = 1.f; // bias
   }
@@ -160,7 +159,6 @@ Lstm::Lstm(
         new LstmLayer(
           simdType,
           layer_input[0][i].size() + output_size,
-          input_size,
           output_size,
           num_cells,
           horizon
@@ -215,10 +213,10 @@ void Lstm::SoftMaxSimdNone() {
 
 std::valarray<float>& Lstm::Predict(uint8_t const input) {
   for (size_t i = 0; i < layers.size(); i++) {
-    memcpy(&layer_input[epoch][i][input_size], &hidden[i * num_cells], num_cells * sizeof(float));
+    memcpy(&layer_input[epoch][i][0], &hidden[i * num_cells], num_cells * sizeof(float));
     layers[i]->ForwardPass(layer_input[epoch][i], input, &hidden, i * num_cells);
     if (i < layers.size() - 1) {
-      memcpy(&layer_input[epoch][i + 1][num_cells + input_size], &hidden[i * num_cells], num_cells * sizeof(float));
+      memcpy(&layer_input[epoch][i + 1][num_cells], &hidden[i * num_cells], num_cells * sizeof(float));
     }
   }
 

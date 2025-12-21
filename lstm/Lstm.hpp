@@ -17,7 +17,6 @@
 
 namespace LSTM {
     struct Shape {
-        size_t input_size;
         size_t output_size;
         size_t num_cells;
         size_t num_layers;

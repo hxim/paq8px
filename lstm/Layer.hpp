@@ -27,7 +27,6 @@ private:
     std::valarray<float> beta_v;
 
     size_t input_size;
-    size_t auxiliary_input_size;
     size_t output_size;
     size_t num_cells;
     size_t horizon;
@@ -49,7 +48,6 @@ public:
     Layer(
         SIMDType simdType,
         size_t input_size,
-        size_t auxiliary_input_size,
         size_t output_size,
         size_t num_cells,
         size_t horizon,
