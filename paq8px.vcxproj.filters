@@ -351,6 +351,12 @@
     <ClCompile Include="lstm\Lstm.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
+    <ClCompile Include="lstm\Adam_AVX.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam_Scalar.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -810,6 +816,12 @@
       <Filter>model</Filter>
     </ClInclude>
     <ClInclude Include="lstm\Posit.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Adam_AVX.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Adam_Scalar.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>

@@ -1,40 +1,21 @@
 ﻿#pragma once
 
+#include "../Array.hpp"
 #include "../Utils.hpp"
-#include "../SIMDType.hpp"
 #include <cstdint>
-#include <valarray>
 
 class Adam {
-private:
-    SIMDType simd;
-    float beta2;
-    float eps;
-
-#ifdef X64_SIMD_AVAILABLE
-    void RunSimdAVX(
-        std::valarray<float>* g,
-        std::valarray<float>* v,
-        std::valarray<float>* w,
-        float learning_rate,
-        uint64_t time_step) const;
-#endif
-
-    void RunSimdNone(
-        std::valarray<float>* g,
-        std::valarray<float>* v,
-        std::valarray<float>* w,
-        float learning_rate,
-        uint64_t time_step) const;
+protected:
+  size_t length;
+  float* w;
+  float* g;
+  Array<float, 32> v;
+  float beta2;
+  float eps;
 
 public:
-    Adam(SIMDType simdType, float beta2Value, float epsilon);
-    ~Adam() = default;
-    
-    void Run(
-        std::valarray<float>* g,
-        std::valarray<float>* v,
-        std::valarray<float>* w,
-        float learning_rate,
-        uint64_t time_step) const;
+  Adam(size_t length, float* w, float* g, float beta2, float epsilon);
+  ~Adam() = default;
+
+  virtual void Optimize(float learning_rate, uint64_t time_step) = 0;
 };

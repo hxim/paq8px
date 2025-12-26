@@ -1,80 +1,85 @@
 ﻿#pragma once
 
 #include "Adam.hpp"
+#include "Adam_Scalar.hpp"
+#ifdef X64_SIMD_AVAILABLE
+#include "Adam_AVX.hpp"
+#endif
 #include "SimdFunctions.hpp"
 #include "PolynomialDecay.hpp"
 #include "../SIMDType.hpp"
+#include "../Array.hpp"
 #include <cstdint>
-#include <valarray>
+#include <memory>
 
 class Layer {
-private:
-    SIMDType simd;
-    
-    std::valarray<std::valarray<float>> update;
-    std::valarray<std::valarray<float>> v;
-    std::valarray<std::valarray<float>> transpose;
-    std::valarray<std::valarray<float>> norm;
-    
-    std::valarray<float> inverse_variance;
-    
-    std::valarray<float> gamma; 
-    std::valarray<float> gamma_u; 
-    std::valarray<float> gamma_v;
-
-    std::valarray<float> beta;
-    std::valarray<float> beta_u;
-    std::valarray<float> beta_v;
-
-    size_t input_size;
-    size_t output_size;
-    size_t num_cells;
-    size_t horizon;
-
-    float learning_rate;
-
-    Adam optimizer;
-    Tanh activation_tanh;
-    Logistic activation_logistic;
-    PolynomialDecay decay;
-    
-    bool use_tanh; // true for Tanh, false for Logistic
-
 public:
-    std::valarray<std::valarray<float>> weights;
-    std::valarray<std::valarray<float>> state;
-    std::valarray<float> error;
+  SIMDType simd;
 
-    Layer(
-        SIMDType simdType,
-        size_t input_size,
-        size_t output_size,
-        size_t num_cells,
-        size_t horizon,
-        bool useTanh,
-        float beta2,
-        float epsilon,
-        float learningRate,
-        float endLearningRate,
-        float decayMultiplier,
-        float powerNumerator,
-        float powerDenominator,
-        uint64_t decaySteps = 0
-    );
+  Array<float, 32> weights;        // Flat: [num_cells * input_size]
+  Array<float, 32> update;         // Flat: [num_cells * input_size]
 
-    void ForwardPass(
-        std::valarray<float> const& input,
-        uint8_t input_symbol,
-        size_t epoch);
+  Array<float, 32> transpose;      // Flat: [(input_size - output_size) * num_cells]
+  Array<float, 32> norm;           // Flat: [horizon * num_cells]
+  Array<float, 32> state;          // Flat: [horizon * num_cells]
 
-    void BackwardPass(
-        std::valarray<float> const& input,
-        std::valarray<float>* hidden_error,
-        std::valarray<float>* stored_error,
-        uint64_t time_step,
-        size_t epoch,
-        size_t layer,
-        uint8_t input_symbol);
+  Array<float, 32> inverse_variance;
 
-    void Reset();
+  Array<float, 32> gamma;
+  Array<float, 32> gamma_u;
+
+  Array<float, 32> beta;
+  Array<float, 32> beta_u;
+
+  Array<float, 32> error;
+
+  size_t input_size;
+  size_t output_size;
+  size_t num_cells;
+  size_t horizon;
+
+  float learning_rate;
+
+  std::unique_ptr<Adam> weights_optimizer;
+  std::unique_ptr<Adam> gamma_optimizer;
+  std::unique_ptr<Adam> beta_optimizer;
+
+  Tanh activation_tanh;
+  Logistic activation_logistic;
+  PolynomialDecay decay;
+
+  bool use_tanh; // true for Tanh, false for Logistic
+
+  Layer(
+    SIMDType simdType,
+    size_t input_size,
+    size_t output_size,
+    size_t num_cells,
+    size_t horizon,
+    bool useTanh,
+    float beta2,
+    float epsilon,
+    float learningRate,
+    float endLearningRate,
+    float decayMultiplier,
+    float powerNumerator,
+    float powerDenominator,
+    uint64_t decaySteps = 0
+  );
+
+  void ForwardPass(
+    const Array<float, 32>& input,
+    uint8_t input_symbol,
+    size_t epoch);
+
+  void BackwardPass(
+    const Array<float, 32>& input,
+    Array<float, 32>* hidden_error,
+    Array<float, 32>* stored_error,
+    uint64_t time_step,
+    size_t epoch,
+    size_t layer,
+    uint8_t input_symbol);
+
+  void Reset();
 };
