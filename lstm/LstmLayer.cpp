@@ -13,27 +13,66 @@ float LstmLayer::Rand(float const range) {
 
 LstmLayer::LstmLayer(
   SIMDType simdType,
-  size_t const input_size,
-  size_t const output_size,
-  size_t const num_cells,
-  size_t const horizon,
+  size_t const input_size,       // Layer 0: 457, Layer 1: 657
+  size_t const output_size,      // 256
+  size_t const num_cells,        // 200
+  size_t const horizon,          // 100
   float const range)
   : simd(simdType)
-  , state(num_cells)
-  , state_error(num_cells)
-  , stored_error(num_cells)
-  , tanh_state(horizon * num_cells)
-  , input_gate_state(horizon * num_cells)
-  , last_state(horizon * num_cells)
-  , num_cells(num_cells)
+  , state(num_cells)             // 200
+  , state_error(num_cells)       // 200
+  , stored_error(num_cells)      // 200
+  , tanh_state(horizon* num_cells)       // 100 * 200 = 20,000
+  , input_gate_state(horizon* num_cells) // 100 * 200 = 20,000
+  , last_state(horizon* num_cells)       // 100 * 200 = 20,000
+  , num_cells(num_cells)         // 200
   , epoch(0)
-  , horizon(horizon)
-  , forget_gate(simdType, input_size, output_size, num_cells, horizon,
-    false, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
-  , input_node(simdType, input_size, output_size, num_cells, horizon,
-    true, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
-  , output_gate(simdType, input_size, output_size, num_cells, horizon,
-    false, 0.9999f, 1e-6f, 0.007f, 0.001f, 0.0005f, 1.0f, 2.0f, 0)
+  , horizon(horizon)             // 100
+  , forget_gate(
+    simdType,
+    input_size,                // Layer 0: 457, Layer 1: 657
+    output_size,               // 256
+    num_cells,                 // 200
+    horizon,                   // 100
+    false,                     // useTanh
+    0.9999f,                   // beta2
+    1e-6f,                     // epsilon
+    0.007f,                    // learningRate
+    0.001f,                    // endLearningRate
+    0.0005f,                   // decayMultiplier
+    1.0f,                      // powerNumerator
+    2.0f,                      // powerDenominator
+    0)                         // decaySteps
+  , input_node(
+    simdType,
+    input_size,                // Layer 0: 457, Layer 1: 657
+    output_size,               // 256
+    num_cells,                 // 200
+    horizon,                   // 100
+    true,                      // useTanh
+    0.9999f,                   // beta2
+    1e-6f,                     // epsilon
+    0.007f,                    // learningRate
+    0.001f,                    // endLearningRate
+    0.0005f,                   // decayMultiplier
+    1.0f,                      // powerNumerator
+    2.0f,                      // powerDenominator
+    0)                         // decaySteps
+  , output_gate(
+    simdType,
+    input_size,                // Layer 0: 457, Layer 1: 657
+    output_size,               // 256
+    num_cells,                 // 200
+    horizon,                   // 100
+    false,                     // useTanh
+    0.9999f,                   // beta2
+    1e-6f,                     // epsilon
+    0.007f,                    // learningRate
+    0.001f,                    // endLearningRate
+    0.0005f,                   // decayMultiplier
+    1.0f,                      // powerNumerator
+    2.0f,                      // powerDenominator
+    0)                         // decaySteps
   , update_steps(0)
 {
   // Set random weights for each gate
@@ -42,17 +81,17 @@ LstmLayer::LstmLayer(
   float* output_w = &output_gate.weights[0];
 
   size_t idx = 0;
-  for (size_t i = 0; i < num_cells; i++) {
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
 
     // Set random weights for each gate
-    for (size_t j = 0; j < input_size; j++) {
+    for (size_t j = 0; j < input_size; j++) {       // Layer 0: 457, Layer 1: 657
       forget_w[idx + j] = Rand(range);
       input_w[idx + j] = Rand(range);
       output_w[idx + j] = Rand(range);
     }
 
-    forget_w[idx + input_size - 1] = 1.f; // bias
-    idx += input_size;
+    forget_w[idx + input_size - 1] = 1.f;           // bias (Layer 0: idx+456, Layer 1: idx+656)
+    idx += input_size;                              // Layer 0: += 457, Layer 1: += 657
   }
 
 }
@@ -63,23 +102,32 @@ void LstmLayer::ForwardPass(
   Array<float, 32>* hidden,
   size_t const hidden_start)
 {
-  const size_t ebase = epoch * num_cells;
+  const size_t ebase = epoch * num_cells;            // epoch * 200
 
   float* fg_state = &forget_gate.state[0];
   float* ig_state = &input_node.state[0];
   float* og_state = &output_gate.state[0];
 
   // Copy current state to last_state for this epoch
-  for (size_t i = 0; i < num_cells; i++) {
-    last_state[ebase + i] = state[i];
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
+    last_state[ebase + i] = state[i];               // last_state[epoch*200 + i]
   }
 
-  forget_gate.ForwardPass(input, input_symbol, epoch);
-  input_node.ForwardPass(input, input_symbol, epoch);
-  output_gate.ForwardPass(input, input_symbol, epoch);
+  forget_gate.ForwardPass(
+    input,
+    input_symbol,
+    epoch);
+  input_node.ForwardPass(
+    input,
+    input_symbol,
+    epoch);
+  output_gate.ForwardPass(
+    input,
+    input_symbol,
+    epoch);
 
-  for (size_t i = 0; i < num_cells; i++) {
-    const size_t idx = ebase + i;
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
+    const size_t idx = ebase + i;                   // epoch*200 + i
 
     const float forget = fg_state[idx];
     const float inputv = ig_state[idx];
@@ -97,7 +145,7 @@ void LstmLayer::ForwardPass(
   }
 
   epoch++;
-  if (epoch == horizon)
+  if (epoch == horizon)                              // if epoch == 100
     epoch = 0;
 }
 
@@ -110,7 +158,7 @@ void LstmLayer::BackwardPass(
   uint8_t const input_symbol,
   Array<float, 32>* hidden_error)
 {
-  const size_t ebase = epoch * num_cells;
+  const size_t ebase = epoch * num_cells;            // epoch * 200
 
   float* fg_state = &forget_gate.state[0];
   float* ig_state = &input_node.state[0];
@@ -120,10 +168,10 @@ void LstmLayer::BackwardPass(
   float* ig_error = &input_node.error[0];
   float* og_error = &output_gate.error[0];
 
-  for (size_t i = 0; i < num_cells; i++) {
-    const size_t idx = ebase + i;
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
+    const size_t idx = ebase + i;                   // epoch*200 + i
 
-    if (epoch == horizon - 1) {
+    if (epoch == horizon - 1) {                     // if epoch == 99
       stored_error[i] = (*hidden_error)[i];
       state_error[i] = 0.0f;
     }
@@ -165,12 +213,30 @@ void LstmLayer::BackwardPass(
   if (epoch == 0)
     update_steps++;
 
-  forget_gate.BackwardPass(input, hidden_error, &stored_error,
-    update_steps, epoch, layer, input_symbol);
-  input_node.BackwardPass(input, hidden_error, &stored_error,
-    update_steps, epoch, layer, input_symbol);
-  output_gate.BackwardPass(input, hidden_error, &stored_error,
-    update_steps, epoch, layer, input_symbol);
+  forget_gate.BackwardPass(
+    input,
+    hidden_error,
+    &stored_error,
+    update_steps,
+    epoch,
+    layer,
+    input_symbol);
+  input_node.BackwardPass(
+    input,
+    hidden_error,
+    &stored_error,
+    update_steps,
+    epoch,
+    layer,
+    input_symbol);
+  output_gate.BackwardPass(
+    input,
+    hidden_error,
+    &stored_error,
+    update_steps,
+    epoch,
+    layer,
+    input_symbol);
 }
 
 
@@ -180,12 +246,30 @@ void LstmLayer::Reset() {
   input_node.Reset();
   output_gate.Reset();
 
-  memset(&tanh_state[0], 0, horizon * num_cells * sizeof(float));
-  memset(&input_gate_state[0], 0, horizon * num_cells * sizeof(float));
-  memset(&last_state[0], 0, horizon * num_cells * sizeof(float));
-  memset(&state[0], 0, num_cells * sizeof(float));
-  memset(&state_error[0], 0, num_cells * sizeof(float));
-  memset(&stored_error[0], 0, num_cells * sizeof(float));
+  memset(
+    &tanh_state[0],
+    0,
+    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
+  memset(
+    &input_gate_state[0],
+    0,
+    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
+  memset(
+    &last_state[0],
+    0,
+    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
+  memset(
+    &state[0],
+    0,
+    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
+  memset(
+    &state_error[0],
+    0,
+    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
+  memset(
+    &stored_error[0],
+    0,
+    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
 
   epoch = 0;
   update_steps = 0;
@@ -196,6 +280,6 @@ LstmLayer::WeightArrays LstmLayer::GetWeights() {
   arrays.forget_gate_weights = &forget_gate.weights[0];
   arrays.input_node_weights = &input_node.weights[0];
   arrays.output_gate_weights = &output_gate.weights[0];
-  arrays.size_per_gate = forget_gate.weights.size();
+  arrays.size_per_gate = forget_gate.weights.size(); // Layer 0: 91,400, Layer 1: 131,400
   return arrays;
 }

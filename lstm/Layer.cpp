@@ -4,10 +4,10 @@
 
 Layer::Layer(
   SIMDType simdType,
-  size_t input_size,
-  size_t output_size,
-  size_t num_cells,
-  size_t horizon,
+  size_t input_size,      // Layer 0: 257 (1 bias + 0*200 + 256 output_size), Layer 1: 657 (1 bias + 2*200 + 256)
+  size_t output_size,     // 256
+  size_t num_cells,       // 200
+  size_t horizon,         // 100
   bool useTanh,
   float beta2,
   float epsilon,
@@ -18,17 +18,17 @@ Layer::Layer(
   float powerDenominator,
   uint64_t decaySteps)
   : simd(simdType)
-  , weights(num_cells * input_size)
-  , update(num_cells * input_size)
-  , transpose((input_size - output_size) * num_cells)
-  , norm(horizon * num_cells)
-  , state(horizon * num_cells)
-  , inverse_variance(horizon)
-  , gamma(num_cells)
-  , gamma_u(num_cells)
-  , beta(num_cells)
-  , beta_u(num_cells)
-  , error(num_cells)
+  , weights(num_cells * input_size) // Layer 0: 200*257=51,400, Layer 1: 200*657=131,400
+  , update(num_cells * input_size)  // Layer 0: 200*257=51,400, Layer 1: 200*657=131,400
+  , transpose((input_size - output_size) * num_cells) // Layer 0: (257-256)*200=200, Layer 1: (657-256)*200=80,200
+  , norm(horizon * num_cells)       // 100*200=20,000
+  , state(horizon * num_cells)      // 100*200=20,000
+  , inverse_variance(horizon)       // 100
+  , gamma(num_cells)                // 200
+  , gamma_u(num_cells)              // 200
+  , beta(num_cells)                 // 200 (RMSNorm bias)
+  , beta_u(num_cells)               // 200 (RMSNorm bias update)
+  , error(num_cells)                // 200
   , input_size(input_size)
   , output_size(output_size)
   , num_cells(num_cells)
@@ -40,28 +40,28 @@ Layer::Layer(
   , use_tanh(useTanh)
 {
   // Initialize gamma to 1.0
-  for (size_t i = 0; i < num_cells; i++) {
+  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     gamma[i] = 1.f;
   }
 
 #ifdef X64_SIMD_AVAILABLE
   if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
     weights_optimizer = std::make_unique<Adam_AVX>(
-      num_cells * input_size,
+      num_cells * input_size,     // Layer 0: 51,400, Layer 1: 131,400
       &weights[0],
       &update[0],
       beta2,
       epsilon
     );
     gamma_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,
+      num_cells,                  // 200
       &gamma[0],
       &gamma_u[0],
       beta2,
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,
+      num_cells,                  // 200 (bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -72,21 +72,21 @@ Layer::Layer(
 #endif
   {
     weights_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells * input_size,
+      num_cells * input_size,     // Layer 0: 51,400, Layer 1: 131,400
       &weights[0],
       &update[0],
       beta2,
       epsilon
     );
     gamma_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,
+      num_cells,                  // 200
       &gamma[0],
       &gamma_u[0],
       beta2,
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,
+      num_cells,                  // 200 (bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -100,16 +100,16 @@ void Layer::ForwardPass(
   uint8_t const input_symbol,
   size_t const epoch)
 {
-  float* norm_epoch = &norm[epoch * num_cells];
-  float* state_epoch = &state[epoch * num_cells];
+  float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
+  float* state_epoch = &state[epoch * num_cells]; // epoch * 200
 
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-    for (size_t i = 0; i < num_cells; i++) {
-      float* w = &weights[i * input_size];
+    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+      float* w = &weights[i * input_size]; // i * (257 or 657)
       norm_epoch[i] = dot256_ps_avx2(
         &input[0],
-        w + output_size,
+        w + output_size,          // w + 256
         input.size(),
         w[input_symbol]
       );
@@ -117,31 +117,38 @@ void Layer::ForwardPass(
   }
 #endif
   else {
-    for (size_t i = 0; i < num_cells; i++) {
-      float* w = &weights[i * input_size];
+    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+      float* w = &weights[i * input_size]; // i * (257 or 657)
       float f = w[input_symbol];
-      float* wj = w + output_size;
+      float* wj = w + output_size;        // w + 256
       for (size_t j = 0; j < input.size(); j++)
         f += input[j] * wj[j];
       norm_epoch[i] = f;
     }
   }
 
-  const float ss = SumOfSquares(norm_epoch, num_cells);
-  inverse_variance[epoch] = 1.f / std::sqrt(ss / num_cells + 1e-5f);
+  const float ss = SumOfSquares(
+    norm_epoch,
+    num_cells);                         // 200
+
+  inverse_variance[epoch] = 1.f / std::sqrt(ss / num_cells + 1e-5f); // 1.f / sqrt(ss / 200 + 1e-5f)
 
   const float inv = inverse_variance[epoch];
-  for (size_t i = 0; i < num_cells; i++) {
+  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     float n = norm_epoch[i] * inv;
     norm_epoch[i] = n;
     state_epoch[i] = n * gamma[i] + beta[i];
   }
 
   if (use_tanh) {
-    activation_tanh.Run(state_epoch, num_cells);
+    activation_tanh.Run(
+      state_epoch,
+      num_cells);                       // 200
   }
   else {
-    activation_logistic.Run(state_epoch, num_cells);
+    activation_logistic.Run(
+      state_epoch,
+      num_cells);                       // 200
   }
 }
 
@@ -154,45 +161,62 @@ void Layer::BackwardPass(
   size_t const layer,
   uint8_t const input_symbol)
 {
-  if (epoch == horizon - 1) {
-    memset(&gamma_u[0], 0, num_cells * sizeof(float));
-    memset(&beta_u[0], 0, num_cells * sizeof(float));
-    memset(&update[0], 0, num_cells * input_size * sizeof(float));
+  if (epoch == horizon - 1) {             // epoch == 99
+    memset(
+      &gamma_u[0],
+      0,
+      num_cells * sizeof(float));       // 200 * 4 = 800 bytes
+    memset(
+      &beta_u[0],
+      0,
+      num_cells * sizeof(float));       // 200 * 4 = 800 bytes
+    memset(
+      &update[0],
+      0,
+      num_cells * input_size * sizeof(float)); // Layer 0: 51,400*4=205,600 bytes, Layer 1: 131,400*4=525,600 bytes
 
     // Build transpose
-    const size_t rows = transpose.size() / num_cells;
-    for (size_t i = 0; i < num_cells; i++) {
-      float* w = &weights[i * input_size + output_size];
+    const size_t rows = transpose.size() / num_cells; // Layer 0: 200/200=1, Layer 1: 80,200/200=401
+    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+      float* w = &weights[i * input_size + output_size]; // &weights[i * (257 or 657) + 256]
       float* t = &transpose[i];
-      for (size_t j = 0; j < rows; j++)
-        t[j * num_cells] = w[j];
+      for (size_t j = 0; j < rows; j++)   // Layer 0: 1 iteration, Layer 1: 401 iterations
+        t[j * num_cells] = w[j];          // t[j * 200] = w[j]
     }
   }
 
-  float* norm_epoch = &norm[epoch * num_cells];
+  float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
 
-  for (size_t i = 0; i < num_cells; i++) {
+  for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
     beta_u[i] += error[i];
     gamma_u[i] += error[i] * norm_epoch[i];
     error[i] *= gamma[i] * inverse_variance[epoch];
   }
 
-  float sop = SumOfProducts(&error[0], norm_epoch, num_cells) / num_cells;
-  for (size_t i = 0; i < num_cells; i++)
+  float sop = SumOfProducts(
+    &error[0],
+    norm_epoch,
+    num_cells) / num_cells;             // SumOfProducts(..., 200) / 200
+
+  for (size_t i = 0; i < num_cells; i++)  // 200 iterations
     error[i] -= sop * norm_epoch[i];
 
   if (layer > 0) {
-    for (size_t i = 0; i < num_cells; i++) {
-      float* t = &transpose[(num_cells + i) * num_cells];
+    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+      float* t = &transpose[(num_cells + i) * num_cells]; // &transpose[(200 + i) * 200]
 
       if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-        (*hidden_error)[i] += dot256_ps_avx2(&error[0], t, num_cells, 0.f);
+        (*hidden_error)[i] += dot256_ps_avx2(
+          &error[0],
+          t,
+          num_cells,                    // 200
+          0.f);
 #endif
       }
       else {
         float f = 0.f;
-        for (size_t j = 0; j < num_cells; j++)
+        for (size_t j = 0; j < num_cells; j++) // 200 iterations
           f += error[j] * t[j];
         (*hidden_error)[i] += f;
       }
@@ -200,28 +224,32 @@ void Layer::BackwardPass(
   }
 
   if (epoch > 0) {
-    for (size_t i = 0; i < num_cells; i++) {
-      float* t = &transpose[i * num_cells];
+    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+      float* t = &transpose[i * num_cells]; // &transpose[i * 200]
 
       if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-        (*stored_error)[i] += dot256_ps_avx2(&error[0], t, num_cells, 0.f);
+        (*stored_error)[i] += dot256_ps_avx2(
+          &error[0],
+          t,
+          num_cells,                    // 200
+          0.f);
 #endif
       }
       else {
         float f = 0.f;
-        for (size_t j = 0; j < num_cells; j++)
+        for (size_t j = 0; j < num_cells; j++) // 200 iterations
           f += error[j] * t[j];
         (*stored_error)[i] += f;
       }
     }
   }
 
-  for (size_t i = 0; i < num_cells; i++) {
-    float* u = &update[i * input_size];
+  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+    float* u = &update[i * input_size];   // &update[i * (257 or 657)]
     float ei = error[i];
 
-    float* uj = u + output_size;
+    float* uj = u + output_size;          // u + 256
     for (size_t j = 0; j < input.size(); j++)
       uj[j] += ei * input[j];
 
@@ -237,23 +265,38 @@ void Layer::BackwardPass(
 }
 
 void Layer::Reset() {
-  for (size_t i = 0; i < horizon; i++) {
+  for (size_t i = 0; i < horizon; i++) {  // 100 iterations
     inverse_variance[i] = 0.f;
-    float* norm_epoch = &norm[i * num_cells];
-    float* state_epoch = &state[i * num_cells];
-    for (size_t j = 0; j < num_cells; j++) {
+    float* norm_epoch = &norm[i * num_cells];   // &norm[i * 200]
+    float* state_epoch = &state[i * num_cells]; // &state[i * 200]
+    for (size_t j = 0; j < num_cells; j++) {    // 200 iterations
       state_epoch[j] = 0.f;
       norm_epoch[j] = 0.f;
     }
   }
 
-  for (size_t i = 0; i < num_cells; i++) {
+  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     gamma[i] = 1.f;
   }
 
-  memset(&gamma_u[0], 0, num_cells * sizeof(float));
-  memset(&beta[0], 0, num_cells * sizeof(float));
-  memset(&beta_u[0], 0, num_cells * sizeof(float));
-  memset(&update[0], 0, num_cells * input_size * sizeof(float));
-  memset(&transpose[0], 0, transpose.size() * sizeof(float));
+  memset(
+    &gamma_u[0],
+    0,
+    num_cells * sizeof(float));         // 200 * 4 = 800 bytes
+  memset(
+    &beta[0],
+    0,
+    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (bias)
+  memset(
+    &beta_u[0],
+    0,
+    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (bias)
+  memset(
+    &update[0],
+    0,
+    num_cells * input_size * sizeof(float)); // Layer 0: 51,400*4, Layer 1: 131,400*4 bytes
+  memset(
+    &transpose[0],
+    0,
+    transpose.size() * sizeof(float));  // Layer 0: 200*4=800 bytes, Layer 1: 80,200*4=320,800 bytes
 }
