@@ -4,7 +4,7 @@
 
 Layer::Layer(
   SIMDType simdType,
-  size_t input_size,      // Layer 0: 257 (1 bias + 0*200 + 256 output_size), Layer 1: 657 (1 bias + 2*200 + 256)
+  size_t input_size,      // Layer 0: 456 (200*1 + 256), Layer 1: 656 (200*2 + 256)
   size_t output_size,     // 256
   size_t num_cells,       // 200
   size_t horizon,         // 100
@@ -18,9 +18,9 @@ Layer::Layer(
   float powerDenominator,
   uint64_t decaySteps)
   : simd(simdType)
-  , weights(num_cells * input_size) // Layer 0: 200*257=51,400, Layer 1: 200*657=131,400
-  , update(num_cells * input_size)  // Layer 0: 200*257=51,400, Layer 1: 200*657=131,400
-  , transpose((input_size - output_size) * num_cells) // Layer 0: (257-256)*200=200, Layer 1: (657-256)*200=80,200
+  , weights(num_cells * input_size) // Layer 0: 200*456=91,200, Layer 1: 200*656=131,200
+  , update(num_cells * input_size)  // Layer 0: 200*456=91,200, Layer 1: 200*656=131,200
+  , transpose((input_size - output_size) * num_cells) // Layer 0: (256-256)*200=0, Layer 1: (656-256)*200=80,000
   , norm(horizon * num_cells)       // 100*200=20,000
   , state(horizon * num_cells)      // 100*200=20,000
   , inverse_variance(horizon)       // 100
@@ -47,7 +47,7 @@ Layer::Layer(
 #ifdef X64_SIMD_AVAILABLE
   if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
     weights_optimizer = std::make_unique<Adam_AVX>(
-      num_cells * input_size,     // Layer 0: 51,400, Layer 1: 131,400
+      num_cells * input_size,     // Layer 0: 91,200, Layer 1: 131,200
       &weights[0],
       &update[0],
       beta2,
@@ -61,7 +61,7 @@ Layer::Layer(
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                  // 200 (bias)
+      num_cells,                  // 200 (RMSNorm bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -72,7 +72,7 @@ Layer::Layer(
 #endif
   {
     weights_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells * input_size,     // Layer 0: 51,400, Layer 1: 131,400
+      num_cells * input_size,     // Layer 0: 51,200, Layer 1: 131,200
       &weights[0],
       &update[0],
       beta2,
@@ -86,7 +86,7 @@ Layer::Layer(
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                  // 200 (bias)
+      num_cells,                  // 200 (RMSNorm bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -106,7 +106,7 @@ void Layer::ForwardPass(
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size]; // i * (257 or 657)
+      float* w = &weights[i * input_size]; // i * (456 or 656)
       norm_epoch[i] = dot256_ps_avx2(
         &input[0],
         w + output_size,          // w + 256
@@ -118,7 +118,7 @@ void Layer::ForwardPass(
 #endif
   else {
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size]; // i * (257 or 657)
+      float* w = &weights[i * input_size]; // i * (456 or 656)
       float f = w[input_symbol];
       float* wj = w + output_size;        // w + 256
       for (size_t j = 0; j < input.size(); j++)
@@ -137,7 +137,7 @@ void Layer::ForwardPass(
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     float n = norm_epoch[i] * inv;
     norm_epoch[i] = n;
-    state_epoch[i] = n * gamma[i] + beta[i];
+    state_epoch[i] = n * gamma[i] + beta[i]; // RMSNorm with beta bias
   }
 
   if (use_tanh) {
@@ -173,14 +173,14 @@ void Layer::BackwardPass(
     memset(
       &update[0],
       0,
-      num_cells * input_size * sizeof(float)); // Layer 0: 51,400*4=205,600 bytes, Layer 1: 131,400*4=525,600 bytes
+      num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4=364,800 bytes, Layer 1: 131,200*4=524,800 bytes
 
     // Build transpose
-    const size_t rows = transpose.size() / num_cells; // Layer 0: 200/200=1, Layer 1: 80,200/200=401
+    const size_t rows = transpose.size() / num_cells; // Layer 0: 0/200=0, Layer 1: 80,000/200=400
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size + output_size]; // &weights[i * (257 or 657) + 256]
+      float* w = &weights[i * input_size + output_size]; // &weights[i * (456 or 656) + 256]
       float* t = &transpose[i];
-      for (size_t j = 0; j < rows; j++)   // Layer 0: 1 iteration, Layer 1: 401 iterations
+      for (size_t j = 0; j < rows; j++)   // Layer 0: 0 iterations, Layer 1: 400 iterations
         t[j * num_cells] = w[j];          // t[j * 200] = w[j]
     }
   }
@@ -188,7 +188,7 @@ void Layer::BackwardPass(
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
 
   for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
-    beta_u[i] += error[i];
+    beta_u[i] += error[i];                       // RMSNorm bias gradient
     gamma_u[i] += error[i] * norm_epoch[i];
     error[i] *= gamma[i] * inverse_variance[epoch];
   }
@@ -246,7 +246,7 @@ void Layer::BackwardPass(
   }
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float* u = &update[i * input_size];   // &update[i * (257 or 657)]
+    float* u = &update[i * input_size];   // &update[i * (456 or 656)]
     float ei = error[i];
 
     float* uj = u + output_size;          // u + 256
@@ -286,17 +286,17 @@ void Layer::Reset() {
   memset(
     &beta[0],
     0,
-    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (bias)
+    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (RMSNorm bias)
   memset(
     &beta_u[0],
     0,
-    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (bias)
+    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (RMSNorm bias)
   memset(
     &update[0],
     0,
-    num_cells * input_size * sizeof(float)); // Layer 0: 51,400*4, Layer 1: 131,400*4 bytes
+    num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4, Layer 1: 131,200*4 bytes
   memset(
     &transpose[0],
     0,
-    transpose.size() * sizeof(float));  // Layer 0: 200*4=800 bytes, Layer 1: 80,200*4=320,800 bytes
+    transpose.size() * sizeof(float));  // Layer 0: 0*4=0 bytes, Layer 1: 80,000*4=320,000 bytes
 }

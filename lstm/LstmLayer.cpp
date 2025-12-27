@@ -13,7 +13,7 @@ float LstmLayer::Rand(float const range) {
 
 LstmLayer::LstmLayer(
   SIMDType simdType,
-  size_t const input_size,       // Layer 0: 457, Layer 1: 657
+  size_t const input_size,       // Layer 0: 456, Layer 1: 656
   size_t const output_size,      // 256
   size_t const num_cells,        // 200
   size_t const horizon,          // 100
@@ -22,15 +22,15 @@ LstmLayer::LstmLayer(
   , state(num_cells)             // 200
   , state_error(num_cells)       // 200
   , stored_error(num_cells)      // 200
-  , tanh_state(horizon* num_cells)       // 100 * 200 = 20,000
-  , input_gate_state(horizon* num_cells) // 100 * 200 = 20,000
-  , last_state(horizon* num_cells)       // 100 * 200 = 20,000
+  , tanh_state(horizon * num_cells)       // 100 * 200 = 20,000
+  , input_gate_state(horizon * num_cells) // 100 * 200 = 20,000
+  , last_state(horizon * num_cells)       // 100 * 200 = 20,000
   , num_cells(num_cells)         // 200
   , epoch(0)
   , horizon(horizon)             // 100
   , forget_gate(
     simdType,
-    input_size,                // Layer 0: 457, Layer 1: 657
+    input_size,                // Layer 0: 456, Layer 1: 656
     output_size,               // 256
     num_cells,                 // 200
     horizon,                   // 100
@@ -45,7 +45,7 @@ LstmLayer::LstmLayer(
     0)                         // decaySteps
   , input_node(
     simdType,
-    input_size,                // Layer 0: 457, Layer 1: 657
+    input_size,                // Layer 0: 456, Layer 1: 656
     output_size,               // 256
     num_cells,                 // 200
     horizon,                   // 100
@@ -60,7 +60,7 @@ LstmLayer::LstmLayer(
     0)                         // decaySteps
   , output_gate(
     simdType,
-    input_size,                // Layer 0: 457, Layer 1: 657
+    input_size,                // Layer 0: 456, Layer 1: 656
     output_size,               // 256
     num_cells,                 // 200
     horizon,                   // 100
@@ -84,14 +84,13 @@ LstmLayer::LstmLayer(
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
 
     // Set random weights for each gate
-    for (size_t j = 0; j < input_size; j++) {       // Layer 0: 457, Layer 1: 657
+    for (size_t j = 0; j < input_size; j++) {       // Layer 0: 456, Layer 1: 656
       forget_w[idx + j] = Rand(range);
       input_w[idx + j] = Rand(range);
       output_w[idx + j] = Rand(range);
     }
 
-    forget_w[idx + input_size - 1] = 1.f;           // bias (Layer 0: idx+456, Layer 1: idx+656)
-    idx += input_size;                              // Layer 0: += 457, Layer 1: += 657
+    idx += input_size;                              // Layer 0: += 456, Layer 1: += 656
   }
 
 }
@@ -280,6 +279,6 @@ LstmLayer::WeightArrays LstmLayer::GetWeights() {
   arrays.forget_gate_weights = &forget_gate.weights[0];
   arrays.input_node_weights = &input_node.weights[0];
   arrays.output_gate_weights = &output_gate.weights[0];
-  arrays.size_per_gate = forget_gate.weights.size(); // Layer 0: 91,400, Layer 1: 131,400
+  arrays.size_per_gate = forget_gate.weights.size(); // Layer 0: 91,200, Layer 1: 131,200
   return arrays;
 }
