@@ -279,7 +279,6 @@
     <ClCompile Include="lstm\LstmModel.cpp" />
     <ClCompile Include="lstm\PolynomialDecay.cpp" />
     <ClCompile Include="lstm\SimdFunctions.cpp" />
-    <ClCompile Include="lstm\SimdLstmModel.cpp" />
     <ClCompile Include="Mixer.cpp" />
     <ClCompile Include="MixerFactory.cpp" />
     <ClCompile Include="Models.cpp" />
@@ -425,7 +424,6 @@
     <ClInclude Include="lstm\PolynomialDecay.hpp" />
     <ClInclude Include="lstm\Posit.hpp" />
     <ClInclude Include="lstm\SimdFunctions.hpp" />
-    <ClInclude Include="lstm\SimdLstmModel.hpp" />
     <ClInclude Include="Mixer.hpp" />
     <ClInclude Include="MixerFactory.hpp" />
     <ClInclude Include="MixerFunctions_SIMD_AVX2.hpp" />

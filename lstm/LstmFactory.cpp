@@ -10,7 +10,7 @@ LstmModel* LstmFactory::CreateLSTM(
   SIMDType simdType = sh->chosenSimd;
 
   if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
-    return new SIMDLstmModel(
+    return new LstmModel(
       sh,
       SIMDType::SIMD_AVX2,
       num_cells,           // 200
@@ -19,7 +19,7 @@ LstmModel* LstmFactory::CreateLSTM(
       learning_rate);      // 0.06
   }
   else {
-    return new SIMDLstmModel(
+    return new LstmModel(
       sh,
       SIMDType::SIMD_NONE,
       num_cells,           // 200

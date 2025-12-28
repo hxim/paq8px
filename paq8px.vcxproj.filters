@@ -345,9 +345,6 @@
     <ClCompile Include="lstm\LstmModel.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\SimdLstmModel.cpp">
-      <Filter>Source Files\lstm</Filter>
-    </ClCompile>
     <ClCompile Include="lstm\Lstm.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
@@ -702,9 +699,6 @@
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\SimdFunctions.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\SimdLstmModel.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="model\DecAlphaModel.hpp">

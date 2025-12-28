@@ -5,6 +5,11 @@
 #include "../APM.hpp"
 #include "../IndirectContext.hpp"
 #include "../Array.hpp"
+#include "../BlockType.hpp"
+#include "../RingBuffer.hpp"
+#include "../SIMDType.hpp"
+#include "Lstm.hpp"
+#include "SimdFunctions.hpp"
 #include <cstdint>
 
 class LstmModel {
@@ -14,7 +19,7 @@ public:
   static constexpr int MIXERCONTEXTSETS = 2;
   static constexpr size_t alphabetSize = 1llu << 8;
 
-protected:
+private:
   const Shared* const shared;
   Array<float, 32> probs;
   APM apm1, apm2, apm3;
@@ -22,8 +27,21 @@ protected:
   size_t top, mid, bot;
   uint8_t expected;
 
+  SIMDType simd;
+  LSTM::Shape shape;
+  Lstm lstm;
+  LSTM::Repository repo;
+  LSTM::Model::Type modelType, pModelType;
+  BlockType pBlockType;
+
 public:
-  LstmModel(const Shared* const sh);
-  virtual ~LstmModel() = default;
-  virtual void mix(Mixer& m) = 0;
+  LstmModel(
+    const Shared* const sh,
+    SIMDType simdType,
+    size_t num_cells,
+    size_t num_layers,
+    size_t horizon,
+    float learning_rate);
+
+  void mix(Mixer& m);
 };
