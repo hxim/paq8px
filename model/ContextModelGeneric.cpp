@@ -19,7 +19,7 @@ public:
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
       LinearPredictionModel::MIXERINPUTS + ExeModel::MIXERINPUTS +
-      (useLSTM ? LstmModel::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + NormalModel::MIXERCONTEXTS_POST + SparseMatchModel::MIXERCONTEXTS +
       SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + ChartModel::MIXERCONTEXTS +
@@ -27,7 +27,7 @@ public:
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
       DmcForest::MIXERCONTEXTS + NestModel::MIXERCONTEXTS + XMLModel::MIXERCONTEXTS +
       LinearPredictionModel::MIXERCONTEXTS + ExeModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + NormalModel::MIXERCONTEXTSETS_POST + SparseMatchModel::MIXERCONTEXTSETS +
       SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + ChartModel::MIXERCONTEXTSETS +
@@ -35,7 +35,7 @@ public:
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
       DmcForest::MIXERCONTEXTSETS + NestModel::MIXERCONTEXTSETS + XMLModel::MIXERCONTEXTSETS +
       LinearPredictionModel::MIXERCONTEXTSETS + ExeModel::MIXERCONTEXTSETS + 
-      (useLSTM ? LstmModel::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
     );
@@ -55,7 +55,7 @@ public:
 
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel& lstmModel = models->lstmModelGeneric();
+      LstmModelContainer& lstmModel = models->lstmModelGeneric();
       lstmModel.mix(*m);
     }
 

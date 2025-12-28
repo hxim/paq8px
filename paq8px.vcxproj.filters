@@ -339,12 +339,6 @@
     <ClCompile Include="lstm\PolynomialDecay.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\LstmFactory.cpp">
-      <Filter>Source Files\lstm</Filter>
-    </ClCompile>
-    <ClCompile Include="lstm\LstmModel.cpp">
-      <Filter>Source Files\lstm</Filter>
-    </ClCompile>
     <ClCompile Include="lstm\Lstm.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
@@ -352,6 +346,12 @@
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
     <ClCompile Include="lstm\Adam_Scalar.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmModelContainer.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\ByteModelToBitModel.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
   </ItemGroup>
@@ -686,13 +686,7 @@
     <ClInclude Include="lstm\Lstm.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\LstmFactory.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\LstmLayer.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\LstmModel.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\PolynomialDecay.hpp">
@@ -816,6 +810,15 @@
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\Adam_Scalar.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="LstmModelContainer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\LstmModelContainer.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\ByteModelToBitModel.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>

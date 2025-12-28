@@ -16,17 +16,17 @@ public:
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS +
       Audio16BitModel::MIXERINPUTS +
       RecordModel::MIXERINPUTS + 
-      (useLSTM ? LstmModel::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       Audio16BitModel::MIXERCONTEXTS +
       RecordModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       Audio16BitModel::MIXERCONTEXTSETS +
       RecordModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModel::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
     );
@@ -54,7 +54,7 @@ public:
     //is it useful?
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel& lstmModel = models->lstmModelAudio16();
+      LstmModelContainer& lstmModel = models->lstmModelAudio16();
       lstmModel.mix(*m);
     }
 

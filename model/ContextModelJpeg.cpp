@@ -19,7 +19,7 @@ public:
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + 
       LinearPredictionModel::MIXERINPUTS +
-      (useLSTM ? LstmModel::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       JpegModel::MIXERCONTEXTS +
@@ -27,7 +27,7 @@ public:
       SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + 
       LinearPredictionModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       JpegModel::MIXERCONTEXTSETS +
@@ -35,7 +35,7 @@ public:
       SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + RecordModel::MIXERCONTEXTSETS + CharGroupModel::MIXERCONTEXTSETS +
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS +
       LinearPredictionModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModel::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       useLSTM ? 1 : 0
     );
@@ -54,7 +54,7 @@ public:
     //is it useful?
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel& lstmModel = models->lstmModelJpeg();
+      LstmModelContainer& lstmModel = models->lstmModelJpeg();
       lstmModel.mix(*m);
     }
 
