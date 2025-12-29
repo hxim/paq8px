@@ -19,61 +19,18 @@ LstmModelContainer::LstmModelContainer(
   , apm3{ sh, 1024, 24, 255 }
   , iCtx{ 11, 1, 9 }
   , expectedByte(0)
-  , modelType(LSTM::Model::Type::Default)
-  , pModelType(LSTM::Model::Type::Default)
-  , pBlockType(BlockType::Count)
 {
-  if (shared->GetOptionTrainLSTM()) {
-    repo[LSTM::Model::Type::Default] = std::unique_ptr<LSTM::Model>(new LSTM::Model(shape));
-    lstm.SaveModel(*repo[LSTM::Model::Type::Default]);
-
-    repo[LSTM::Model::Type::English] = std::unique_ptr<LSTM::Model>(new LSTM::Model(shape));
-    repo[LSTM::Model::Type::English]->LoadFromDisk("english.rnn", 4, 1);
-
-    repo[LSTM::Model::Type::x86_64] = std::unique_ptr<LSTM::Model>(new LSTM::Model(shape));
-    repo[LSTM::Model::Type::x86_64]->LoadFromDisk("x86_64.rnn", 4, 1);
-  }
 }
 
 void LstmModelContainer::next() {
   shared->GetUpdateBroadcaster()->subscribe(this);
 
   INJECT_SHARED_bpos
-    if (bpos == 0) {
-
+  if (bpos == 0) {
     uint8_t const c1 = shared->State.c1;
     probs = const_cast<float*>(lstm.Predict(c1));
     byteModelToBitModel.CalculateByteProbabilities(probs, alphabetSize);
     expectedByte = byteModelToBitModel.GetExpectedByte(probs, alphabetSize);
-
-    if ((shared->GetOptionTrainLSTM()) && (shared->State.blockPos == 0)) {
-      BlockType const blockType = static_cast<BlockType>(shared->State.blockType);
-      if (blockType != pBlockType) {
-        switch (blockType) {
-        case BlockType::TEXT:
-        case BlockType::TEXT_EOL:
-          modelType = LSTM::Model::Type::English;
-          break;
-        case BlockType::EXE:
-          modelType = LSTM::Model::Type::x86_64;
-          break;
-        default:
-          modelType = LSTM::Model::Type::Default;
-        }
-
-        if (modelType != pModelType) {
-          if ((pModelType == LSTM::Model::Type::x86_64) && (blockType == BlockType::DEFAULT)) {
-            // Skip switching
-          }
-          else {
-            lstm.SaveModel(*repo[pModelType]);
-            lstm.LoadModel(*repo[modelType]);
-            pModelType = modelType;
-          }
-        }
-      }
-      pBlockType = blockType;
-    }
   }
 }
 

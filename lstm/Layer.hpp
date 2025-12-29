@@ -80,6 +80,4 @@ public:
     size_t epoch,
     size_t layer,
     uint8_t input_symbol);
-
-  void Reset();
 };

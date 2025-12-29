@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include "BlockType.hpp"
@@ -33,7 +33,6 @@ private:
   static constexpr uint8_t OPTION_ADAPTIVE  = 8;
   static constexpr uint8_t OPTION_SKIPRGB   = 16;
   static constexpr uint8_t OPTION_USELSTM   = 32;
-  static constexpr uint8_t OPTION_TRAINLSTM = 64;
 
   // block detection related options (these flags are not stored in the archive)
   static constexpr uint8_t OPTION_BRUTEFORCE_DEFLATE_DETECTION = 1U;
@@ -59,7 +58,6 @@ public:
   bool GetOptionAdaptiveLearningRate() const { return (options & OPTION_ADAPTIVE) != 0; }
   bool GetOptionSkipRGB() const { return (options & OPTION_SKIPRGB) != 0; }
   bool GetOptionUseLSTM() const { return (options & OPTION_USELSTM) != 0; }
-  bool GetOptionTrainLSTM() const { return (options & OPTION_TRAINLSTM) != 0; }
 
   bool GetOptionBruteforceDeflateDetection() const { return (detectionOptions & OPTION_BRUTEFORCE_DEFLATE_DETECTION) != 0; }
   bool GetOptionDetectBlockAsBinary() const { return (detectionOptions & OPTION_DETECT_BLOCK_AS_BINARY) != 0; }
@@ -72,7 +70,6 @@ public:
   void SetOptionAdaptiveLearningRate() { options |= OPTION_ADAPTIVE; }
   void SetOptionSkipRGB() { options |= OPTION_SKIPRGB; }
   void SetOptionUseLSTM() { options |= OPTION_USELSTM; }
-  void SetOptionTrainLSTM() { options |= OPTION_TRAINLSTM; }
 
   void SetOptionBruteforceDeflateDetection() { detectionOptions |= OPTION_BRUTEFORCE_DEFLATE_DETECTION; }
   void SetOptionDetectBlockAsBinary() { detectionOptions |= OPTION_DETECT_BLOCK_AS_BINARY; }

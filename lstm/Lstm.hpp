@@ -2,7 +2,6 @@
 
 #include "LstmLayer.hpp"
 #include "SimdFunctions.hpp"
-#include "Posit.hpp"
 #include "../file/BitFileDisk.hpp"
 #include "../file/OpenFromMyFolder.hpp"
 #include "../Utils.hpp"
@@ -36,14 +35,7 @@ namespace LSTM {
     // weights[layer * 3 * num_cells * weight_size + gate * num_cells * weight_size + cell * weight_size + weight_index]
     Array<float, 32> weights;
     Array<float, 32> output;  // Flat: [output_size * (num_cells * num_layers + 1)]
-
-    Model(LSTM::Shape const shape);
-
-    void LoadFromDisk(const char* const dictionary, int32_t bits = 0, int32_t exp = 0);
-    void SaveToDisk(const char* const dictionary, int32_t bits = 0, int32_t exp = 0);
   };
-
-  using Repository = typename std::unordered_map<LSTM::Model::Type, std::unique_ptr<LSTM::Model>>;
 }
 
 class Lstm {
@@ -82,7 +74,4 @@ public:
   void Perceive(uint8_t input);
   uint64_t GetCurrentTimeStep() const;
   void SetTimeStep(uint64_t t);
-  void Reset();
-  void LoadModel(LSTM::Model& model);
-  void SaveModel(LSTM::Model& model);
 };

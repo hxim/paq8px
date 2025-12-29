@@ -423,7 +423,6 @@
     <ClInclude Include="lstm\LstmLayer.hpp" />
     <ClInclude Include="lstm\LstmModelContainer.hpp" />
     <ClInclude Include="lstm\PolynomialDecay.hpp" />
-    <ClInclude Include="lstm\Posit.hpp" />
     <ClInclude Include="lstm\SimdFunctions.hpp" />
     <ClInclude Include="Mixer.hpp" />
     <ClInclude Include="MixerFactory.hpp" />

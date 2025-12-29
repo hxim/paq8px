@@ -68,7 +68,6 @@ public:
 
   auto lstmModelText() -> LstmModelContainer&;
   auto lstmModelGeneric() -> LstmModelContainer&;
-  auto lstmModelExe() -> LstmModelContainer&;
   auto lstmModelDec() -> LstmModelContainer&;
   auto lstmModelAudio8() -> LstmModelContainer&;
   auto lstmModelAudio16() -> LstmModelContainer&;

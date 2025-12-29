@@ -51,16 +51,4 @@ public:
     size_t layer,
     uint8_t input_symbol,
     Array<float, 32>* hidden_error);
-
-  void Reset();
-
-  // Returns pointers to the weight arrays for serialization/access
-  struct WeightArrays {
-    float* forget_gate_weights;
-    float* input_node_weights;
-    float* output_gate_weights;
-    size_t size_per_gate;
-  };
-
-  WeightArrays GetWeights();
 };

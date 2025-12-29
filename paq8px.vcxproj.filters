@@ -803,9 +803,6 @@
     <ClInclude Include="model\MatchInfo.hpp">
       <Filter>model</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\Posit.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\Adam_AVX.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>

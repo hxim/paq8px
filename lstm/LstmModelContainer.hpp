@@ -19,9 +19,6 @@ private:
   SIMDType simd;
   LSTM::Shape shape;
   Lstm lstm;
-  LSTM::Repository repo;
-  LSTM::Model::Type modelType, pModelType;
-  BlockType pBlockType;
 
   float* probs;
   ByteModelToBitModel byteModelToBitModel;

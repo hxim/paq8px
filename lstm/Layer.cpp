@@ -264,39 +264,3 @@ void Layer::BackwardPass(
   }
 }
 
-void Layer::Reset() {
-  for (size_t i = 0; i < horizon; i++) {  // 100 iterations
-    inverse_variance[i] = 0.f;
-    float* norm_epoch = &norm[i * num_cells];   // &norm[i * 200]
-    float* state_epoch = &state[i * num_cells]; // &state[i * 200]
-    for (size_t j = 0; j < num_cells; j++) {    // 200 iterations
-      state_epoch[j] = 0.f;
-      norm_epoch[j] = 0.f;
-    }
-  }
-
-  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    gamma[i] = 1.f;
-  }
-
-  memset(
-    &gamma_u[0],
-    0,
-    num_cells * sizeof(float));         // 200 * 4 = 800 bytes
-  memset(
-    &beta[0],
-    0,
-    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (RMSNorm bias)
-  memset(
-    &beta_u[0],
-    0,
-    num_cells * sizeof(float));         // 200 * 4 = 800 bytes (RMSNorm bias)
-  memset(
-    &update[0],
-    0,
-    num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4, Layer 1: 131,200*4 bytes
-  memset(
-    &transpose[0],
-    0,
-    transpose.size() * sizeof(float));  // Layer 0: 0*4=0 bytes, Layer 1: 80,000*4=320,000 bytes
-}

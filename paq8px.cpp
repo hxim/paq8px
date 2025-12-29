@@ -1,4 +1,4 @@
-/*
+﻿/*
   PAQ8PX file compressor/archiver
   see README for information
   see DOC for technical details
@@ -68,8 +68,6 @@ static void printHelp() {
          "      a = Use adaptive learning rate\n"
          "      s = For 24/32 bit images skip the color transform, just reorder the RGB channels\n"
          "      l = Use Long Short-Term Memory network as an additional model\n"
-         "      r = Use repository of pre-trained LSTM models (implies option -l)\n"
-         "          (english.rnn, x86_64.rnn)\n"
          "\n"
          "\n"
          "    INPUTSPEC:\n"
@@ -228,7 +226,6 @@ static void printOptions(Shared *shared) {
   printf(" Adaptive   (a) = %s\n", shared->GetOptionAdaptiveLearningRate() ? "On  (Adaptive learning rate)" : "Off");
   printf(" Skip RGB   (s) = %s\n", shared->GetOptionSkipRGB() ? "On  (Skip the color transform, just reorder the RGB channels)" : "Off");
   printf(" Use LSTM   (l) = %s\n", shared->GetOptionUseLSTM() ? "On  (Use Long Short-Term Memory network)" : "Off");
-  printf(" LSTM repo  (r) = %s\n", shared->GetOptionTrainLSTM() ? "On  (Use repository of pre-trained LSTM models)" : "Off");
   printf(" File mode      = %s\n", shared->GetOptionMultipleFileMode() ? "Multiple" : "Single");
 }
 
@@ -302,10 +299,6 @@ int processCommandLine(int argc, char **argv) {
                 break;
               case 'L':
                 shared.SetOptionUseLSTM();
-                break;
-              case 'R':
-                shared.SetOptionUseLSTM();
-                shared.SetOptionTrainLSTM();
                 break;
               default: {
                 printf("Invalid compression switch: %c", argv[1][j]);

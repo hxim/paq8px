@@ -240,17 +240,12 @@ auto Models::decAlphaModel() -> DECAlphaModel & {
 //An LSTM model adapts slowly to new contents, so we'll have a separate LSTM model per main content type
 
 auto Models::lstmModelText() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100, 0.06f); //warning: current pre-trained LSTM repository 'english.rnn' is using this structure, don't change these parameters
+  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100, 0.06f);
   return *instance;
 }
 
 auto Models::lstmModelGeneric() -> LstmModelContainer& {
   static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100, 0.06f);
-  return *instance;
-}
-
-auto Models::lstmModelExe() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100, 0.06f); //warning: current pre-trained LSTM repository 'x86_64.rnn' is using this structure, don't change these parameters
   return *instance;
 }
 

@@ -148,8 +148,6 @@ void LstmLayer::ForwardPass(
     epoch = 0;
 }
 
-
-
 void LstmLayer::BackwardPass(
   const Array<float, 32>& input,
   size_t const epoch,
@@ -236,49 +234,4 @@ void LstmLayer::BackwardPass(
     epoch,
     layer,
     input_symbol);
-}
-
-
-
-void LstmLayer::Reset() {
-  forget_gate.Reset();
-  input_node.Reset();
-  output_gate.Reset();
-
-  memset(
-    &tanh_state[0],
-    0,
-    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
-  memset(
-    &input_gate_state[0],
-    0,
-    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
-  memset(
-    &last_state[0],
-    0,
-    horizon * num_cells * sizeof(float));          // 100 * 200 * 4 = 80,000 bytes
-  memset(
-    &state[0],
-    0,
-    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
-  memset(
-    &state_error[0],
-    0,
-    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
-  memset(
-    &stored_error[0],
-    0,
-    num_cells * sizeof(float));                    // 200 * 4 = 800 bytes
-
-  epoch = 0;
-  update_steps = 0;
-}
-
-LstmLayer::WeightArrays LstmLayer::GetWeights() {
-  WeightArrays arrays;
-  arrays.forget_gate_weights = &forget_gate.weights[0];
-  arrays.input_node_weights = &input_node.weights[0];
-  arrays.output_gate_weights = &output_gate.weights[0];
-  arrays.size_per_gate = forget_gate.weights.size(); // Layer 0: 91,200, Layer 1: 131,200
-  return arrays;
 }
