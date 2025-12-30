@@ -138,7 +138,8 @@ float* Lstm::Predict(uint8_t const input) {
       temp_input,
       input,
       &hidden,
-      i * num_cells);                              // i * 200
+      i * num_cells,                              // i * 200
+      current_sequence_size_target);
 
     // Copy hidden to next layer's input if not last layer
     if (i < layers.size() - 1) {                     // if i < 1
@@ -159,14 +160,14 @@ float* Lstm::Predict(uint8_t const input) {
 
   size_t const epoch_ = epoch;
   epoch++;
-  if (epoch == horizon) epoch = 0;                   // if epoch == 100
+  if (epoch == current_sequence_size_target) epoch = 0;                   // if epoch == 100
 
   // Return pointer to the output slice for this epoch in the persistent output array
   return &output[epoch_ * output_size];              // &output[epoch_ * 256]
 }
 
 void Lstm::Perceive(const uint8_t input) {
-  size_t const last_epoch = ((epoch > 0) ? epoch : horizon) - 1; // ((epoch > 0) ? epoch : 100) - 1
+  size_t const last_epoch = ((epoch > 0) ? epoch : current_sequence_size_target) - 1; // ((epoch > 0) ? epoch : 100) - 1
   uint8_t const old_input = input_history[last_epoch];
   input_history[last_epoch] = input;
 
@@ -176,7 +177,7 @@ void Lstm::Perceive(const uint8_t input) {
   Array<float, 32> temp_input(num_cells * 2 + output_size); // 200*2 + 256 = 656
 
   if (epoch == 0) {
-    for (int epoch_ = static_cast<int>(horizon) - 1; epoch_ >= 0; epoch_--) { // starts at 99, goes to 0
+    for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) { // starts at 99, goes to 0
       for (int layer = static_cast<int>(layers.size()) - 1; layer >= 0; layer--) { // starts at 1, goes to 0
         int offset = layer * static_cast<int>(num_cells); // layer * 200
         for (size_t i = 0; i < output_size; i++) {   // 256 iterations
@@ -187,7 +188,7 @@ void Lstm::Perceive(const uint8_t input) {
           }
         }
 
-        size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : horizon) - 1; // ((epoch_ > 0) ? epoch_ : 100) - 1
+        size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : current_sequence_size_target) - 1; // ((epoch_ > 0) ? epoch_ : 100) - 1
         uint8_t const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
 
         // Prepare temp_input
@@ -202,9 +203,22 @@ void Lstm::Perceive(const uint8_t input) {
         layers[layer]->BackwardPass(
           temp_input,
           epoch_,
+          current_sequence_size_target,
           layer,
           input_symbol,
           &hidden_error);
+      }
+    }
+
+    sequence_step_cntr++;
+    if (sequence_step_cntr >= sequence_step_target) //target sequence size has been reached
+    {
+      sequence_step_cntr = 0;
+      if (current_sequence_size_target < horizon) {
+        current_sequence_size_target++;
+        //debug:
+        //printf("current_sequence_size_target: %d\n", (int)current_sequence_size_target);
+        sequence_step_target = 12 + 1 * (current_sequence_size_target - 1);
       }
     }
   }

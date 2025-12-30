@@ -36,7 +36,6 @@ public:
   size_t input_size;
   size_t output_size;
   size_t num_cells;
-  size_t horizon;
 
   float learning_rate;
 
@@ -71,6 +70,8 @@ public:
     const Array<float, 32>& input,
     uint8_t input_symbol,
     size_t epoch);
+
+  void BeforeBackwardPassAtLastEpoch();
 
   void BackwardPass(
     const Array<float, 32>& input,

@@ -53,6 +53,9 @@ private:
   float learning_rate;
   size_t num_cells;
   size_t horizon;
+  size_t current_sequence_size_target = 6; //6..horizon-1
+  size_t sequence_step_target = 12;
+  size_t sequence_step_cntr = 0;
   size_t output_size;
   size_t num_layers;
 

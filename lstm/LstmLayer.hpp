@@ -43,11 +43,13 @@ public:
     const Array<float, 32>& input,
     uint8_t input_symbol,
     Array<float, 32>* hidden,
-    size_t hidden_start);
+    size_t hidden_start,
+    size_t current_sequence_size_target);
 
   void BackwardPass(
     const Array<float, 32>& input,
     size_t epoch,
+    size_t current_sequence_size_target,
     size_t layer,
     uint8_t input_symbol,
     Array<float, 32>* hidden_error);

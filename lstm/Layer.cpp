@@ -32,7 +32,6 @@ Layer::Layer(
   , input_size(input_size)
   , output_size(output_size)
   , num_cells(num_cells)
-  , horizon(horizon)
   , learning_rate(0.f)
   , activation_tanh(simdType)
   , activation_logistic(simdType)
@@ -152,6 +151,21 @@ void Layer::ForwardPass(
   }
 }
 
+void Layer::BeforeBackwardPassAtLastEpoch() {
+  memset(&gamma_u[0], 0, num_cells * sizeof(float));             // 200 * 4 = 800 bytes
+  memset(&beta_u[0], 0, num_cells * sizeof(float));              // 200 * 4 = 800 bytes
+  memset(&update[0], 0, num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4=364,800 bytes, Layer 1: 131,200*4=524,800 bytes
+
+  // Build transpose
+  const size_t rows = transpose.size() / num_cells; // Layer 0: 0/200=0, Layer 1: 80,000/200=400
+  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
+    float* w = &weights[i * input_size + output_size]; // &weights[i * (456 or 656) + 256]
+    float* t = &transpose[i];
+    for (size_t j = 0; j < rows; j++)   // Layer 0: 0 iterations, Layer 1: 400 iterations
+      t[j * num_cells] = w[j];          // t[j * 200] = w[j]
+  }
+}
+
 void Layer::BackwardPass(
   const Array<float, 32>& input,
   Array<float, 32>* hidden_error,
@@ -161,30 +175,6 @@ void Layer::BackwardPass(
   size_t const layer,
   uint8_t const input_symbol)
 {
-  if (epoch == horizon - 1) {             // epoch == 99
-    memset(
-      &gamma_u[0],
-      0,
-      num_cells * sizeof(float));       // 200 * 4 = 800 bytes
-    memset(
-      &beta_u[0],
-      0,
-      num_cells * sizeof(float));       // 200 * 4 = 800 bytes
-    memset(
-      &update[0],
-      0,
-      num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4=364,800 bytes, Layer 1: 131,200*4=524,800 bytes
-
-    // Build transpose
-    const size_t rows = transpose.size() / num_cells; // Layer 0: 0/200=0, Layer 1: 80,000/200=400
-    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size + output_size]; // &weights[i * (456 or 656) + 256]
-      float* t = &transpose[i];
-      for (size_t j = 0; j < rows; j++)   // Layer 0: 0 iterations, Layer 1: 400 iterations
-        t[j * num_cells] = w[j];          // t[j * 200] = w[j]
-    }
-  }
-
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
 
   for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
