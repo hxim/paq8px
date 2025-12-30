@@ -16,10 +16,13 @@ class Layer {
 public:
   SIMDType simd;
 
-  Array<float, 32> weights;        // Flat: [num_cells * input_size]
-  Array<float, 32> update;         // Flat: [num_cells * input_size]
+  Array<float, 32> embedding;      // Flat: [num_cells * output_size] - embedding matrix
+  Array<float, 32> embedding_u;    // Flat: [num_cells * output_size] - embedding gradients
 
-  Array<float, 32> transpose;      // Flat: [(input_size - output_size) * num_cells]
+  Array<float, 32> weights;        // Flat: [num_cells * hidden_size] - hidden state weights only
+  Array<float, 32> update;         // Flat: [num_cells * hidden_size] - hidden state gradients
+
+  Array<float, 32> transpose;      // Flat: [hidden_size * num_cells]
   Array<float, 32> norm;           // Flat: [horizon * num_cells]
   Array<float, 32> state;          // Flat: [horizon * num_cells]
 
@@ -33,12 +36,14 @@ public:
 
   Array<float, 32> error;
 
-  size_t input_size;
-  size_t output_size;
+  size_t input_size;       // Total input size (hidden_size + output_size)
+  size_t hidden_size;      // Size of hidden state input (input_size - output_size)
+  size_t output_size;      // Vocabulary size / embedding dimension
   size_t num_cells;
 
   float learning_rate;
 
+  std::unique_ptr<Adam> embedding_optimizer;
   std::unique_ptr<Adam> weights_optimizer;
   std::unique_ptr<Adam> gamma_optimizer;
   std::unique_ptr<Adam> beta_optimizer;

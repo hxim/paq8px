@@ -76,23 +76,33 @@ LstmLayer::LstmLayer(
   , update_steps(0)
 {
   // Set random weights for each gate
+  float* forget_emb = &forget_gate.embedding[0];
+  float* input_emb = &input_node.embedding[0];
+  float* output_emb = &output_gate.embedding[0];
+
   float* forget_w = &forget_gate.weights[0];
   float* input_w = &input_node.weights[0];
   float* output_w = &output_gate.weights[0];
 
-  size_t idx = 0;
+  size_t hidden_size = input_size - output_size; // Layer 0: 456-256=200, Layer 1: 656-256=400
+
+  // Initialize embeddings
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-
-    // Set random weights for each gate
-    for (size_t j = 0; j < input_size; j++) {       // Layer 0: 456, Layer 1: 656
-      forget_w[idx + j] = Rand(range);
-      input_w[idx + j] = Rand(range);
-      output_w[idx + j] = Rand(range);
+    for (size_t j = 0; j < output_size; j++) {      // 256 iterations
+      forget_emb[i * output_size + j] = Rand(range);
+      input_emb[i * output_size + j] = Rand(range);
+      output_emb[i * output_size + j] = Rand(range);
     }
-
-    idx += input_size;                              // Layer 0: += 456, Layer 1: += 656
   }
 
+  // Initialize hidden state weights
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
+    for (size_t j = 0; j < hidden_size; j++) {      // Layer 0: 200, Layer 1: 400
+      forget_w[i * hidden_size + j] = Rand(range);
+      input_w[i * hidden_size + j] = Rand(range);
+      output_w[i * hidden_size + j] = Rand(range);
+    }
+  }
 }
 
 void LstmLayer::ForwardPass(

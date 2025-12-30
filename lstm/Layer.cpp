@@ -5,7 +5,7 @@
 Layer::Layer(
   SIMDType simdType,
   size_t input_size,      // Layer 0: 456 (200*1 + 256), Layer 1: 656 (200*2 + 256)
-  size_t output_size,     // 256
+  size_t output_size,     // 256 (vocabulary size)
   size_t num_cells,       // 200
   size_t horizon,         // 100
   bool useTanh,
@@ -18,18 +18,21 @@ Layer::Layer(
   float powerDenominator,
   uint64_t decaySteps)
   : simd(simdType)
-  , weights(num_cells * input_size) // Layer 0: 200*456=91,200, Layer 1: 200*656=131,200
-  , update(num_cells * input_size)  // Layer 0: 200*456=91,200, Layer 1: 200*656=131,200
-  , transpose((input_size - output_size) * num_cells) // Layer 0: (256-256)*200=0, Layer 1: (656-256)*200=80,000
-  , norm(horizon * num_cells)       // 100*200=20,000
-  , state(horizon * num_cells)      // 100*200=20,000
-  , inverse_variance(horizon)       // 100
-  , gamma(num_cells)                // 200
-  , gamma_u(num_cells)              // 200
-  , beta(num_cells)                 // 200 (RMSNorm bias)
-  , beta_u(num_cells)               // 200 (RMSNorm bias update)
-  , error(num_cells)                // 200
+  , embedding(num_cells * output_size)                  // 200*256=51,200 - embedding matrix
+  , embedding_u(num_cells * output_size)                // 200*256=51,200 - embedding gradients
+  , weights(num_cells * (input_size - output_size))     // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden weights only
+  , update(num_cells * (input_size - output_size))      // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden gradients
+  , transpose((input_size - output_size)* num_cells)    // Layer 0: 200*200=40,000, Layer 1: 400*200=80,000
+  , norm(horizon * num_cells)                           // 100*200=20,000
+  , state(horizon * num_cells)                          // 100*200=20,000
+  , inverse_variance(horizon)                           // 100
+  , gamma(num_cells)                                    // 200
+  , gamma_u(num_cells)                                  // 200
+  , beta(num_cells)                                     // 200 (RMSNorm bias)
+  , beta_u(num_cells)                                   // 200 (RMSNorm bias update)
+  , error(num_cells)                                    // 200
   , input_size(input_size)
+  , hidden_size(input_size - output_size)               // Layer 0: 200, Layer 1: 400
   , output_size(output_size)
   , num_cells(num_cells)
   , learning_rate(0.f)
@@ -45,22 +48,29 @@ Layer::Layer(
 
 #ifdef X64_SIMD_AVAILABLE
   if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
+    embedding_optimizer = std::make_unique<Adam_AVX>(
+      num_cells * output_size,          // 200*256=51,200 - embedding parameters
+      &embedding[0],
+      &embedding_u[0],
+      beta2,
+      epsilon
+    );
     weights_optimizer = std::make_unique<Adam_AVX>(
-      num_cells * input_size,     // Layer 0: 91,200, Layer 1: 131,200
+      num_cells * hidden_size,          // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000
       &weights[0],
       &update[0],
       beta2,
       epsilon
     );
     gamma_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                  // 200
+      num_cells,                        // 200
       &gamma[0],
       &gamma_u[0],
       beta2,
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                  // 200 (RMSNorm bias)
+      num_cells,                        // 200 (RMSNorm bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -70,22 +80,29 @@ Layer::Layer(
   else
 #endif
   {
+    embedding_optimizer = std::make_unique<Adam_Scalar>(
+      num_cells * output_size,          // 200*256=51,200 - embedding parameters
+      &embedding[0],
+      &embedding_u[0],
+      beta2,
+      epsilon
+    );
     weights_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells * input_size,     // Layer 0: 51,200, Layer 1: 131,200
+      num_cells * hidden_size,          // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000
       &weights[0],
       &update[0],
       beta2,
       epsilon
     );
     gamma_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                  // 200
+      num_cells,                        // 200
       &gamma[0],
       &gamma_u[0],
       beta2,
       epsilon
     );
     beta_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                  // 200 (RMSNorm bias)
+      num_cells,                        // 200 (RMSNorm bias)
       &beta[0],
       &beta_u[0],
       beta2,
@@ -105,23 +122,34 @@ void Layer::ForwardPass(
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size]; // i * (456 or 656)
+      // Embedding lookup for this cell
+      float embed_value = embedding[i * output_size + input_symbol]; // embedding[i*256 + input_symbol]
+
+      // Hidden state weights for this cell
+      float* w = &weights[i * hidden_size]; // i * (200 or 400)
+
+      // Compute: embedding_value + dot(input, hidden_weights)
       norm_epoch[i] = dot256_ps_avx2(
         &input[0],
-        w + output_size,          // w + 256
+        w,
         input.size(),
-        w[input_symbol]
+        embed_value  // Start with embedding value
       );
     }
-  }
 #endif
+  }
   else {
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* w = &weights[i * input_size]; // i * (456 or 656)
-      float f = w[input_symbol];
-      float* wj = w + output_size;        // w + 256
+      // Embedding lookup for this cell
+      float f = embedding[i * output_size + input_symbol]; // embedding[i*256 + input_symbol]
+
+      // Hidden state weights for this cell
+      float* w = &weights[i * hidden_size]; // i * (200 or 400)
+
+      // Accumulate hidden state contributions
       for (size_t j = 0; j < input.size(); j++)
-        f += input[j] * wj[j];
+        f += input[j] * w[j];
+
       norm_epoch[i] = f;
     }
   }
@@ -154,14 +182,15 @@ void Layer::ForwardPass(
 void Layer::BeforeBackwardPassAtLastEpoch() {
   memset(&gamma_u[0], 0, num_cells * sizeof(float));             // 200 * 4 = 800 bytes
   memset(&beta_u[0], 0, num_cells * sizeof(float));              // 200 * 4 = 800 bytes
-  memset(&update[0], 0, num_cells * input_size * sizeof(float)); // Layer 0: 91,200*4=364,800 bytes, Layer 1: 131,200*4=524,800 bytes
+  memset(&embedding_u[0], 0, num_cells * output_size * sizeof(float)); // 200*256*4=204,800 bytes - embedding gradients
+  memset(&update[0], 0, num_cells * hidden_size * sizeof(float)); // Layer 0: 200*200*4=160,000 bytes, Layer 1: 200*400*4=320,000 bytes
 
-  // Build transpose
-  const size_t rows = transpose.size() / num_cells; // Layer 0: 0/200=0, Layer 1: 80,000/200=400
+  // Build transpose for hidden weights only
+  const size_t rows = hidden_size; // Layer 0: 200, Layer 1: 400
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float* w = &weights[i * input_size + output_size]; // &weights[i * (456 or 656) + 256]
+    float* w = &weights[i * hidden_size]; // &weights[i * (200 or 400)]
     float* t = &transpose[i];
-    for (size_t j = 0; j < rows; j++)   // Layer 0: 0 iterations, Layer 1: 400 iterations
+    for (size_t j = 0; j < rows; j++)   // Layer 0: 200 iterations, Layer 1: 400 iterations
       t[j * num_cells] = w[j];          // t[j * 200] = w[j]
   }
 }
@@ -191,6 +220,7 @@ void Layer::BackwardPass(
   for (size_t i = 0; i < num_cells; i++)  // 200 iterations
     error[i] -= sop * norm_epoch[i];
 
+  // Backpropagate to previous layer's hidden state
   if (layer > 0) {
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
       float* t = &transpose[(num_cells + i) * num_cells]; // &transpose[(200 + i) * 200]
@@ -213,6 +243,7 @@ void Layer::BackwardPass(
     }
   }
 
+  // Backpropagate to previous timestep's hidden state
   if (epoch > 0) {
     for (size_t i = 0; i < num_cells; i++) { // 200 iterations
       float* t = &transpose[i * num_cells]; // &transpose[i * 200]
@@ -235,22 +266,25 @@ void Layer::BackwardPass(
     }
   }
 
+  // Update gradients
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float* u = &update[i * input_size];   // &update[i * (456 or 656)]
     float ei = error[i];
 
-    float* uj = u + output_size;          // u + 256
-    for (size_t j = 0; j < input.size(); j++)
-      uj[j] += ei * input[j];
+    // Update embedding gradient for this input symbol
+    embedding_u[i * output_size + input_symbol] += ei; // embedding_u[i*256 + input_symbol]
 
-    u[input_symbol] += ei;
+    // Update hidden state weight gradients
+    float* u = &update[i * hidden_size];   // &update[i * (200 or 400)]
+    for (size_t j = 0; j < input.size(); j++)
+      u[j] += ei * input[j];
   }
 
+  // Optimize at the first epoch
   if (epoch == 0) {
     decay.Apply(learning_rate, time_step);
+    embedding_optimizer->Optimize(learning_rate, time_step);
     weights_optimizer->Optimize(learning_rate, time_step);
     gamma_optimizer->Optimize(learning_rate, time_step);
     beta_optimizer->Optimize(learning_rate, time_step);
   }
 }
-
