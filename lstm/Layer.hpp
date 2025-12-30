@@ -16,8 +16,8 @@ class Layer {
 public:
   SIMDType simd;
 
-  Array<float, 32> embedding;      // Flat: [num_cells * output_size] - embedding matrix
-  Array<float, 32> embedding_u;    // Flat: [num_cells * output_size] - embedding gradients
+  Array<float, 32> embedding;      // Flat: [num_cells * embedding_size] - embedding matrix
+  Array<float, 32> embedding_u;    // Flat: [num_cells * embedding_size] - embedding gradients
 
   Array<float, 32> weights;        // Flat: [num_cells * hidden_size] - hidden state weights only
   Array<float, 32> update;         // Flat: [num_cells * hidden_size] - hidden state gradients
@@ -36,9 +36,8 @@ public:
 
   Array<float, 32> error;
 
-  size_t input_size;       // Total input size (hidden_size + output_size)
-  size_t hidden_size;      // Size of hidden state input (input_size - output_size)
-  size_t output_size;      // Vocabulary size / embedding dimension
+  size_t embedding_size;   // Vocabulary size / embedding dimension
+  size_t hidden_size;      // Size of hidden state input
   size_t num_cells;
 
   float learning_rate;
@@ -56,8 +55,8 @@ public:
 
   Layer(
     SIMDType simdType,
-    size_t input_size,
-    size_t output_size,
+    size_t embedding_size,
+    size_t hidden_size,
     size_t num_cells,
     size_t horizon,
     bool useTanh,

@@ -8,11 +8,11 @@ Lstm::Lstm(
   LSTM::Shape shape,
   float const learning_rate)
   : simd(simdType)
-  , layer_input(shape.horizon* shape.num_layers* (shape.num_cells * 2)) // 100 * 2 * (200*2) = 100 * 2 * 400 (no biases)
-  , output_layer(shape.horizon* shape.output_size* (shape.num_cells* shape.num_layers)) // 100 * 256 * (200*2) = 100 * 256 * 400 (no biases)
-  , output(shape.horizon* shape.output_size)         // 100 * 256 = 25,600
-  , logits(shape.horizon* shape.output_size)         // 100 * 256 = 25,600
-  , hidden(shape.num_cells* shape.num_layers)        // 200 * 2 = 400
+  , layer_input(shape.horizon * shape.num_layers * (shape.num_cells * 2)) // 100 * 2 * (200*2) = 100 * 2 * 400 (no biases)
+  , output_layer(shape.horizon * shape.output_size * (shape.num_cells * shape.num_layers)) // 100 * 256 * (200*2) = 100 * 256 * 400 (no biases)
+  , output(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
+  , logits(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
+  , hidden(shape.num_cells * shape.num_layers)        // 200 * 2 = 400
   , hidden_error(shape.num_cells)                     // 200
   , input_history(shape.horizon)                      // 100
   , saved_timestep(0)
@@ -35,15 +35,15 @@ Lstm::Lstm(
   }
 
   // Create LSTM layers
-  for (size_t i = 0; i < num_layers; i++) {          // 2 iterations
-    size_t layer_input_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
+  for (size_t i = 0; i < num_layers; i++) {           // 2 iterations
+    size_t hidden_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
     layers.push_back(
       std::make_unique<LstmLayer>(
         simdType,
-        layer_input_size + output_size,              // Layer 0: 200+256=456, Layer 1: 400+256=656
-        output_size,                                 // 256
-        num_cells,                                   // 200
-        horizon                                      // 100
+        output_size,              // 256
+        hidden_size,              // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
+        num_cells,                // 200
+        horizon                   // 100
       )
     );
   }
@@ -130,8 +130,8 @@ float* Lstm::Predict(uint8_t const input) {
     for (size_t j = 0; j < layer_input_size; j++) { // Layer 0: 200, Layer 1: 400
       temp_input[j] = layer_input[epoch * num_layers * max_layer_size + i * max_layer_size + j];
     }
-    for (size_t j = 0; j < output_size; j++) {      // 256 iterations
-      temp_input[layer_input_size + j] = 0.f; // Will be filled by ForwardPass
+    for (size_t j = 0; j < output_size; j++) {  // 256 iterations
+      temp_input[layer_input_size + j] = 0.f;   // Will be filled by ForwardPass
     }
 
     layers[i]->ForwardPass(
@@ -142,7 +142,7 @@ float* Lstm::Predict(uint8_t const input) {
       current_sequence_size_target);
 
     // Copy hidden to next layer's input if not last layer
-    if (i < layers.size() - 1) {                     // if i < 1
+    if (i < layers.size() - 1) {                    // if i < 1
       for (size_t j = 0; j < num_cells; j++) {      // 200 iterations
         layer_input[epoch * num_layers * max_layer_size + (i + 1) * max_layer_size + num_cells + j] = hidden[i * num_cells + j];
       }

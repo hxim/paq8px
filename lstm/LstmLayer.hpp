@@ -33,8 +33,8 @@ public:
 
   LstmLayer(
     SIMDType simdType,
-    size_t input_size,
-    size_t output_size,
+    size_t embedding_size,
+    size_t hidden_size,
     size_t num_cells,
     size_t horizon,
     float range = 0.4f);

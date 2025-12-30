@@ -13,8 +13,8 @@ float LstmLayer::Rand(float const range) {
 
 LstmLayer::LstmLayer(
   SIMDType simdType,
-  size_t const input_size,       // Layer 0: 456, Layer 1: 656
-  size_t const output_size,      // 256
+  size_t const embedding_size,   // 256 (vocabulary size)
+  size_t const hidden_size,      // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
   size_t const num_cells,        // 200
   size_t const horizon,          // 100
   float const range)
@@ -30,8 +30,8 @@ LstmLayer::LstmLayer(
   , horizon(horizon)             // 100
   , forget_gate(
     simdType,
-    input_size,                // Layer 0: 456, Layer 1: 656
-    output_size,               // 256
+    embedding_size,            // 256
+    hidden_size,               // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
@@ -45,8 +45,8 @@ LstmLayer::LstmLayer(
     0)                         // decaySteps
   , input_node(
     simdType,
-    input_size,                // Layer 0: 456, Layer 1: 656
-    output_size,               // 256
+    embedding_size,            // 256
+    hidden_size,               // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     true,                      // useTanh
@@ -60,8 +60,8 @@ LstmLayer::LstmLayer(
     0)                         // decaySteps
   , output_gate(
     simdType,
-    input_size,                // Layer 0: 456, Layer 1: 656
-    output_size,               // 256
+    embedding_size,            // 256
+    hidden_size,               // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
@@ -84,14 +84,12 @@ LstmLayer::LstmLayer(
   float* input_w = &input_node.weights[0];
   float* output_w = &output_gate.weights[0];
 
-  size_t hidden_size = input_size - output_size; // Layer 0: 456-256=200, Layer 1: 656-256=400
-
   // Initialize embeddings
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    for (size_t j = 0; j < output_size; j++) {      // 256 iterations
-      forget_emb[i * output_size + j] = Rand(range);
-      input_emb[i * output_size + j] = Rand(range);
-      output_emb[i * output_size + j] = Rand(range);
+    for (size_t j = 0; j < embedding_size; j++) {   // 256 iterations
+      forget_emb[i * embedding_size + j] = Rand(range);
+      input_emb[i * embedding_size + j] = Rand(range);
+      output_emb[i * embedding_size + j] = Rand(range);
     }
   }
 
