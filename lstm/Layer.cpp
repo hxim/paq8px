@@ -21,7 +21,6 @@ Layer::Layer(
   , embedding_u(num_cells * embedding_size)         // 200*256=51,200 - embedding gradients
   , weights(num_cells * hidden_size)                // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden weights only
   , update(num_cells * hidden_size)                 // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden gradients
-  , transpose(hidden_size * num_cells)              // Layer 0: 200*200=40,000, Layer 1: 400*200=80,000
   , norm(horizon * num_cells)                       // 100*200=20,000
   , state(horizon * num_cells)                      // 100*200=20,000
   , inverse_variance(horizon)                       // 100
@@ -180,22 +179,14 @@ void Layer::ForwardPass(
 void Layer::BeforeBackwardPassAtLastEpoch() {
   memset(&gamma_u[0], 0, num_cells * sizeof(float));             // 200 * 4 = 800 bytes
   memset(&beta_u[0], 0, num_cells * sizeof(float));              // 200 * 4 = 800 bytes
-  memset(&embedding_u[0], 0, num_cells * embedding_size * sizeof(float)); // 200*256*4=204,800 bytes - embedding gradients
+  memset(&embedding_u[0], 0, num_cells * embedding_size * sizeof(float)); // 200*256*4=204,800 bytes
   memset(&update[0], 0, num_cells * hidden_size * sizeof(float)); // Layer 0: 200*200*4=160,000 bytes, Layer 1: 200*400*4=320,000 bytes
-
-  // Build transpose for hidden weights only
-  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float* w = &weights[i * hidden_size]; // &weights[i * (200 or 400)]
-    float* t = &transpose[i];
-    for (size_t j = 0; j < hidden_size; j++)   // Layer 0: 200 iterations, Layer 1: 400 iterations
-      t[j * num_cells] = w[j];          // t[j * 200] = w[j]
-  }
 }
 
 void Layer::BackwardPass(
   const Array<float, 32>& input,
-  Array<float, 32>* hidden_error,
-  Array<float, 32>* stored_error,
+  float* hidden_error,
+  float* stored_error,
   uint64_t const time_step,
   size_t const epoch,
   size_t const layer,
@@ -217,48 +208,84 @@ void Layer::BackwardPass(
   for (size_t i = 0; i < num_cells; i++)  // 200 iterations
     error[i] -= sop * norm_epoch[i];
 
-  // Backpropagate to previous layer's hidden state
+  // Layer backprop: backpropagate to previous layer's hidden state
+  // The first num_cells weights are temporal connections, next num_cells are from previous layer
+  // weights[i * hidden_size + j] where j >= num_cells connects to previous layer
   if (layer > 0) {
-    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* t = &transpose[(num_cells + i) * num_cells]; // &transpose[(200 + i) * 200]
-
-      if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
+    if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-        (*hidden_error)[i] += dot256_ps_avx2(
-          &error[0],
-          t,
-          num_cells,                    // 200
-          0.f);
+      backpropagate_errors_avx(num_cells, num_cells, hidden_size, &weights[0], &error[0], hidden_error);
 #endif
-      }
-      else {
-        float f = 0.f;
-        for (size_t j = 0; j < num_cells; j++) // 200 iterations
-          f += error[j] * t[j];
-        (*hidden_error)[i] += f;
+    }
+    else {
+
+      for (size_t j = 0; j < num_cells; j += 8) { // For each cell in previous layer's hidden state
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
+        float sum4 = 0.0f, sum5 = 0.0f, sum6 = 0.0f, sum7 = 0.0f;
+
+        size_t weight_idx = num_cells + j;  // Start at offset for previous layer connections
+        for (size_t i = 0; i < num_cells; i++) { // For each current cell
+          float ei = error[i];
+          sum0 += ei * weights[weight_idx + 0];
+          sum1 += ei * weights[weight_idx + 1];
+          sum2 += ei * weights[weight_idx + 2];
+          sum3 += ei * weights[weight_idx + 3];
+          sum4 += ei * weights[weight_idx + 4];
+          sum5 += ei * weights[weight_idx + 5];
+          sum6 += ei * weights[weight_idx + 6];
+          sum7 += ei * weights[weight_idx + 7];
+          weight_idx += hidden_size;  // Move to next cell's weights
+        }
+
+        hidden_error[j + 0] += sum0;
+        hidden_error[j + 1] += sum1;
+        hidden_error[j + 2] += sum2;
+        hidden_error[j + 3] += sum3;
+        hidden_error[j + 4] += sum4;
+        hidden_error[j + 5] += sum5;
+        hidden_error[j + 6] += sum6;
+        hidden_error[j + 7] += sum7;
       }
     }
   }
 
-  // Backpropagate to previous timestep's hidden state
+  // Temporal backprop: backpropagate to previous timestep's hidden state
+  // stored_error is for the previous timestep (size: num_cells)
+  // The previous timestep's output feeds back as input to current cell
+  // weights[i * hidden_size + j] where j < num_cells for temporal connections
   if (epoch > 0) {
-    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      float* t = &transpose[i * num_cells]; // &transpose[i * 200]
-
-      if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
+    if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
 #ifdef X64_SIMD_AVAILABLE
-        (*stored_error)[i] += dot256_ps_avx2(
-          &error[0],
-          t,
-          num_cells,                    // 200
-          0.f);
+      backpropagate_errors_avx(num_cells, 0, hidden_size, &weights[0], &error[0], stored_error);
 #endif
-      }
-      else {
-        float f = 0.f;
-        for (size_t j = 0; j < num_cells; j++) // 200 iterations
-          f += error[j] * t[j];
-        (*stored_error)[i] += f;
+    }
+    else {
+
+      for (size_t j = 0; j < num_cells; j += 8) {     // For each cell in previous timestep
+        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
+        float sum4 = 0.0f, sum5 = 0.0f, sum6 = 0.0f, sum7 = 0.0f;
+
+        size_t weight_idx = j; // Start at offset for previous timestep's connections
+        for (size_t i = 0; i < num_cells; i++) {   // For each current cell
+          float ei = error[i];
+          sum0 += ei * weights[weight_idx + 0];
+          sum1 += ei * weights[weight_idx + 1];
+          sum2 += ei * weights[weight_idx + 2];
+          sum3 += ei * weights[weight_idx + 3];
+          sum4 += ei * weights[weight_idx + 4];
+          sum5 += ei * weights[weight_idx + 5];
+          sum6 += ei * weights[weight_idx + 6];
+          sum7 += ei * weights[weight_idx + 7];
+          weight_idx += hidden_size;  // Move to next cell's weights
+        }
+        stored_error[j + 0] += sum0;
+        stored_error[j + 1] += sum1;
+        stored_error[j + 2] += sum2;
+        stored_error[j + 3] += sum3;
+        stored_error[j + 4] += sum4;
+        stored_error[j + 5] += sum5;
+        stored_error[j + 6] += sum6;
+        stored_error[j + 7] += sum7;
       }
     }
   }

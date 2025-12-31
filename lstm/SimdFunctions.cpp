@@ -171,6 +171,27 @@ float dot256_ps_avx2(float const* x1, float const* x2, size_t const len, float i
   return init;
 }
 
+#if (defined(__GNUC__) || defined(__clang__))
+__attribute__((target("avx")))
+#endif
+void backpropagate_errors_avx(size_t len, size_t base_offset, size_t hidden_size, float* weights, float* error, float* grad_store) {
+
+  for (size_t j = 0; j < len; j += 8) {
+    __m256 sum = _mm256_load_ps(&grad_store[j]);
+
+    size_t weight_idx = base_offset + j;
+    for (size_t i = 0; i < len; i++) {
+      __m256 ei = _mm256_set1_ps(error[i]);
+      __m256 w = _mm256_load_ps(&weights[weight_idx]);
+      __m256 prod = _mm256_mul_ps(ei, w);
+      sum = _mm256_add_ps(sum, prod);
+      weight_idx += hidden_size;
+    }
+
+    _mm256_store_ps(&grad_store[j], sum);
+  }
+}
+
 // ============================================================================
 // SIMD Softmax (AVX2)
 // ============================================================================

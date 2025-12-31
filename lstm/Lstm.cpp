@@ -194,7 +194,7 @@ void Lstm::Perceive(const uint8_t input) {
           current_sequence_size_target,
           layer,
           input_symbol,
-          &hidden_error);
+          &hidden_error[0]);
       }
     }
 

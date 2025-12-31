@@ -30,9 +30,9 @@ __attribute__((target("avx2")))
 float dot256_ps_avx2(float const* x1, float const* x2, size_t len, float init);
 
 #if (defined(__GNUC__) || defined(__clang__))
-__attribute__((target("avx2")))
+__attribute__((target("avx")))
 #endif
-float sum256_ps_avx2(float const* x, size_t len, float init);
+void backpropagate_errors_avx(size_t len, size_t base_offset, size_t hidden_size, float* weights, float* error, float* grad_store);
 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx2")))

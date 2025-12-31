@@ -160,7 +160,7 @@ void LstmLayer::BackwardPass(
   size_t current_sequence_size_target,
   size_t const layer,
   uint8_t const input_symbol,
-  Array<float, 32>* hidden_error)
+  float* hidden_error)
 {
   const size_t ebase = epoch * num_cells;            // epoch * 200
 
@@ -177,14 +177,14 @@ void LstmLayer::BackwardPass(
     input_node.BeforeBackwardPassAtLastEpoch();
     output_gate.BeforeBackwardPassAtLastEpoch();
 
-    memcpy(&stored_error[0], &(*hidden_error)[0], num_cells * sizeof(float));
+    memcpy(&stored_error[0], &hidden_error[0], num_cells * sizeof(float));
     memset(&state_error[0], 0, num_cells * sizeof(float));
   }
 
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
     const size_t idx = ebase + i;                   // epoch*200 + i
 
-    stored_error[i] += (*hidden_error)[i];
+    stored_error[i] += hidden_error[i];
 
     const float tanh_v = tanh_state[idx];
     const float forget = fg_state[idx];
@@ -209,7 +209,7 @@ void LstmLayer::BackwardPass(
       state_error[i] *
       forget * input_gate;
 
-    (*hidden_error)[i] = 0.0f;
+    hidden_error[i] = 0.0f;
 
     if (epoch > 0) {
       state_error[i] *= forget;
@@ -223,7 +223,7 @@ void LstmLayer::BackwardPass(
   forget_gate.BackwardPass(
     input,
     hidden_error,
-    &stored_error,
+    &stored_error[0],
     update_steps,
     epoch,
     layer,
@@ -231,7 +231,7 @@ void LstmLayer::BackwardPass(
   input_node.BackwardPass(
     input,
     hidden_error,
-    &stored_error,
+    &stored_error[0],
     update_steps,
     epoch,
     layer,
@@ -239,7 +239,7 @@ void LstmLayer::BackwardPass(
   output_gate.BackwardPass(
     input,
     hidden_error,
-    &stored_error,
+    &stored_error[0],
     update_steps,
     epoch,
     layer,

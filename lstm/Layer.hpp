@@ -22,7 +22,6 @@ public:
   Array<float, 32> weights;        // Flat: [num_cells * hidden_size] - hidden state weights only
   Array<float, 32> update;         // Flat: [num_cells * hidden_size] - hidden state gradients
 
-  Array<float, 32> transpose;      // Flat: [hidden_size * num_cells]
   Array<float, 32> norm;           // Flat: [horizon * num_cells]
   Array<float, 32> state;          // Flat: [horizon * num_cells]
 
@@ -78,8 +77,8 @@ public:
 
   void BackwardPass(
     const Array<float, 32>& input,
-    Array<float, 32>* hidden_error,
-    Array<float, 32>* stored_error,
+    float* hidden_error,
+    float* stored_error,
     uint64_t time_step,
     size_t epoch,
     size_t layer,

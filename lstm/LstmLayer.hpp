@@ -52,5 +52,5 @@ public:
     size_t current_sequence_size_target,
     size_t layer,
     uint8_t input_symbol,
-    Array<float, 32>* hidden_error);
+    float* hidden_error);
 };
