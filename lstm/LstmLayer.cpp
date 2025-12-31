@@ -40,8 +40,7 @@ LstmLayer::LstmLayer(
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
     0.0005f,                   // decayMultiplier
-    1.0f,                      // powerNumerator
-    2.0f,                      // powerDenominator
+    1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
   , input_node(
     simdType,
@@ -55,8 +54,7 @@ LstmLayer::LstmLayer(
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
     0.0005f,                   // decayMultiplier
-    1.0f,                      // powerNumerator
-    2.0f,                      // powerDenominator
+    1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
   , output_gate(
     simdType,
@@ -70,8 +68,7 @@ LstmLayer::LstmLayer(
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
     0.0005f,                   // decayMultiplier
-    1.0f,                      // powerNumerator
-    2.0f,                      // powerDenominator
+    1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
   , update_steps(0)
 {

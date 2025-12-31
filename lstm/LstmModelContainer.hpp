@@ -36,8 +36,7 @@ public:
     Shared* const sh,
     size_t num_cells,
     size_t num_layers,
-    size_t horizon,
-    float learning_rate);
+    size_t horizon);
 
   void next();
   int getp();

@@ -49,7 +49,7 @@ public:
 
   Tanh activation_tanh;
   Logistic activation_logistic;
-  PolynomialDecay decay;
+  PolynomialDecay decayMultiplier;
 
   bool use_tanh; // true for Tanh, false for Logistic
 
@@ -65,8 +65,7 @@ public:
     float learningRate,
     float endLearningRate,
     float decayMultiplier,
-    float powerNumerator,
-    float powerDenominator,
+    float decayExponent,
     uint64_t decaySteps = 0
   );
 

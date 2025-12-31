@@ -6,12 +6,11 @@ LstmModelContainer::LstmModelContainer(
   Shared* const sh,
   size_t const num_cells,
   size_t const num_layers,
-  size_t const horizon,
-  float const learning_rate)
+  size_t const horizon)
   : shared(sh)
   , simd(sh->chosenSimd)
   , shape{ alphabetSize, num_cells, num_layers, horizon }
-  , lstm(sh->chosenSimd, shape, learning_rate)
+  , lstm(sh->chosenSimd, shape)
   , probs(nullptr)
   , byteModelToBitModel()
   , apm1{ sh, 0x10000, 24, 255 }

@@ -14,8 +14,7 @@ Layer::Layer(
   float learningRate,
   float endLearningRate,
   float decayMultiplier,
-  float powerNumerator,
-  float powerDenominator,
+  float decayExponent,
   uint64_t decaySteps)
   : simd(simdType)
   , embedding(num_cells * embedding_size)           // 200*256=51,200 - embedding matrix
@@ -37,7 +36,7 @@ Layer::Layer(
   , learning_rate(0.f)
   , activation_tanh(simdType)
   , activation_logistic(simdType)
-  , decay(learningRate, endLearningRate, decayMultiplier, powerNumerator, powerDenominator, decaySteps)
+  , decayMultiplier(learningRate, endLearningRate, decayMultiplier, decayExponent, decaySteps)
   , use_tanh(useTanh)
 {
   // Initialize gamma to 1.0
@@ -157,7 +156,7 @@ void Layer::ForwardPass(
     norm_epoch,
     num_cells);                         // 200
 
-  inverse_variance[epoch] = 1.f / std::sqrt(ss / num_cells + 1e-5f); // 1.f / sqrt(ss / 200 + 1e-5f)
+  inverse_variance[epoch] = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
 
   const float inv = inverse_variance[epoch];
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
@@ -279,7 +278,7 @@ void Layer::BackwardPass(
 
   // Optimize at the first epoch
   if (epoch == 0) {
-    decay.Apply(learning_rate, time_step);
+    decayMultiplier.Apply(learning_rate, time_step);
     embedding_optimizer->Optimize(learning_rate, time_step);
     weights_optimizer->Optimize(learning_rate, time_step);
     gamma_optimizer->Optimize(learning_rate, time_step);

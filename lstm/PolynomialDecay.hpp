@@ -1,15 +1,15 @@
-#pragma once
+﻿#pragma once
 
 #include "../Utils.hpp"
 #include <cstdint>
 
 class PolynomialDecay {
 private:
-    float power;
+    float exponent;
     float mul;
     float learning_rate;
     float end_learning_rate;
-    float decay;
+    float decayMultiplier;
     uint64_t steps;
 
 public:
@@ -17,8 +17,7 @@ public:
         float learningRate,
         float endLearningRate,
         float decayMultiplier,
-        float powerNumerator,
-        float powerDenominator,
+        float exponent,
         uint64_t decaySteps = 0
     );
     

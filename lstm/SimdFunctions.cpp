@@ -156,47 +156,19 @@ float hsum256_ps_avx(__m256 const v) {
 __attribute__((target("avx2")))
 #endif
 float dot256_ps_avx2(float const* x1, float const* x2, size_t const len, float init) {
-  static constexpr size_t SIMDW = 8;
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
-  size_t remainder = len & (SIMDW - 1);
 
   __m256 sum = _mm256_setzero_ps();
 
-  for (size_t i = 0; i < limit; i += SIMDW) {
-    __m256 a = _mm256_loadu_ps(x1 + i);
-    __m256 b = _mm256_loadu_ps(x2 + i);
+  for (size_t i = 0; i < len; i += 8) {
+    __m256 a = _mm256_load_ps(x1 + i);
+    __m256 b = _mm256_load_ps(x2 + i);
     __m256 prod = _mm256_mul_ps(a, b);
     sum = _mm256_add_ps(sum, prod);
   }
 
   init += hsum256_ps_avx(sum);
 
-  for (size_t i = limit; i < len; i++)
-    init += x1[i] * x2[i];
-
   return init;
-}
-
-// ============================================================================
-// SIMD Sum (AVX2)
-// ============================================================================
-
-#if (defined(__GNUC__) || defined(__clang__))
-__attribute__((target("avx2")))
-#endif
-float sum256_ps_avx2(float const* x, size_t const len, float init) {
-  static constexpr size_t SIMDW = 8;
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
-  size_t const remainder = len & (SIMDW - 1);
-
-  if (limit > 0) {
-    __m256 sum = _mm256_loadu_ps(x);
-    for (size_t i = SIMDW; i < limit; i += SIMDW)
-      sum = _mm256_add_ps(_mm256_loadu_ps(x + i), sum);
-    init += hsum256_ps_avx(sum);
-  }
-
-  return (!remainder) ? init : std::accumulate(x + limit, x + len, init);
 }
 
 // ============================================================================
@@ -207,7 +179,6 @@ float sum256_ps_avx2(float const* x, size_t const len, float init) {
 __attribute__((target("avx2")))
 #endif
 void softmax_avx2(float* logits, float* probs, size_t const len, float const max_logit) {
-  static constexpr size_t SIMDW = 4;
 
   // Constants for exponential
   const __m128 INV_LN2 = _mm_set1_ps(0x1.715476p+0f);
@@ -227,10 +198,8 @@ void softmax_avx2(float* logits, float* probs, size_t const len, float const max
   __m128 expsum_vec1 = _mm_setzero_ps();
   __m128 expsum_vec2 = _mm_setzero_ps();
 
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW * 2));
-
   // Compute exp(logit - max_logit) for all elements
-  for (size_t i = 0; i < limit; i += SIMDW * 2) {
+  for (size_t i = 0; i < len; i += 8) {
     // First block of 4
     {
       __m128 logits_vec = _mm_load_ps(&logits[i]);
@@ -263,7 +232,7 @@ void softmax_avx2(float* logits, float* probs, size_t const len, float const max
 
     // Second block of 4
     {
-      __m128 logits_vec = _mm_load_ps(&logits[i + SIMDW]);
+      __m128 logits_vec = _mm_load_ps(&logits[i + 4]);
       logits_vec = _mm_sub_ps(logits_vec, maxlogit_vec);
       logits_vec = _mm_min_ps(logits_vec, cplus87);
       logits_vec = _mm_max_ps(logits_vec, cminus87);
@@ -287,7 +256,7 @@ void softmax_avx2(float* logits, float* probs, size_t const len, float const max
       __m128 two_n = _mm_castsi128_ps(bits);
 
       __m128 result_vec = _mm_mul_ps(p, two_n);
-      _mm_store_ps(&probs[i + SIMDW], result_vec);
+      _mm_store_ps(&probs[i + 4], result_vec);
       expsum_vec2 = _mm_add_ps(expsum_vec2, result_vec);
     }
   }
@@ -298,25 +267,15 @@ void softmax_avx2(float* logits, float* probs, size_t const len, float const max
   sum128 = _mm_add_ss(sum128, _mm_shuffle_ps(sum128, sum128, 0x55));
   float expsum = _mm_cvtss_f32(sum128);
 
-  // Handle remainder
-  for (size_t i = limit; i < len; i++) {
-    float val = expf_compat(logits[i] - max_logit);
-    probs[i] = val;
-    expsum += val;
-  }
-
   // Normalize
   float expsum_reciprocal = 1.0f / expsum;
   __m128 expsum_reciprocal_vec = _mm_set1_ps(expsum_reciprocal);
 
-  for (size_t i = 0; i < limit; i += SIMDW) {
+  for (size_t i = 0; i < len; i += 4) {
     __m128 softmax_probs_vec = _mm_load_ps(&probs[i]);
     __m128 result_vec = _mm_mul_ps(softmax_probs_vec, expsum_reciprocal_vec);
     _mm_store_ps(&probs[i], result_vec);
   }
-
-  for (size_t i = limit; i < len; i++)
-    probs[i] *= expsum_reciprocal;
 }
 
 // ============================================================================
@@ -330,17 +289,14 @@ Tanh::Tanh(SIMDType simdType) : simd(simdType) {}
 __attribute__((target("avx")))
 #endif
 void Tanh::RunSimdAVX(float* f, size_t const len) const {
-  static constexpr size_t SIMDW = 8;
 
   __m256 const c_27 = _mm256_set1_ps(27.0f);
   __m256 const c_9 = _mm256_set1_ps(9.0f);
   __m256 const c_clip_lower = _mm256_set1_ps(TANH_CLIP_MIN);
   __m256 const c_clip_upper = _mm256_set1_ps(TANH_CLIP_MAX);
 
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
-
-  for (size_t i = 0; i < limit; i += SIMDW) {
-    __m256 x = _mm256_loadu_ps(f + i);
+  for (size_t i = 0; i < len; i += 8) {
+    __m256 x = _mm256_load_ps(f + i);
     x = _mm256_max_ps(x, c_clip_lower);
     x = _mm256_min_ps(x, c_clip_upper);
 
@@ -349,12 +305,7 @@ void Tanh::RunSimdAVX(float* f, size_t const len) const {
     __m256 denom = _mm256_add_ps(c_27, _mm256_mul_ps(c_9, x2));
     __m256 result = _mm256_div_ps(numer, denom);
 
-    _mm256_storeu_ps(f + i, result);
-  }
-
-  for (size_t i = limit; i < len; i++) {
-    float x = f[i];
-    f[i] = tanh_pade_clipped(x);
+    _mm256_store_ps(f + i, result);
   }
 }
 
@@ -379,18 +330,14 @@ Logistic::Logistic(SIMDType simdType) : simd(simdType) {}
 __attribute__((target("avx")))
 #endif
 void Logistic::RunSimdAVX(float* f, size_t const len) const {
-  static constexpr size_t SIMDW = 8;
-
   __m256 const c_half = _mm256_set1_ps(0.5f);
   __m256 const c_27 = _mm256_set1_ps(27.0f);
   __m256 const c_9 = _mm256_set1_ps(9.0f);
   __m256 const c_clip_lower = _mm256_set1_ps(SIGMOID_CLIP_MIN);
   __m256 const c_clip_upper = _mm256_set1_ps(SIGMOID_CLIP_MAX);
 
-  size_t const limit = len & static_cast<size_t>(-static_cast<ptrdiff_t>(SIMDW));
-
-  for (size_t i = 0; i < limit; i += SIMDW) {
-    __m256 x = _mm256_loadu_ps(f + i);
+    for (size_t i = 0; i < len; i += 8) {
+    __m256 x = _mm256_load_ps(f + i);
     x = _mm256_max_ps(x, c_clip_lower);
     x = _mm256_min_ps(x, c_clip_upper);
 
@@ -404,12 +351,7 @@ void Logistic::RunSimdAVX(float* f, size_t const len) const {
     // sigmoid = 0.5 * (1 + tanh) = 0.5 + 0.5*tanh
     __m256 result = _mm256_add_ps(c_half, _mm256_mul_ps(c_half, tanh_val));
 
-    _mm256_storeu_ps(f + i, result);
-  }
-
-  for (size_t i = limit; i < len; i++) {
-    float x = f[i];
-    f[i] = sigmoid_pade_clipped(x);
+    _mm256_store_ps(f + i, result);
   }
 }
 
