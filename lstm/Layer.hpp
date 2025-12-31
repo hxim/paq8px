@@ -73,8 +73,6 @@ public:
     uint8_t input_symbol,
     size_t epoch);
 
-  void BeforeBackwardPassAtLastEpoch();
-
   void BackwardPass(
     const Array<float, 32>& input,
     float* hidden_error,

@@ -173,10 +173,6 @@ void LstmLayer::BackwardPass(
   float* og_error = &output_gate.error[0];
 
   if (epoch == current_sequence_size_target - 1) {
-    forget_gate.BeforeBackwardPassAtLastEpoch();
-    input_node.BeforeBackwardPassAtLastEpoch();
-    output_gate.BeforeBackwardPassAtLastEpoch();
-
     memcpy(&stored_error[0], &hidden_error[0], num_cells * sizeof(float));
     memset(&state_error[0], 0, num_cells * sizeof(float));
   }

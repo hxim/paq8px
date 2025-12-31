@@ -176,13 +176,6 @@ void Layer::ForwardPass(
   }
 }
 
-void Layer::BeforeBackwardPassAtLastEpoch() {
-  memset(&gamma_u[0], 0, num_cells * sizeof(float));             // 200 * 4 = 800 bytes
-  memset(&beta_u[0], 0, num_cells * sizeof(float));              // 200 * 4 = 800 bytes
-  memset(&embedding_u[0], 0, num_cells * embedding_size * sizeof(float)); // 200*256*4=204,800 bytes
-  memset(&update[0], 0, num_cells * hidden_size * sizeof(float)); // Layer 0: 200*200*4=160,000 bytes, Layer 1: 200*400*4=320,000 bytes
-}
-
 void Layer::BackwardPass(
   const Array<float, 32>& input,
   float* hidden_error,

@@ -15,6 +15,7 @@ void Adam_Scalar::Optimize(float learning_rate, uint64_t time_step)
     float v_corrected = v_new / bias_v;
     float denom = std::sqrt(v_corrected) + eps;
     float scaled_gradient = g_val / denom;
+    g[i] = 0.0f;
     w[i] = w[i] - learning_rate * scaled_gradient;
   }
 }
