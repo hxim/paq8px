@@ -42,8 +42,7 @@ public:
   void ForwardPass(
     const Array<float, 32>& input,
     uint8_t input_symbol,
-    Array<float, 32>* hidden,
-    size_t hidden_start,
+    float* hidden,
     size_t current_sequence_size_target);
 
   void BackwardPass(

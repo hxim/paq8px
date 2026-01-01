@@ -103,8 +103,7 @@ LstmLayer::LstmLayer(
 void LstmLayer::ForwardPass(
   const Array<float, 32>& input,
   uint8_t const input_symbol,
-  Array<float, 32>* hidden,
-  size_t const hidden_start,
+  float* hidden,
   size_t current_sequence_size_target)
 {
   const size_t ebase = epoch * num_cells;            // epoch * 200
@@ -114,9 +113,9 @@ void LstmLayer::ForwardPass(
   float* og_state = &output_gate.state[0];
 
   // Copy current state to last_state for this epoch
-  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    last_state[ebase + i] = state[i];               // last_state[epoch*200 + i]
-  }
+  float* src = &state[0];
+  float* dst = &last_state[ebase];
+  memcpy(dst, src, num_cells * sizeof(float));
 
   forget_gate.ForwardPass(
     input,
@@ -146,7 +145,7 @@ void LstmLayer::ForwardPass(
     const float t = tanh_pade_clipped(state[i]);
     tanh_state[idx] = t;
 
-    (*hidden)[hidden_start + i] = output * t;
+    hidden[i] = output * t;
   }
 
   epoch++;

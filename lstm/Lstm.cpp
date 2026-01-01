@@ -108,15 +108,18 @@ float* Lstm::Predict(uint8_t const input) {
   Array<float, 32> temp_input(num_cells * 2 + output_size); // 200*2 + 256 = 656
 
   for (size_t i = 0; i < layers.size(); i++) {      // 2 iterations
+    float* hidden_i = &hidden[i * num_cells]; // i * 200
+
     // Copy from hidden to layer_input
-    float* src = &hidden[i * num_cells];
+    float* src = hidden_i;
     float* dst = &layer_input[epoch * num_layers * max_layer_size + i * max_layer_size];
     memcpy(dst, src, num_cells * sizeof(float));
 
     // Prepare temp_input for this layer
     size_t layer_input_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
+    size_t base_idx = epoch * num_layers * max_layer_size + i * max_layer_size;
     for (size_t j = 0; j < layer_input_size; j++) { // Layer 0: 200, Layer 1: 400
-      temp_input[j] = layer_input[epoch * num_layers * max_layer_size + i * max_layer_size + j];
+      temp_input[j] = layer_input[base_idx + j];
     }
     for (size_t j = 0; j < output_size; j++) {  // 256 iterations
       temp_input[layer_input_size + j] = 0.f;   // Will be filled by ForwardPass
@@ -125,13 +128,12 @@ float* Lstm::Predict(uint8_t const input) {
     layers[i]->ForwardPass(
       temp_input,
       input,
-      &hidden,
-      i * num_cells,                              // i * 200
+      hidden_i,
       current_sequence_size_target);
 
     // Copy hidden to next layer's input if not last layer
     if (i < layers.size() - 1) {
-      float* src = &hidden[i * num_cells];
+      float* src = hidden_i;
       float* dst = &layer_input[epoch * num_layers * max_layer_size + (i + 1) * max_layer_size + num_cells];
       memcpy(dst, src, num_cells * sizeof(float));
     }
