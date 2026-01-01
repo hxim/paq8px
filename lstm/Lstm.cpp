@@ -104,9 +104,6 @@ void Lstm::SoftMaxSimdNone() {
 float* Lstm::Predict(uint8_t const input) {
   size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
 
-  // Create temporary array to pass a slice of layer_input to ForwardPass
-  Array<float, 32> temp_input(num_cells * 2 + output_size); // 200*2 + 256 = 656
-
   for (size_t i = 0; i < layers.size(); i++) {      // 2 iterations
     float* hidden_i = &hidden[i * num_cells]; // i * 200
 
@@ -115,18 +112,14 @@ float* Lstm::Predict(uint8_t const input) {
     float* dst = &layer_input[epoch * num_layers * max_layer_size + i * max_layer_size];
     memcpy(dst, src, num_cells * sizeof(float));
 
-    // Prepare temp_input for this layer
+    // Get pointer to this layer's input
     size_t layer_input_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
     size_t base_idx = epoch * num_layers * max_layer_size + i * max_layer_size;
-    for (size_t j = 0; j < layer_input_size; j++) { // Layer 0: 200, Layer 1: 400
-      temp_input[j] = layer_input[base_idx + j];
-    }
-    for (size_t j = 0; j < output_size; j++) {  // 256 iterations
-      temp_input[layer_input_size + j] = 0.f;   // Will be filled by ForwardPass
-    }
+    float* layer_input_ptr = &layer_input[base_idx];
 
     layers[i]->ForwardPass(
-      temp_input,
+      layer_input_ptr,
+      layer_input_size,
       input,
       hidden_i,
       current_sequence_size_target);
@@ -164,11 +157,9 @@ void Lstm::Perceive(const uint8_t input) {
   size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
 
-  Array<float, 32> temp_input(num_cells * 2 + output_size); // 200*2 + 256 = 656
-
   if (epoch == 0) {
-    for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) { // starts at 99, goes to 0
-      for (int layer = static_cast<int>(layers.size()) - 1; layer >= 0; layer--) { // starts at 1, goes to 0
+    for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) {
+      for (int layer = static_cast<int>(layers.size()) - 1; layer >= 0; layer--) {
         int offset = layer * static_cast<int>(num_cells); // layer * 200
         for (size_t i = 0; i < output_size; i++) {   // 256 iterations
           float const error = (i == input_history[epoch_]) ? output[epoch_ * output_size + i] - 1.f : output[epoch_ * output_size + i];
@@ -178,20 +169,16 @@ void Lstm::Perceive(const uint8_t input) {
           }
         }
 
-        size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : current_sequence_size_target) - 1; // ((epoch_ > 0) ? epoch_ : 100) - 1
+        size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : current_sequence_size_target) - 1;
         uint8_t const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
 
-        // Prepare temp_input
+        // Get pointer to this layer's input
         size_t layer_input_size = num_cells * (layer > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
-        for (size_t j = 0; j < layer_input_size; j++) { // Layer 0: 200, Layer 1: 400
-          temp_input[j] = layer_input[epoch_ * num_layers * max_layer_size + layer * max_layer_size + j];
-        }
-        for (size_t j = 0; j < output_size; j++) {   // 256 iterations
-          temp_input[layer_input_size + j] = 0.f;
-        }
+        float* layer_input_ptr = &layer_input[epoch_ * num_layers * max_layer_size + layer * max_layer_size];
 
         layers[layer]->BackwardPass(
-          temp_input,
+          layer_input_ptr,
+          layer_input_size,
           epoch_,
           current_sequence_size_target,
           layer,

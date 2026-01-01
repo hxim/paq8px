@@ -69,12 +69,14 @@ public:
   );
 
   void ForwardPass(
-    const Array<float, 32>& input,
+    float* input,
+    size_t input_size,
     uint8_t input_symbol,
     size_t epoch);
 
   void BackwardPass(
-    const Array<float, 32>& input,
+    float* input,
+    size_t input_size,
     float* hidden_error,
     float* stored_error,
     uint64_t time_step,

@@ -101,7 +101,8 @@ LstmLayer::LstmLayer(
 }
 
 void LstmLayer::ForwardPass(
-  const Array<float, 32>& input,
+  float* input,
+  size_t input_size,
   uint8_t const input_symbol,
   float* hidden,
   size_t current_sequence_size_target)
@@ -117,22 +118,12 @@ void LstmLayer::ForwardPass(
   float* dst = &last_state[ebase];
   memcpy(dst, src, num_cells * sizeof(float));
 
-  forget_gate.ForwardPass(
-    input,
-    input_symbol,
-    epoch);
-  input_node.ForwardPass(
-    input,
-    input_symbol,
-    epoch);
-  output_gate.ForwardPass(
-    input,
-    input_symbol,
-    epoch);
+  forget_gate.ForwardPass(input, input_size, input_symbol, epoch);
+  input_node.ForwardPass(input, input_size, input_symbol, epoch);
+  output_gate.ForwardPass(input, input_size, input_symbol, epoch);
 
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
     const size_t idx = ebase + i;                   // epoch*200 + i
-
     const float forget = fg_state[idx];
     const float inputv = ig_state[idx];
     const float output = og_state[idx];
@@ -149,12 +140,13 @@ void LstmLayer::ForwardPass(
   }
 
   epoch++;
-  if (epoch == current_sequence_size_target)                              // if epoch == 100
+  if (epoch == current_sequence_size_target)
     epoch = 0;
 }
 
 void LstmLayer::BackwardPass(
-  const Array<float, 32>& input,
+  float* input,
+  size_t input_size,
   size_t const epoch,
   size_t current_sequence_size_target,
   size_t const layer,
@@ -217,6 +209,7 @@ void LstmLayer::BackwardPass(
 
   forget_gate.BackwardPass(
     input,
+    input_size,
     hidden_error,
     &stored_error[0],
     update_steps,
@@ -225,6 +218,7 @@ void LstmLayer::BackwardPass(
     input_symbol);
   input_node.BackwardPass(
     input,
+    input_size,
     hidden_error,
     &stored_error[0],
     update_steps,
@@ -233,6 +227,7 @@ void LstmLayer::BackwardPass(
     input_symbol);
   output_gate.BackwardPass(
     input,
+    input_size,
     hidden_error,
     &stored_error[0],
     update_steps,

@@ -40,16 +40,18 @@ public:
     float range = 0.4f);
 
   void ForwardPass(
-    const Array<float, 32>& input,
-    uint8_t input_symbol,
+    float* input,
+    size_t input_size,
+    uint8_t const input_symbol,
     float* hidden,
     size_t current_sequence_size_target);
 
   void BackwardPass(
-    const Array<float, 32>& input,
-    size_t epoch,
+    float* input,
+    size_t input_size,
+    size_t const epoch,
     size_t current_sequence_size_target,
-    size_t layer,
-    uint8_t input_symbol,
+    size_t const layer,
+    uint8_t const input_symbol,
     float* hidden_error);
 };

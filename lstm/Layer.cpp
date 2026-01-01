@@ -109,7 +109,8 @@ Layer::Layer(
 }
 
 void Layer::ForwardPass(
-  const Array<float, 32>& input,
+  float* input,
+  size_t input_size,
   uint8_t const input_symbol,
   size_t const epoch)
 {
@@ -127,9 +128,9 @@ void Layer::ForwardPass(
 
       // Compute: embedding_value + dot(input, hidden_weights)
       norm_epoch[i] = dot256_ps_avx2(
-        &input[0],
+        input,
         w,
-        input.size(),   // Size of hidden state input array
+        input_size,     // Size of hidden state input array
         embed_value     // Start with embedding value
       );
     }
@@ -144,16 +145,14 @@ void Layer::ForwardPass(
       float* w = &weights[i * hidden_size]; // i * (200 or 400)
 
       // Accumulate hidden state contributions
-      for (size_t j = 0; j < input.size(); j++)  // input.size() = hidden_size
+      for (size_t j = 0; j < input_size; j++)  // input.size() = hidden_size
         f += input[j] * w[j];
 
       norm_epoch[i] = f;
     }
   }
 
-  const float ss = SumOfSquares(
-    norm_epoch,
-    num_cells);                         // 200
+  const float ss = SumOfSquares(norm_epoch, num_cells);
 
   inverse_variance[epoch] = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
 
@@ -165,19 +164,16 @@ void Layer::ForwardPass(
   }
 
   if (use_tanh) {
-    activation_tanh.Run(
-      state_epoch,
-      num_cells);                       // 200
+    activation_tanh.Run(state_epoch, num_cells);
   }
   else {
-    activation_logistic.Run(
-      state_epoch,
-      num_cells);                       // 200
+    activation_logistic.Run(state_epoch, num_cells);
   }
 }
 
 void Layer::BackwardPass(
-  const Array<float, 32>& input,
+  float* input,
+  size_t input_size,
   float* hidden_error,
   float* stored_error,
   uint64_t const time_step,
@@ -292,7 +288,7 @@ void Layer::BackwardPass(
 
     // Update hidden state weight gradients
     float* u = &update[i * hidden_size];   // &update[i * (200 or 400)]
-    for (size_t j = 0; j < input.size(); j++)  // input.size() = hidden_size
+    for (size_t j = 0; j < input_size; j++)  // input_size = hidden_size
       u[j] += ei * input[j];
   }
 
