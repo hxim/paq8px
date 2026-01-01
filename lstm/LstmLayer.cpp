@@ -35,7 +35,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
-    0.9999f,                   // beta2
+    0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
@@ -49,7 +49,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     true,                      // useTanh
-    0.9999f,                   // beta2
+    0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
@@ -63,7 +63,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
-    0.9999f,                   // beta2
+    0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
     0.001f,                    // endLearningRate
