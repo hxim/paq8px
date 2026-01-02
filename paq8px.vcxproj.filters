@@ -324,7 +324,7 @@
     <ClCompile Include="model\MatchInfo.cpp">
       <Filter>model</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\SimdFunctions.cpp">
+    <ClCompile Include="lstm\VectorFunctions.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
     <ClCompile Include="lstm\Adam.cpp">
@@ -352,6 +352,15 @@
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
     <ClCompile Include="lstm\ByteModelToBitModel.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_AVX2.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_Scalar.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_SSE2.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
   </ItemGroup>
@@ -692,7 +701,7 @@
     <ClInclude Include="lstm\PolynomialDecay.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\SimdFunctions.hpp">
+    <ClInclude Include="lstm\VectorFunctions.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="model\DecAlphaModel.hpp">
@@ -816,6 +825,15 @@
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\ByteModelToBitModel.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_AVX2.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_Scalar.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_SSE2.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>

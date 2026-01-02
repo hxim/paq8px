@@ -5,7 +5,6 @@
 #include <cstring>
 
 #include "LstmLayer.hpp"
-#include "SimdFunctions.hpp"
 
 float LstmLayer::Rand(float const range) {
   return ((static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) - 0.5f) * range;

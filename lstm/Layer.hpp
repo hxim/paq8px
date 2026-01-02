@@ -2,15 +2,21 @@
 
 #include "Adam.hpp"
 #include "Adam_Scalar.hpp"
+#include "VectorFunctions.hpp"
+#include "VectorFunctions_Scalar.hpp"
 #ifdef X64_SIMD_AVAILABLE
 #include "Adam_AVX.hpp"
+#include "VectorFunctions_SSE2.hpp"
+#include "VectorFunctions_AVX2.hpp"
 #endif
-#include "SimdFunctions.hpp"
+
 #include "PolynomialDecay.hpp"
 #include "../SIMDType.hpp"
 #include "../Array.hpp"
 #include <cstdint>
 #include <memory>
+
+std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd);
 
 class Layer {
 public:
@@ -41,14 +47,13 @@ public:
 
   float learning_rate;
 
+  std::unique_ptr<VectorFunctions> VectorFunctions;
   std::unique_ptr<Adam> embedding_optimizer;
   std::unique_ptr<Adam> weights_optimizer;
   std::unique_ptr<Adam> gamma_optimizer;
   std::unique_ptr<Adam> beta_optimizer;
 
-  Tanh activation_tanh;
-  Logistic activation_logistic;
-  PolynomialDecay decayMultiplier;
+  PolynomialDecay decayFunc;
 
   bool use_tanh; // true for Tanh, false for Logistic
 

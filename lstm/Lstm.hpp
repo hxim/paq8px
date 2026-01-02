@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #include "LstmLayer.hpp"
-#include "SimdFunctions.hpp"
 #include "../file/BitFileDisk.hpp"
 #include "../file/OpenFromMyFolder.hpp"
 #include "../Utils.hpp"
@@ -36,12 +35,7 @@ private:
   size_t sequence_step_cntr = 0;
   size_t output_size;
   size_t num_layers;
-
-#ifdef X64_SIMD_AVAILABLE
-  void SoftMaxSimdAVX2();
-#endif
-
-  void SoftMaxSimdNone();
+  std::unique_ptr<VectorFunctions> VectorFunctions;
 
 public:
   size_t epoch;

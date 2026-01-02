@@ -278,7 +278,10 @@
     <ClCompile Include="lstm\LstmLayer.cpp" />
     <ClCompile Include="lstm\LstmModelContainer.cpp" />
     <ClCompile Include="lstm\PolynomialDecay.cpp" />
-    <ClCompile Include="lstm\SimdFunctions.cpp" />
+    <ClCompile Include="lstm\VectorFunctions.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_AVX2.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_Scalar.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_SSE2.cpp" />
     <ClCompile Include="Mixer.cpp" />
     <ClCompile Include="MixerFactory.cpp" />
     <ClCompile Include="Models.cpp" />
@@ -423,7 +426,10 @@
     <ClInclude Include="lstm\LstmLayer.hpp" />
     <ClInclude Include="lstm\LstmModelContainer.hpp" />
     <ClInclude Include="lstm\PolynomialDecay.hpp" />
-    <ClInclude Include="lstm\SimdFunctions.hpp" />
+    <ClInclude Include="lstm\VectorFunctions.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_AVX2.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_Scalar.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_SSE2.hpp" />
     <ClInclude Include="Mixer.hpp" />
     <ClInclude Include="MixerFactory.hpp" />
     <ClInclude Include="MixerFunctions_SIMD_AVX2.hpp" />

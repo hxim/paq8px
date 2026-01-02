@@ -1,6 +1,14 @@
 ﻿#include "Layer.hpp"
-#include "SimdFunctions.hpp"
 #include <cstring>
+
+std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
+  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+    return std::make_unique<VectorFunctions_AVX2>();
+  else if (simd == SIMDType::SIMD_SSE2)
+    return std::make_unique<VectorFunctions_SSE2>();
+  else
+    return std::make_unique<VectorFunctions_Scalar>();
+}
 
 Layer::Layer(
   SIMDType simdType,
@@ -33,11 +41,12 @@ Layer::Layer(
   , hidden_size(hidden_size)
   , num_cells(num_cells)
   , learning_rate(0.f)
-  , activation_tanh(simdType)
-  , activation_logistic(simdType)
-  , decayMultiplier(learningRate, endLearningRate, decayMultiplier, decayExponent, decaySteps)
+  , decayFunc(learningRate, endLearningRate, decayMultiplier, decayExponent, decaySteps)
   , use_tanh(useTanh)
 {
+
+  VectorFunctions = CreateVectorFunctions(simd);
+
   // Initialize gamma to 1.0
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     gamma[i] = 1.f;
@@ -117,58 +126,43 @@ void Layer::ForwardPass(
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
   float* state_epoch = &state[epoch * num_cells]; // epoch * 200
 
-  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
-#ifdef X64_SIMD_AVAILABLE
-    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      // Embedding lookup for this cell
-      float embed_value = embedding[i * embedding_size + input_symbol]; // embedding[i*256 + input_symbol]
-
-      // Hidden state weights for this cell
-      float* w = &weights[i * hidden_size]; // i * (200 or 400)
-
-      // Compute: embedding_value + dot(input, hidden_weights)
-      norm_epoch[i] = dot256_ps_avx2(
-        input,
-        w,
-        input_size,     // Size of hidden state input array
-        embed_value     // Start with embedding value
-      );
-    }
-#endif
-  }
-  else {
-    for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-      // Embedding lookup for this cell
-      float f = embedding[i * embedding_size + input_symbol]; // embedding[i*256 + input_symbol]
-
-      // Hidden state weights for this cell
-      float* w = &weights[i * hidden_size]; // i * (200 or 400)
-
-      // Accumulate hidden state contributions
-      for (size_t j = 0; j < input_size; j++)  // input.size() = hidden_size
-        f += input[j] * w[j];
-
-      norm_epoch[i] = f;
-    }
-  }
-
-  const float ss = SumOfSquares(norm_epoch, num_cells);
-
-  inverse_variance[epoch] = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
-
-  const float inv = inverse_variance[epoch];
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float n = norm_epoch[i] * inv;
-    norm_epoch[i] = n;
-    state_epoch[i] = n * gamma[i] + beta[i]; // RMSNorm with beta bias
+    // Embedding lookup for this cell
+    float embed_value = embedding[i * embedding_size + input_symbol]; // embedding[i*256 + input_symbol]
+
+    // Hidden state weights for this cell
+    float* w = &weights[i * hidden_size]; // i * (200 or 400)
+
+    // Compute: embedding_value + dot(input, hidden_weights)
+    norm_epoch[i] = VectorFunctions->DotProduct(
+      input,
+      w,
+      input_size     // Size of hidden state input array, = hidden_size
+    ) + embed_value;
   }
 
-  if (use_tanh) {
-    activation_tanh.Run(state_epoch, num_cells);
-  }
-  else {
-    activation_logistic.Run(state_epoch, num_cells);
-  }
+  const float ss = VectorFunctions->SumOfSquares(norm_epoch, num_cells);
+
+  const float inv_var = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
+  inverse_variance[epoch] = inv_var;
+
+  if(use_tanh)
+    VectorFunctions->NormalizeThenActivate_Tanh(
+      num_cells,
+      norm_epoch,
+      state_epoch,
+      &gamma[0],
+      &beta[0],
+      inv_var);
+  else
+    VectorFunctions->NormalizeThenActivate_Sigmoid(
+      num_cells,
+      norm_epoch,
+      state_epoch,
+      &gamma[0],
+      &beta[0],
+      inv_var);
+
 }
 
 void Layer::BackwardPass(
@@ -189,7 +183,7 @@ void Layer::BackwardPass(
     error[i] *= gamma[i] * inverse_variance[epoch];
   }
 
-  float sop = SumOfProducts(
+  float sop = VectorFunctions->DotProduct(
     &error[0],
     norm_epoch,
     num_cells) / num_cells;             // SumOfProducts(..., 200) / 200
@@ -201,41 +195,14 @@ void Layer::BackwardPass(
   // The first num_cells weights are temporal connections, next num_cells are from previous layer
   // weights[i * hidden_size + j] where j >= num_cells connects to previous layer
   if (layer > 0) {
-    if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
-#ifdef X64_SIMD_AVAILABLE
-      backpropagate_errors_avx(num_cells, num_cells, hidden_size, &weights[0], &error[0], hidden_error);
-#endif
-    }
-    else {
+    VectorFunctions->BackpropagateErrors(
+      num_cells,
+      num_cells, // base_offset
+      hidden_size,
+      &weights[0],
+      &error[0],
+      hidden_error);
 
-      for (size_t j = 0; j < num_cells; j += 8) { // For each cell in previous layer's hidden state
-        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
-        float sum4 = 0.0f, sum5 = 0.0f, sum6 = 0.0f, sum7 = 0.0f;
-
-        size_t weight_idx = num_cells + j;  // Start at offset for previous layer connections
-        for (size_t i = 0; i < num_cells; i++) { // For each current cell
-          float ei = error[i];
-          sum0 += ei * weights[weight_idx + 0];
-          sum1 += ei * weights[weight_idx + 1];
-          sum2 += ei * weights[weight_idx + 2];
-          sum3 += ei * weights[weight_idx + 3];
-          sum4 += ei * weights[weight_idx + 4];
-          sum5 += ei * weights[weight_idx + 5];
-          sum6 += ei * weights[weight_idx + 6];
-          sum7 += ei * weights[weight_idx + 7];
-          weight_idx += hidden_size;  // Move to next cell's weights
-        }
-
-        hidden_error[j + 0] += sum0;
-        hidden_error[j + 1] += sum1;
-        hidden_error[j + 2] += sum2;
-        hidden_error[j + 3] += sum3;
-        hidden_error[j + 4] += sum4;
-        hidden_error[j + 5] += sum5;
-        hidden_error[j + 6] += sum6;
-        hidden_error[j + 7] += sum7;
-      }
-    }
   }
 
   // Temporal backprop: backpropagate to previous timestep's hidden state
@@ -243,48 +210,23 @@ void Layer::BackwardPass(
   // The previous timestep's output feeds back as input to current cell
   // weights[i * hidden_size + j] where j < num_cells for temporal connections
   if (epoch > 0) {
-    if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
-#ifdef X64_SIMD_AVAILABLE
-      backpropagate_errors_avx(num_cells, 0, hidden_size, &weights[0], &error[0], stored_error);
-#endif
-    }
-    else {
-
-      for (size_t j = 0; j < num_cells; j += 8) {     // For each cell in previous timestep
-        float sum0 = 0.0f, sum1 = 0.0f, sum2 = 0.0f, sum3 = 0.0f;
-        float sum4 = 0.0f, sum5 = 0.0f, sum6 = 0.0f, sum7 = 0.0f;
-
-        size_t weight_idx = j; // Start at offset for previous timestep's connections
-        for (size_t i = 0; i < num_cells; i++) {   // For each current cell
-          float ei = error[i];
-          sum0 += ei * weights[weight_idx + 0];
-          sum1 += ei * weights[weight_idx + 1];
-          sum2 += ei * weights[weight_idx + 2];
-          sum3 += ei * weights[weight_idx + 3];
-          sum4 += ei * weights[weight_idx + 4];
-          sum5 += ei * weights[weight_idx + 5];
-          sum6 += ei * weights[weight_idx + 6];
-          sum7 += ei * weights[weight_idx + 7];
-          weight_idx += hidden_size;  // Move to next cell's weights
-        }
-        stored_error[j + 0] += sum0;
-        stored_error[j + 1] += sum1;
-        stored_error[j + 2] += sum2;
-        stored_error[j + 3] += sum3;
-        stored_error[j + 4] += sum4;
-        stored_error[j + 5] += sum5;
-        stored_error[j + 6] += sum6;
-        stored_error[j + 7] += sum7;
-      }
-    }
+    VectorFunctions->BackpropagateErrors(
+      num_cells,
+      0, // base_offset
+      hidden_size,
+      &weights[0],
+      &error[0],
+      stored_error);
   }
 
   // Update gradients
+  size_t embedding_idx = input_symbol;
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     float ei = error[i];
 
     // Update embedding gradient for this input symbol
-    embedding_u[i * embedding_size + input_symbol] += ei; // embedding_u[i*256 + input_symbol]
+    embedding_u[embedding_idx] += ei;
+    embedding_idx += embedding_size;
 
     // Update hidden state weight gradients
     float* u = &update[i * hidden_size];   // &update[i * (200 or 400)]
@@ -294,7 +236,7 @@ void Layer::BackwardPass(
 
   // Optimize at the first epoch
   if (epoch == 0) {
-    decayMultiplier.Apply(learning_rate, time_step);
+    decayFunc.Apply(learning_rate, time_step);
     embedding_optimizer->Optimize(learning_rate, time_step);
     weights_optimizer->Optimize(learning_rate, time_step);
     gamma_optimizer->Optimize(learning_rate, time_step);

@@ -1,5 +1,4 @@
 ﻿#include "Lstm.hpp"
-#include "SimdFunctions.hpp"
 #include <cstring>
 #include <cmath>
 
@@ -22,6 +21,8 @@ Lstm::Lstm(
   , epoch(0)
 {
 
+  VectorFunctions = CreateVectorFunctions(simd);
+
   // Create LSTM layers
   for (size_t i = 0; i < num_layers; i++) {           // 2 iterations
     size_t hidden_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
@@ -37,69 +38,6 @@ Lstm::Lstm(
   }
 }
 
-#ifdef X64_SIMD_AVAILABLE
-
-#if (defined(__GNUC__) || defined(__clang__))
-__attribute__((target("avx2")))
-#endif
-void Lstm::SoftMaxSimdAVX2() {
-
-  // Compute logits via dot products
-  size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
-  size_t const output_offset = epoch * output_size; // epoch * 256
-  for (size_t i = 0; i < output_size; i++) {  // 256 iterations
-    logits[output_offset + i] = dot256_ps_avx2(
-      &hidden[0],
-      &output_layer[(output_offset + i) * hidden_size],
-      hidden_size,                                   // 400
-      0.f
-    );
-  }
-
-  // Find max logit for numerical stability
-  float max_logit = logits[output_offset];     // logits[epoch * 256]
-  for (size_t i = 1; i < output_size; i++) {   // 255 more iterations (starting from 1)
-    if (logits[output_offset + i] > max_logit) // logits[epoch * 256 + i]
-      max_logit = logits[output_offset + i];
-  }
-
-  // Compute softmax
-  softmax_avx2(
-    &logits[output_offset],
-    &output[output_offset],
-    output_size,  // 256
-    max_logit);
-}
-
-#endif
-
-void Lstm::SoftMaxSimdNone() {
-
-  // Compute logits via dot products
-  size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
-  size_t const output_offset = epoch * output_size;  // epoch * 256
-  for (size_t i = 0; i < output_size; i++) {   // 256 iterations
-    logits[output_offset + i] = SumOfProducts( // logits[epoch * 256 + i]
-      &hidden[0],
-      &output_layer[(output_offset + i) * hidden_size],
-      hidden_size    // 400
-    );
-  }
-
-  // Find max logit for numerical stability
-  float max_logit = logits[output_offset];     // logits[epoch * 256]
-  for (size_t i = 1; i < output_size; i++) {   // 255 more iterations
-    if (logits[output_offset + i] > max_logit) // logits[epoch * 256 + i]
-      max_logit = logits[output_offset + i];
-  }
-
-  // Compute softmax
-  softmax_scalar(
-    &logits[output_offset],                  // &logits[epoch * 256]
-    &output[output_offset],                  // &output[epoch * 256]
-    output_size,                             // 256
-    max_logit);
-}
 
 float* Lstm::Predict(uint8_t const input) {
   size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
@@ -132,14 +70,17 @@ float* Lstm::Predict(uint8_t const input) {
     }
   }
 
-  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512) {
-#ifdef X64_SIMD_AVAILABLE
-    SoftMaxSimdAVX2();
-#endif
-  }
-  else {
-    SoftMaxSimdNone();
-  }
+  size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
+  size_t const output_offset = epoch * output_size; // epoch * 256
+  VectorFunctions->MatvecThenSoftmax(
+    &hidden[0],
+    &logits[0],
+    &output_layer[0],
+    &output[0],
+    hidden_size,
+    output_size,
+    output_offset
+   );
 
   size_t const epoch_ = epoch;
   epoch++;
