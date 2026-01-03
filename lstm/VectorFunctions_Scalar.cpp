@@ -214,6 +214,31 @@ void VectorFunctions_Scalar::BackpropagateErrors(
   }
 }
 
+void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
+  size_t previous_output_offset,
+  float* output_ptr,
+  float* output_layer_ptr,
+  float* output_bias_u,
+  const float* hidden_ptr,
+  const size_t output_size,
+  const size_t hidden_size,
+  const size_t input_symbol)
+{
+
+  for (size_t i = 0; i < output_size; i++) {
+    float error = output_ptr[i];
+    error -= (i == input_symbol);
+
+    output_bias_u[i] += error;
+
+    for (size_t j = 0; j < hidden_size; j++) {
+      output_layer_ptr[j] += error * hidden_ptr[j];
+    }
+
+    output_layer_ptr += hidden_size;
+  }
+}
+
 float VectorFunctions_Scalar::ComputeMaxLogit(
   float* result,
   size_t result_length)

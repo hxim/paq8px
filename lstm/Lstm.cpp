@@ -193,18 +193,15 @@ void Lstm::Perceive(const uint8_t input) {
   float* output_layer_ptr = &output_layer_u[0];
   const float* hidden_ptr = &hidden[0];
 
-  for (size_t i = 0; i < output_size; i++) {
-    float error = output_ptr[i];
-    error -= (i == input);
-
-    output_bias_u[i] += error;
-
-    for (size_t j = 0; j < hidden_size; j++) {
-      output_layer_ptr[j] += error * hidden_ptr[j];
-    }
-
-    output_layer_ptr += hidden_size;
-  }
+  VectorFunctions->AccumulateOutputLayerGradients(
+    previous_output_offset,
+    output_ptr,
+    output_layer_ptr,
+    &output_bias_u[0],
+    hidden_ptr,
+    output_size,
+    hidden_size,
+    input);
 
   if (epoch == 0) {
     // Get current timestep from first layer

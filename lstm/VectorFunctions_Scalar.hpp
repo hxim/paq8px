@@ -42,6 +42,17 @@ class VectorFunctions_Scalar : public VectorFunctions
     float* grad_store
   ) override;
 
+  virtual void AccumulateOutputLayerGradients(
+    size_t previous_output_offset,
+    float* output_ptr,
+    float* output_layer_ptr,
+    float* output_bias_u,
+    const float* hidden_ptr,
+    const size_t output_size,
+    const size_t hidden_size,
+    const size_t input_symbol
+  ) override;
+
   virtual float ComputeMaxLogit(
     float* result,
     size_t result_length

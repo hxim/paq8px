@@ -156,6 +156,36 @@ void VectorFunctions_AVX2::BackpropagateErrors(
   }
 }
 
+void VectorFunctions_AVX2::AccumulateOutputLayerGradients(
+  size_t previous_output_offset,
+  float* output_ptr,
+  float* output_layer_ptr,
+  float* output_bias_u,
+  const float* hidden_ptr,
+  const size_t output_size,
+  const size_t hidden_size,
+  const size_t input_symbol)
+{
+  for (size_t i = 0; i < output_size; i++) {
+    float error = output_ptr[i];
+    error -= (i == input_symbol);
+
+    output_bias_u[i] += error;
+
+    __m256 error_vec = _mm256_set1_ps(error);
+
+    for (size_t j = 0; j < hidden_size; j += 8) {
+      __m256 hidden_vec = _mm256_load_ps(&hidden_ptr[j]);
+      __m256 output_vec = _mm256_load_ps(&output_layer_ptr[j]);
+      __m256 product = _mm256_mul_ps(error_vec, hidden_vec);
+      output_vec = _mm256_add_ps(output_vec, product);
+      _mm256_store_ps(&output_layer_ptr[j], output_vec);
+    }
+
+    output_layer_ptr += hidden_size;
+  }
+}
+
 float VectorFunctions_AVX2::ComputeMaxLogit(
   float* result,
   size_t result_length

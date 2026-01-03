@@ -177,6 +177,36 @@ void VectorFunctions_SSE2::BackpropagateErrors(
   }
 }
 
+void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
+  size_t previous_output_offset,
+  float* output_ptr,
+  float* output_layer_ptr,
+  float* output_bias_u,
+  const float* hidden_ptr,
+  const size_t output_size,
+  const size_t hidden_size,
+  const size_t input_symbol)
+{
+  for (size_t i = 0; i < output_size; i++) {
+    float error = output_ptr[i];
+    error -= (i == input_symbol);
+
+    output_bias_u[i] += error;
+
+    __m128 error_vec = _mm_set1_ps(error);
+
+    for (size_t j = 0; j < hidden_size; j += 4) {
+      __m128 hidden_vec = _mm_load_ps(&hidden_ptr[j]);
+      __m128 output_vec = _mm_load_ps(&output_layer_ptr[j]);
+      __m128 product = _mm_mul_ps(error_vec, hidden_vec);
+      output_vec = _mm_add_ps(output_vec, product);
+      _mm_store_ps(&output_layer_ptr[j], output_vec);
+    }
+
+    output_layer_ptr += hidden_size;
+  }
+}
+
 float VectorFunctions_SSE2::ComputeMaxLogit(
   float* result,
   size_t result_length)
