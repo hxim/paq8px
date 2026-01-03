@@ -222,7 +222,7 @@ void VectorFunctions_SSE2::MatvecThenSoftmax(
   for (size_t i = 0; i < output_size; i++) {
     logits[output_offset + i] = DotProduct(
       &hidden[0],
-      &output_layer[(output_offset + i) * hidden_size],
+      &output_layer[i * hidden_size],
       hidden_size
     ) + output_bias[i];
   }

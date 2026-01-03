@@ -196,7 +196,7 @@ void VectorFunctions_AVX2::MatvecThenSoftmax(
   for (size_t i = 0; i < output_size; i++) {  // 256 iterations
     logits[output_offset + i] = DotProduct(
       &hidden[0],
-      &output_layer[(output_offset + i) * hidden_size],
+      &output_layer[i * hidden_size],
       hidden_size                                   // 400
     ) + output_bias[i];
   }

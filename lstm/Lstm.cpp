@@ -6,8 +6,9 @@ Lstm::Lstm(
   SIMDType simdType,
   LSTM::Shape shape)
   : simd(simdType)
-  , layer_input(shape.horizon * shape.num_layers * (shape.num_cells * 2)) // 100 * 2 * (200*2) = 100 * 2 * 400 (no biases)
-  , output_layer(shape.horizon * shape.output_size * (shape.num_cells * shape.num_layers)) // 100 * 256 * (200*2) = 100 * 256 * 400 (no biases)
+  , layer_input(shape.horizon * shape.num_layers * (shape.num_cells * 2)) // 100 * 2 * (200*2) = 100 * 2 * 400
+  , output_layer(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
+  , output_layer_u(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
   , output(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
   , logits(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
   , hidden(shape.num_cells * shape.num_layers)        // 200 * 2 = 400
@@ -16,14 +17,57 @@ Lstm::Lstm(
   , output_bias_u(shape.output_size)                  // 256
   , input_history(shape.horizon)                      // 100
   , saved_timestep(0)
-  , num_cells(shape.num_cells)                        // 200
-  , horizon(shape.horizon)                            // 100
-  , output_size(shape.output_size)                    // 256
-  , num_layers(shape.num_layers)                      // 2
+  , num_cells(shape.num_cells)
+  , horizon(shape.horizon)
+  , output_size(shape.output_size)
+  , num_layers(shape.num_layers)
   , epoch(0)
+  , output_learning_rate(0.f)
+  , output_decay_func(
+    0.015f,      // learningRate
+    0.005f,      // endLearningRate
+    0.0005f,     // decayMultiplier
+    1.0f / 2.0f, // decayExponent
+    0)           // decaySteps
 {
 
   VectorFunctions = CreateVectorFunctions(simd);
+
+#ifdef X64_SIMD_AVAILABLE
+  if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
+    output_weights_optimizer = std::make_unique<Adam_AVX>(
+      shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
+      &output_layer[0],
+      &output_layer_u[0],
+      0.9995f,  // beta2
+      1e-6f     // epsilon
+    );
+    output_bias_optimizer = std::make_unique<Adam_AVX>(
+      shape.output_size,
+      &output_bias[0],
+      &output_bias_u[0],
+      0.9995f,
+      1e-6f
+    );
+  }
+  else
+#endif
+  {
+    output_weights_optimizer = std::make_unique<Adam_Scalar>(
+      shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
+      &output_layer[0],
+      &output_layer_u[0],
+      0.9995f,
+      1e-6f
+    );
+    output_bias_optimizer = std::make_unique<Adam_Scalar>(
+      shape.output_size,
+      &output_bias[0],
+      &output_bias_u[0],
+      0.9995f,
+      1e-6f
+    );
+  }
 
   // Create LSTM layers
   for (size_t i = 0; i < num_layers; i++) {           // 2 iterations
@@ -39,7 +83,6 @@ Lstm::Lstm(
     );
   }
 }
-
 
 float* Lstm::Predict(uint8_t const input) {
   size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
@@ -84,7 +127,7 @@ float* Lstm::Predict(uint8_t const input) {
     hidden_size,
     output_size,
     output_offset
-   );
+  );
 
   size_t const epoch_ = epoch;
   epoch++;
@@ -110,7 +153,7 @@ void Lstm::Perceive(const uint8_t input) {
           float const error = (i == input_history[epoch_]) ? output[epoch_ * output_size + i] - 1.f : output[epoch_ * output_size + i];
 
           for (size_t j = 0; j < hidden_error.size(); j++) { // 200 iterations
-            hidden_error[j] += output_layer[epoch_ * output_size * hidden_size + i * hidden_size + (j + offset)] * error;
+            hidden_error[j] += output_layer[i * hidden_size + (j + offset)] * error;
           }
         }
 
@@ -133,8 +176,7 @@ void Lstm::Perceive(const uint8_t input) {
     }
 
     sequence_step_cntr++;
-    if (sequence_step_cntr >= sequence_step_target) //target sequence size has been reached
-    {
+    if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
       sequence_step_cntr = 0;
       if (current_sequence_size_target < horizon) {
         current_sequence_size_target++;
@@ -145,24 +187,31 @@ void Lstm::Perceive(const uint8_t input) {
     }
   }
 
-  const float learning_rate = 0.06f;
-  size_t output_offset = epoch * output_size;
   size_t previous_output_offset = last_epoch * output_size;
-  for (size_t i = 0; i < output_size; i++) {         // 256 iterations
-    float const error = (i == input) ? output[previous_output_offset + i] - 1.f : output[previous_output_offset + i];
+  float* output_ptr = &output[previous_output_offset];
+
+  float* output_layer_ptr = &output_layer_u[0];
+  const float* hidden_ptr = &hidden[0];
+
+  for (size_t i = 0; i < output_size; i++) {
+    float error = output_ptr[i];
+    error -= (i == input);
 
     output_bias_u[i] += error;
 
-    for (size_t j = 0; j < hidden.size(); j++) {     // 400 iterations
-      output_layer[(output_offset + i) * hidden_size + j] =
-        output_layer[(previous_output_offset + i) * hidden_size + j] - learning_rate * error * hidden[j];
+    for (size_t j = 0; j < hidden_size; j++) {
+      output_layer_ptr[j] += error * hidden_ptr[j];
     }
+
+    output_layer_ptr += hidden_size;
   }
 
   if (epoch == 0) {
-    for (size_t i = 0; i < output_size; i++) {
-      output_bias[i] -= learning_rate * output_bias_u[i];
-      output_bias_u[i] = 0.f;  // Reset gradient
-    }
+    // Get current timestep from first layer
+    uint64_t time_step = layers[0]->update_steps;
+
+    output_decay_func.Apply(output_learning_rate, time_step);
+    output_weights_optimizer->Optimize(output_learning_rate, time_step);
+    output_bias_optimizer->Optimize(output_learning_rate, time_step);
   }
 }
