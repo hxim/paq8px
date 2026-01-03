@@ -52,6 +52,7 @@ class VectorFunctions_Scalar : public VectorFunctions
     float* logits,
     float* output_layer,
     float* output,
+    float* output_bias,
     size_t hidden_size,
     size_t output_size,
     size_t output_offset

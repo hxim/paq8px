@@ -59,6 +59,7 @@ public:
     float* logits,
     float* output_layer,
     float* output,
+    float* bias,
     size_t const hidden_size,
     size_t const output_size,
     size_t const output_offset

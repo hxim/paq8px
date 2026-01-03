@@ -232,6 +232,7 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   float* logits,
   float* output_layer,
   float* output,
+  float* output_bias,
   size_t const hidden_size, // 200*2 = 400
   size_t const output_size, // 256
   size_t const output_offset
@@ -243,7 +244,7 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
       &hidden[0],
       &output_layer[(output_offset + i) * hidden_size],
       hidden_size    // 400
-    );
+    ) + output_bias[i];
   }
 
   // Find max logit for numerical stability

@@ -26,6 +26,8 @@ private:
   Array<float, 32> logits;         // Flat: [horizon * output_size]
   Array<float, 32> hidden;
   Array<float, 32> hidden_error;
+  Array<float, 32> output_bias;    // [output_size] = 256
+  Array<float, 32> output_bias_u;  // [output_size] = 256
   std::vector<uint8_t> input_history;
   uint64_t saved_timestep;
   size_t num_cells;

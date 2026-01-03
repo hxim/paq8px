@@ -12,6 +12,8 @@ Lstm::Lstm(
   , logits(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
   , hidden(shape.num_cells * shape.num_layers)        // 200 * 2 = 400
   , hidden_error(shape.num_cells)                     // 200
+  , output_bias(shape.output_size)                    // 256
+  , output_bias_u(shape.output_size)                  // 256
   , input_history(shape.horizon)                      // 100
   , saved_timestep(0)
   , num_cells(shape.num_cells)                        // 200
@@ -72,11 +74,13 @@ float* Lstm::Predict(uint8_t const input) {
 
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
   size_t const output_offset = epoch * output_size; // epoch * 256
+
   VectorFunctions->MatvecThenSoftmax(
     &hidden[0],
     &logits[0],
     &output_layer[0],
     &output[0],
+    &output_bias[0],
     hidden_size,
     output_size,
     output_offset
@@ -147,9 +151,18 @@ void Lstm::Perceive(const uint8_t input) {
   for (size_t i = 0; i < output_size; i++) {         // 256 iterations
     float const error = (i == input) ? output[previous_output_offset + i] - 1.f : output[previous_output_offset + i];
 
+    output_bias_u[i] += error;
+
     for (size_t j = 0; j < hidden.size(); j++) {     // 400 iterations
       output_layer[(output_offset + i) * hidden_size + j] =
         output_layer[(previous_output_offset + i) * hidden_size + j] - learning_rate * error * hidden[j];
+    }
+  }
+
+  if (epoch == 0) {
+    for (size_t i = 0; i < output_size; i++) {
+      output_bias[i] -= learning_rate * output_bias_u[i];
+      output_bias_u[i] = 0.f;  // Reset gradient
     }
   }
 }
