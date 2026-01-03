@@ -41,6 +41,11 @@ public:
 
   Array<float, 32> error;
 
+  // Biases
+  Array<float, 32> bias;           // [num_cells] - gate bias
+  Array<float, 32> bias_u;         // [num_cells] - gate bias gradients
+  std::unique_ptr<Adam> bias_optimizer;
+
   size_t embedding_size;   // Vocabulary size / embedding dimension
   size_t hidden_size;      // Size of hidden state input
   size_t num_cells;
@@ -64,13 +69,14 @@ public:
     size_t num_cells,
     size_t horizon,
     bool useTanh,
+    float bias_init,
     float beta2,
     float epsilon,
     float learningRate,
     float endLearningRate,
     float decayMultiplier,
     float decayExponent,
-    uint64_t decaySteps = 0
+    uint64_t decaySteps
   );
 
   void ForwardPass(

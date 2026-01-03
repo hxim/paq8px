@@ -17,6 +17,7 @@ Layer::Layer(
   size_t num_cells,       // 200
   size_t horizon,         // 100
   bool useTanh,
+  float bias_init,
   float beta2,
   float epsilon,
   float learningRate,
@@ -36,6 +37,8 @@ Layer::Layer(
   , gamma_u(num_cells)                              // 200
   , beta(num_cells)                                 // 200 (RMSNorm bias)
   , beta_u(num_cells)                               // 200 (RMSNorm bias update)
+  , bias(num_cells)                                 // 200
+  , bias_u(num_cells)                               // 200
   , error(num_cells)                                // 200
   , embedding_size(embedding_size)
   , hidden_size(hidden_size)
@@ -47,9 +50,10 @@ Layer::Layer(
 
   VectorFunctions = CreateVectorFunctions(simd);
 
-  // Initialize gamma to 1.0
+  // Initialize RMS gamma and weigth bias
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     gamma[i] = 1.f;
+    bias[i] = bias_init;
   }
 
 #ifdef X64_SIMD_AVAILABLE
@@ -79,6 +83,13 @@ Layer::Layer(
       num_cells,                        // 200 (RMSNorm bias)
       &beta[0],
       &beta_u[0],
+      beta2,
+      epsilon
+    );
+    bias_optimizer = std::make_unique<Adam_AVX>(
+      num_cells,                        // 200 (bias)
+      &bias[0],
+      &bias_u[0],
       beta2,
       epsilon
     );
@@ -114,6 +125,13 @@ Layer::Layer(
       beta2,
       epsilon
     );
+    bias_optimizer = std::make_unique<Adam_Scalar>(
+      num_cells,                        // 200 (bias)
+      &bias[0],
+      &bias_u[0],
+      beta2,
+      epsilon
+    );
   }
 }
 
@@ -138,7 +156,7 @@ void Layer::ForwardPass(
       input,
       w,
       input_size     // Size of hidden state input array, = hidden_size
-    ) + embed_value;
+    ) + embed_value + bias[i];
   }
 
   const float ss = VectorFunctions->SumOfSquares(norm_epoch, num_cells);
@@ -178,6 +196,7 @@ void Layer::BackwardPass(
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
 
   for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
+    bias_u[i] += error[i];
     beta_u[i] += error[i];                       // RMSNorm bias gradient
     gamma_u[i] += error[i] * norm_epoch[i];
     error[i] *= gamma[i] * inverse_variance[epoch];
@@ -241,5 +260,6 @@ void Layer::BackwardPass(
     weights_optimizer->Optimize(learning_rate, time_step);
     gamma_optimizer->Optimize(learning_rate, time_step);
     beta_optimizer->Optimize(learning_rate, time_step);
+    bias_optimizer->Optimize(learning_rate, time_step);
   }
 }

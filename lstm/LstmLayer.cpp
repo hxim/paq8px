@@ -34,6 +34,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
+    1.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
@@ -48,6 +49,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     true,                      // useTanh
+    0.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
@@ -62,6 +64,7 @@ LstmLayer::LstmLayer(
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
+    0.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
     0.007f,                    // learningRate
