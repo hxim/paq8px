@@ -49,6 +49,16 @@ public:
     float* grad_store
   ) = 0;
 
+  virtual void AccumulateLayerGradients(
+    const size_t num_cells,
+    const size_t embedding_size,
+    const size_t hidden_size,
+    const float* input,
+    const float* error,
+    float* embedding_ptr,
+    float* update
+  ) = 0;
+
   virtual void AccumulateOutputLayerGradients(
     size_t previous_output_offset,
     float* output_ptr,

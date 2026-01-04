@@ -238,21 +238,16 @@ void Layer::BackwardPass(
       stored_error);
   }
 
-  // Update gradients
-  size_t embedding_idx = input_symbol;
-  for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    float ei = error[i];
-
-    // Update embedding gradient for this input symbol
-    embedding_u[embedding_idx] += ei;
-    embedding_idx += embedding_size;
-
-    // Update hidden state weight gradients
-    float* u = &update[i * hidden_size];   // &update[i * (200 or 400)]
-    for (size_t j = 0; j < input_size; j++)  // input_size = hidden_size
-      u[j] += ei * input[j];
-  }
-
+  VectorFunctions->AccumulateLayerGradients(
+    num_cells,
+    embedding_size,
+    hidden_size, // same as input_size
+    input,
+    &error[0],
+    &embedding_u[input_symbol],
+    &update[0]
+  );
+  
   // Optimize at the first epoch
   if (epoch == 0) {
     decayFunc.Apply(learning_rate, time_step);

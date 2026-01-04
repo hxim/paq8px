@@ -177,6 +177,37 @@ void VectorFunctions_SSE2::BackpropagateErrors(
   }
 }
 
+void VectorFunctions_SSE2::AccumulateLayerGradients(
+  const size_t num_cells,
+  const size_t embedding_size,
+  const size_t hidden_size,
+  const float* input,
+  const float* error,
+  float* embedding_ptr,
+  float* update)
+{
+  for (size_t i = 0; i < num_cells; i++) {
+    const float ei = error[i];
+
+    // Update embedding gradient
+    *embedding_ptr += ei;
+    embedding_ptr += embedding_size;
+
+    // Update hidden state weight gradients
+    __m128 ei_vec = _mm_set1_ps(ei);
+
+    for (size_t j = 0; j < hidden_size; j += 4) {
+      __m128 input_vec = _mm_load_ps(&input[j]);
+      __m128 update_vec = _mm_load_ps(&update[j]);
+      __m128 product = _mm_mul_ps(ei_vec, input_vec);
+      update_vec = _mm_add_ps(update_vec, product);
+      _mm_store_ps(&update[j], update_vec);
+    }
+
+    update += hidden_size;
+  }
+}
+
 void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
   float* output_ptr,

@@ -214,6 +214,30 @@ void VectorFunctions_Scalar::BackpropagateErrors(
   }
 }
 
+void VectorFunctions_Scalar::AccumulateLayerGradients(
+  const size_t num_cells,
+  const size_t embedding_size,
+  const size_t hidden_size,
+  const float* input,
+  const float* error,
+  float* embedding_ptr,
+  float* update)
+{
+  for (size_t i = 0; i < num_cells; i++) {
+    const float ei = error[i];
+
+    // Update embedding gradient
+    *embedding_ptr += ei;
+    embedding_ptr += embedding_size;
+
+    // Update hidden state weight gradients
+    for (size_t j = 0; j < hidden_size; j++)
+      update[j] += ei * input[j];
+
+    update += hidden_size;
+  }
+}
+
 void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
   float* output_ptr,
