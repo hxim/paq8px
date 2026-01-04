@@ -2,9 +2,8 @@
 #include "Adam_AVX.hpp"
 
 #ifdef X64_SIMD_AVAILABLE
-#if (defined(__GNUC__) || defined(__clang__))
-__attribute__((target("avx")))
-#endif
+
+#pragma GCC target("avx")
 
 void Adam_AVX::Optimize(float learning_rate, uint64_t time_step)
 {

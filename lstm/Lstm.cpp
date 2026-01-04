@@ -33,41 +33,23 @@ Lstm::Lstm(
 
   VectorFunctions = CreateVectorFunctions(simd);
 
-#ifdef X64_SIMD_AVAILABLE
-  if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
-    output_weights_optimizer = std::make_unique<Adam_AVX>(
-      shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
-      &output_layer[0],
-      &output_layer_u[0],
-      0.9995f,  // beta2
-      1e-6f     // epsilon
-    );
-    output_bias_optimizer = std::make_unique<Adam_AVX>(
-      shape.output_size,
-      &output_bias[0],
-      &output_bias_u[0],
-      0.9995f,
-      1e-6f
-    );
-  }
-  else
-#endif
-  {
-    output_weights_optimizer = std::make_unique<Adam_Scalar>(
-      shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
-      &output_layer[0],
-      &output_layer_u[0],
-      0.9995f,
-      1e-6f
-    );
-    output_bias_optimizer = std::make_unique<Adam_Scalar>(
-      shape.output_size,
-      &output_bias[0],
-      &output_bias_u[0],
-      0.9995f,
-      1e-6f
-    );
-  }
+  output_weights_optimizer = CreateOptimizer(
+    simdType,
+    shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
+    &output_layer[0],
+    &output_layer_u[0],
+    0.9995f,  // beta2
+    1e-6f     // epsilon
+  );
+  output_bias_optimizer = CreateOptimizer(
+    simdType,
+    shape.output_size,
+    &output_bias[0],
+    &output_bias_u[0],
+    0.9995f,
+    1e-6f
+  );
+  
 
   // Create LSTM layers
   for (size_t i = 0; i < num_layers; i++) {           // 2 iterations

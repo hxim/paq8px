@@ -4,10 +4,10 @@
 
 #ifdef X64_SIMD_AVAILABLE
 
-class Adam_AVX : public Adam
+class Adam_SSE2 : public Adam
 {
 public:
-  Adam_AVX(size_t length, float* w, float* g, float beta2Value, float epsilon) :
+  Adam_SSE2(size_t length, float* w, float* g, float beta2Value, float epsilon) :
     Adam(length, w, g, beta2Value, epsilon)
   {
   }

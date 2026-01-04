@@ -183,20 +183,20 @@ void LstmLayer::BackwardPass(
 
     og_error[i] =
       tanh_v * stored_error[i] *
-      output * (1.0f - output);
+      output * (1.0f - output); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
 
     state_error[i] +=
       stored_error[i] * output *
-      (1.0f - tanh_v * tanh_v);
+      (1.0f - tanh_v * tanh_v); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
     ig_error[i] =
       state_error[i] * input_gate *
-      (1.0f - inputv * inputv);
+      (1.0f - inputv * inputv); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
     fg_error[i] =
       (last_state[idx] - inputv) *
       state_error[i] *
-      forget * input_gate;
+      forget * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
 
     hidden_error[i] = 0.0f;
 

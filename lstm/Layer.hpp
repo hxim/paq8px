@@ -5,6 +5,7 @@
 #include "VectorFunctions.hpp"
 #include "VectorFunctions_Scalar.hpp"
 #ifdef X64_SIMD_AVAILABLE
+#include "Adam_SSE2.hpp"
 #include "Adam_AVX.hpp"
 #include "VectorFunctions_SSE2.hpp"
 #include "VectorFunctions_AVX2.hpp"
@@ -17,6 +18,15 @@
 #include <memory>
 
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd);
+
+std::unique_ptr<Adam> CreateOptimizer(
+  SIMDType simd,
+  size_t length,
+  float* w,
+  float* g,
+  float beta2Value,
+  float epsilon
+);
 
 class Layer {
 public:

@@ -10,6 +10,22 @@ std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
     return std::make_unique<VectorFunctions_Scalar>();
 }
 
+std::unique_ptr<Adam> CreateOptimizer(
+  SIMDType simd,
+  size_t length,
+  float* w,
+  float* g,
+  float beta2Value,
+  float epsilon)
+{
+  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+    return std::make_unique<Adam_AVX>(length, w, g, beta2Value, epsilon);
+  else if (simd == SIMDType::SIMD_SSE2)
+    return std::make_unique<Adam_SSE2>(length, w, g, beta2Value, epsilon);
+  else
+    return std::make_unique<Adam_Scalar>(length, w, g, beta2Value, epsilon);
+}
+
 Layer::Layer(
   SIMDType simdType,
   size_t embedding_size,  // 256 (vocabulary size)
@@ -26,15 +42,15 @@ Layer::Layer(
   float decayExponent,
   uint64_t decaySteps)
   : simd(simdType)
-  , embedding(num_cells * embedding_size)           // 200*256=51,200 - embedding matrix
-  , embedding_u(num_cells * embedding_size)         // 200*256=51,200 - embedding gradients
-  , weights(num_cells * hidden_size)                // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden weights only
-  , update(num_cells * hidden_size)                 // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000 - hidden gradients
-  , norm(horizon * num_cells)                       // 100*200=20,000
-  , state(horizon * num_cells)                      // 100*200=20,000
+  , embedding(num_cells * embedding_size)           // 200*256 - embedding matrix
+  , embedding_u(num_cells * embedding_size)         // 200*256 - embedding gradients
+  , weights(num_cells * hidden_size)                // Layer 0: 200*200, Layer 1: 200*400 - hidden weights
+  , update(num_cells * hidden_size)                 // Layer 0: 200*200, Layer 1: 200*400 - hidden gradients
+  , norm(horizon * num_cells)                       // 100*200
+  , state(horizon * num_cells)                      // 100*200
   , inverse_variance(horizon)                       // 100
-  , gamma(num_cells)                                // 200
-  , gamma_u(num_cells)                              // 200
+  , gamma(num_cells)                                // 200 (RMSNorm scale)
+  , gamma_u(num_cells)                              // 200 (RMSNorm scale update)
   , beta(num_cells)                                 // 200 (RMSNorm bias)
   , beta_u(num_cells)                               // 200 (RMSNorm bias update)
   , bias(num_cells)                                 // 200
@@ -56,83 +72,46 @@ Layer::Layer(
     bias[i] = bias_init;
   }
 
-#ifdef X64_SIMD_AVAILABLE
-  if (simdType == SIMDType::SIMD_AVX2 || simdType == SIMDType::SIMD_AVX512) {
-    embedding_optimizer = std::make_unique<Adam_AVX>(
-      num_cells * embedding_size,       // 200*256=51,200 - embedding parameters
-      &embedding[0],
-      &embedding_u[0],
-      beta2,
-      epsilon
-    );
-    weights_optimizer = std::make_unique<Adam_AVX>(
-      num_cells * hidden_size,          // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000
-      &weights[0],
-      &update[0],
-      beta2,
-      epsilon
-    );
-    gamma_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                        // 200
-      &gamma[0],
-      &gamma_u[0],
-      beta2,
-      epsilon
-    );
-    beta_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                        // 200 (RMSNorm bias)
-      &beta[0],
-      &beta_u[0],
-      beta2,
-      epsilon
-    );
-    bias_optimizer = std::make_unique<Adam_AVX>(
-      num_cells,                        // 200 (bias)
-      &bias[0],
-      &bias_u[0],
-      beta2,
-      epsilon
-    );
-  }
-  else
-#endif
-  {
-    embedding_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells * embedding_size,       // 200*256=51,200 - embedding parameters
-      &embedding[0],
-      &embedding_u[0],
-      beta2,
-      epsilon
-    );
-    weights_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells * hidden_size,          // Layer 0: 200*200=40,000, Layer 1: 200*400=80,000
-      &weights[0],
-      &update[0],
-      beta2,
-      epsilon
-    );
-    gamma_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                        // 200
-      &gamma[0],
-      &gamma_u[0],
-      beta2,
-      epsilon
-    );
-    beta_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                        // 200 (RMSNorm bias)
-      &beta[0],
-      &beta_u[0],
-      beta2,
-      epsilon
-    );
-    bias_optimizer = std::make_unique<Adam_Scalar>(
-      num_cells,                        // 200 (bias)
-      &bias[0],
-      &bias_u[0],
-      beta2,
-      epsilon
-    );
-  }
+  embedding_optimizer = CreateOptimizer(
+    simdType,
+    num_cells * embedding_size,       // 200*256 - embedding parameters
+    &embedding[0],
+    &embedding_u[0],
+    beta2,
+    epsilon
+  );
+  weights_optimizer = CreateOptimizer(
+    simdType,
+    num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
+    &weights[0],
+    &update[0],
+    beta2,
+    epsilon
+  );
+  gamma_optimizer = CreateOptimizer(
+    simdType,
+    num_cells,                        // 200 (RMS scale)
+    &gamma[0],
+    &gamma_u[0],
+    beta2,
+    epsilon
+  );
+  beta_optimizer = CreateOptimizer(
+    simdType,
+    num_cells,                        // 200 (RMSNorm bias)
+    &beta[0],
+    &beta_u[0],
+    beta2,
+    epsilon
+  );
+  bias_optimizer = CreateOptimizer(
+    simdType,
+    num_cells,                        // 200 (bias)
+    &bias[0],
+    &bias_u[0],
+    beta2,
+    epsilon
+  );
 }
 
 void Layer::ForwardPass(
@@ -180,7 +159,6 @@ void Layer::ForwardPass(
       &gamma[0],
       &beta[0],
       inv_var);
-
 }
 
 void Layer::BackwardPass(
@@ -202,13 +180,13 @@ void Layer::BackwardPass(
     error[i] *= gamma[i] * inverse_variance[epoch];
   }
 
-  float sop = VectorFunctions->DotProduct(
+  const float dop = VectorFunctions->DotProduct(
     &error[0],
     norm_epoch,
     num_cells) / num_cells;             // SumOfProducts(..., 200) / 200
 
   for (size_t i = 0; i < num_cells; i++)  // 200 iterations
-    error[i] -= sop * norm_epoch[i];
+    error[i] -= dop * norm_epoch[i];
 
   // Layer backprop: backpropagate to previous layer's hidden state
   // The first num_cells weights are temporal connections, next num_cells are from previous layer
@@ -221,7 +199,6 @@ void Layer::BackwardPass(
       &weights[0],
       &error[0],
       hidden_error);
-
   }
 
   // Temporal backprop: backpropagate to previous timestep's hidden state
