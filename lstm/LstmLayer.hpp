@@ -29,8 +29,6 @@ private:
   static float Rand(float range);
 
 public:
-  uint64_t update_steps;
-
   LstmLayer(
     SIMDType simdType,
     size_t embedding_size,
@@ -50,6 +48,7 @@ public:
     float* input,
     size_t input_size,
     size_t const epoch,
+    size_t const time_step,
     size_t current_sequence_size_target,
     size_t const layer,
     uint8_t const input_symbol,

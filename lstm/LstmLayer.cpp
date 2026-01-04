@@ -72,7 +72,6 @@ LstmLayer::LstmLayer(
     0.0005f,                   // decayMultiplier
     1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
-  , update_steps(0)
 {
   // Set random weights for each gate
   float* forget_emb = &forget_gate.embedding[0];
@@ -150,6 +149,7 @@ void LstmLayer::BackwardPass(
   float* input,
   size_t input_size,
   size_t const epoch,
+  size_t time_step,
   size_t current_sequence_size_target,
   size_t const layer,
   uint8_t const input_symbol,
@@ -206,15 +206,12 @@ void LstmLayer::BackwardPass(
     }
   }
 
-  if (epoch == 0)
-    update_steps++;
-
   forget_gate.BackwardPass(
     input,
     input_size,
     hidden_error,
     &stored_error[0],
-    update_steps,
+    time_step,
     epoch,
     layer,
     input_symbol);
@@ -223,7 +220,7 @@ void LstmLayer::BackwardPass(
     input_size,
     hidden_error,
     &stored_error[0],
-    update_steps,
+    time_step,
     epoch,
     layer,
     input_symbol);
@@ -232,7 +229,7 @@ void LstmLayer::BackwardPass(
     input_size,
     hidden_error,
     &stored_error[0],
-    update_steps,
+    time_step,
     epoch,
     layer,
     input_symbol);

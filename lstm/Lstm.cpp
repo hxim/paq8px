@@ -23,6 +23,7 @@ Lstm::Lstm(
   , output_size(shape.output_size)
   , num_layers(shape.num_layers)
   , epoch(0)
+  , time_step(1)
   , output_learning_rate(0.f)
   , output_decay_func(
     0.015f,      // learningRate
@@ -161,21 +162,11 @@ void Lstm::Perceive(const uint8_t input) {
           layer_input_ptr,
           layer_input_size,
           epoch_,
+          time_step,
           current_sequence_size_target,
           layer,
           input_symbol,
           &hidden_error[0]);
-      }
-    }
-
-    sequence_step_cntr++;
-    if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
-      sequence_step_cntr = 0;
-      if (current_sequence_size_target < horizon) {
-        current_sequence_size_target++;
-        //debug:
-        //printf("current_sequence_size_target: %d\n", (int)current_sequence_size_target);
-        sequence_step_target = 12 + 1 * (current_sequence_size_target - 1);
       }
     }
   }
@@ -197,11 +188,21 @@ void Lstm::Perceive(const uint8_t input) {
     input);
 
   if (epoch == 0) {
-    // Get current timestep from first layer
-    uint64_t time_step = layers[0]->update_steps;
-
     output_decay_func.Apply(output_learning_rate, time_step);
     output_weights_optimizer->Optimize(output_learning_rate, time_step);
     output_bias_optimizer->Optimize(output_learning_rate, time_step);
+
+    sequence_step_cntr++;
+    if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
+      sequence_step_cntr = 0;
+      if (current_sequence_size_target < horizon) {
+        current_sequence_size_target++;
+        //debug:
+        //printf("current_sequence_size_target: %d\n", (int)current_sequence_size_target);
+        sequence_step_target = 12 + 1 * (current_sequence_size_target - 1);
+      }
+    }
+
+    time_step++;
   }
 }

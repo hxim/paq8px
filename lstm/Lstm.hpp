@@ -57,6 +57,7 @@ private:
 
 public:
   size_t epoch;
+  size_t time_step; // processed bytes+1
 
   Lstm(
     SIMDType simdType,
