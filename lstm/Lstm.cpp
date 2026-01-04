@@ -6,12 +6,13 @@ Lstm::Lstm(
   SIMDType simdType,
   LSTM::Shape shape)
   : simd(simdType)
-  , layer_input(shape.horizon * shape.num_layers * (shape.num_cells * 2)) // 100 * 2 * (200*2) = 100 * 2 * 400
+  // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
+  , layer_input(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
   , output_layer(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
   , output_layer_u(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
-  , logits(shape.horizon * shape.output_size)         // 100 * 256 = 25,600
-  , hidden(shape.num_cells * shape.num_layers)        // 200 * 2 = 400
+  , output(shape.horizon * shape.output_size)         // 100 * 256
+  , logits(shape.horizon * shape.output_size)         // 100 * 256
+  , hidden(shape.num_cells * shape.num_layers)        // 200 * 2
   , hidden_error(shape.num_cells)                     // 200
   , output_bias(shape.output_size)                    // 256
   , output_bias_u(shape.output_size)                  // 256
@@ -49,7 +50,7 @@ Lstm::Lstm(
     0.9995f,
     1e-6f
   );
-  
+
 
   // Create LSTM layers
   for (size_t i = 0; i < num_layers; i++) {           // 2 iterations
@@ -66,21 +67,38 @@ Lstm::Lstm(
   }
 }
 
+static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t epoch, size_t current_layer_idx) {
+  // Calculate offset for this epoch and layer
+  size_t size_per_epoch = num_cells + (num_layers - 1) * num_cells * 2;
+  size_t offset = epoch * size_per_epoch;   // Start of this epoch
+
+  // Add offset for layers before layer i
+  for (size_t j = 0; j < current_layer_idx; j++) {
+    offset += num_cells * (j > 0 ? 2 : 1);
+  }
+  return offset;
+}
+
 float* Lstm::Predict(uint8_t const input) {
-  size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
 
-  for (size_t i = 0; i < layers.size(); i++) {      // 2 iterations
-    float* hidden_i = &hidden[i * num_cells]; // i * 200
+  for (size_t i = 0; i < num_layers; i++) {
+    float* hidden_i = &hidden[i * num_cells];
 
-    // Copy from hidden to layer_input
-    float* src = hidden_i;
-    float* dst = &layer_input[epoch * num_layers * max_layer_size + i * max_layer_size];
-    memcpy(dst, src, num_cells * sizeof(float));
-
-    // Get pointer to this layer's input
-    size_t layer_input_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
-    size_t base_idx = epoch * num_layers * max_layer_size + i * max_layer_size;
+    size_t base_idx = GetLayerInputOffset(num_cells, num_layers, epoch, i);
     float* layer_input_ptr = &layer_input[base_idx];
+
+    // First copy own previous hidden to position 0
+    // Then copy previous layer's output to position num_cells
+
+    // Copy own previous hidden state (always)
+    memcpy(layer_input_ptr, hidden_i, num_cells * sizeof(float));
+    // Copy previous layer's output (when there's a previous layer)
+    if (i > 0) {
+      // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
+      memcpy(layer_input_ptr + num_cells, &hidden[(i - 1) * num_cells], num_cells * sizeof(float));
+    }
+
+    size_t layer_input_size = num_cells * (i > 0 ? 2 : 1);
 
     layers[i]->ForwardPass(
       layer_input_ptr,
@@ -88,13 +106,6 @@ float* Lstm::Predict(uint8_t const input) {
       input,
       hidden_i,
       current_sequence_size_target);
-
-    // Copy hidden to next layer's input if not last layer
-    if (i < layers.size() - 1) {
-      float* src = hidden_i;
-      float* dst = &layer_input[epoch * num_layers * max_layer_size + (i + 1) * max_layer_size + num_cells];
-      memcpy(dst, src, num_cells * sizeof(float));
-    }
   }
 
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
@@ -124,7 +135,6 @@ void Lstm::Perceive(const uint8_t input) {
   uint8_t const old_input = input_history[last_epoch];
   input_history[last_epoch] = input;
 
-  size_t const max_layer_size = num_cells * 2;      // 200*2 = 400
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
 
   if (epoch == 0) {
@@ -143,8 +153,9 @@ void Lstm::Perceive(const uint8_t input) {
         uint8_t const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
 
         // Get pointer to this layer's input
+        size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, epoch_, layer);
+        float* layer_input_ptr = &layer_input[layer_input_offset];
         size_t layer_input_size = num_cells * (layer > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
-        float* layer_input_ptr = &layer_input[epoch_ * num_layers * max_layer_size + layer * max_layer_size];
 
         layers[layer]->BackwardPass(
           layer_input_ptr,

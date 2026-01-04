@@ -34,12 +34,12 @@ class VectorFunctions_Scalar : public VectorFunctions
   ) override;
 
   virtual void BackpropagateErrors(
-    size_t len,
-    size_t base_offset,
-    size_t hidden_size,
-    float* weights,
-    float* error,
-    float* grad_store
+    size_t len,         // num_cells (200)
+    size_t base_offset, // 0 for temporal, num_cells for spatial
+    size_t hidden_size, // Layer 0: 200, Layer 1: 400
+    float* weights,     // Weight matrix
+    float* error,       // Current layer errors
+    float* grad_store   // Where to accumulate gradients
   ) override;
 
   virtual void AccumulateLayerGradients(

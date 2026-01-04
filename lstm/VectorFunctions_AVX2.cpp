@@ -129,12 +129,12 @@ void VectorFunctions_AVX2::NormalizeThenActivate_Tanh(
 }
 
 void VectorFunctions_AVX2::BackpropagateErrors(
-  size_t len,
-  size_t base_offset,
-  size_t hidden_size,
-  float* weights,
-  float* error,
-  float* grad_store)
+  size_t len,         // num_cells (200)
+  size_t base_offset, // 0 for temporal, num_cells for spatial
+  size_t hidden_size, // Layer 0: 200, Layer 1: 400
+  float* weights,     // Weight matrix
+  float* error,       // Current layer errors
+  float* grad_store)   // Where to accumulate gradients
 {
   for (size_t i = 0; i < len; i += 8) {
     __m256 grad_vec = _mm256_load_ps(&grad_store[i]);
