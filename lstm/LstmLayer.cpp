@@ -25,7 +25,6 @@ LstmLayer::LstmLayer(
   , input_gate_state(horizon * num_cells) // 100 * 200 = 20,000
   , last_state(horizon * num_cells)       // 100 * 200 = 20,000
   , num_cells(num_cells)         // 200
-  , epoch(0)
   , horizon(horizon)             // 100
   , forget_gate(
     simdType,
@@ -106,6 +105,7 @@ void LstmLayer::ForwardPass(
   size_t input_size,
   uint8_t const input_symbol,
   float* hidden,
+  size_t const epoch,
   size_t current_sequence_size_target)
 {
   const size_t ebase = epoch * num_cells;            // epoch * 200
@@ -139,17 +139,12 @@ void LstmLayer::ForwardPass(
 
     hidden[i] = output * t;
   }
-
-  epoch++;
-  if (epoch == current_sequence_size_target)
-    epoch = 0;
 }
 
 void LstmLayer::BackwardPass(
   float* input,
   size_t input_size,
   size_t const epoch,
-  size_t time_step,
   size_t current_sequence_size_target,
   size_t const layer,
   uint8_t const input_symbol,
@@ -165,6 +160,7 @@ void LstmLayer::BackwardPass(
   float* ig_error = &input_node.error[0];
   float* og_error = &output_gate.error[0];
 
+  // Initialize stored_error at the last epoch of the sequence
   if (epoch == current_sequence_size_target - 1) {
     memcpy(&stored_error[0], &hidden_error[0], num_cells * sizeof(float));
     memset(&state_error[0], 0, num_cells * sizeof(float));
@@ -174,6 +170,7 @@ void LstmLayer::BackwardPass(
     const size_t idx = ebase + i;                   // epoch*200 + i
 
     stored_error[i] += hidden_error[i];
+    hidden_error[i] = 0.0f;
 
     const float tanh_v = tanh_state[idx];
     const float forget = fg_state[idx];
@@ -198,8 +195,6 @@ void LstmLayer::BackwardPass(
       state_error[i] *
       forget * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
 
-    hidden_error[i] = 0.0f;
-
     if (epoch > 0) {
       state_error[i] *= forget;
       stored_error[i] = 0.0f;
@@ -211,7 +206,6 @@ void LstmLayer::BackwardPass(
     input_size,
     hidden_error,
     &stored_error[0],
-    time_step,
     epoch,
     layer,
     input_symbol);
@@ -220,7 +214,6 @@ void LstmLayer::BackwardPass(
     input_size,
     hidden_error,
     &stored_error[0],
-    time_step,
     epoch,
     layer,
     input_symbol);
@@ -229,8 +222,13 @@ void LstmLayer::BackwardPass(
     input_size,
     hidden_error,
     &stored_error[0],
-    time_step,
     epoch,
     layer,
     input_symbol);
+}
+
+void LstmLayer::Optimize(uint64_t const time_step) {
+  forget_gate.Optimize(time_step);
+  input_node.Optimize(time_step);
+  output_gate.Optimize(time_step);
 }

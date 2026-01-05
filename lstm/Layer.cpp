@@ -66,7 +66,7 @@ Layer::Layer(
 
   VectorFunctions = CreateVectorFunctions(simd);
 
-  // Initialize RMS gamma and weigth bias
+  // Initialize RMS gamma and weight bias
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     gamma[i] = 1.f;
     bias[i] = bias_init;
@@ -143,7 +143,7 @@ void Layer::ForwardPass(
   const float inv_var = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
   inverse_variance[epoch] = inv_var;
 
-  if(use_tanh)
+  if (use_tanh)
     VectorFunctions->NormalizeThenActivate_Tanh(
       num_cells,
       norm_epoch,
@@ -166,7 +166,6 @@ void Layer::BackwardPass(
   size_t input_size,
   float* hidden_error,
   float* stored_error,
-  uint64_t const time_step,
   size_t const epoch,
   size_t const layer,
   uint8_t const input_symbol)
@@ -224,14 +223,16 @@ void Layer::BackwardPass(
     &embedding_u[input_symbol],
     &update[0]
   );
-  
-  // Optimize at the first epoch
-  if (epoch == 0) {
-    decayFunc.Apply(learning_rate, time_step);
-    embedding_optimizer->Optimize(learning_rate, time_step);
-    weights_optimizer->Optimize(learning_rate, time_step);
-    gamma_optimizer->Optimize(learning_rate, time_step);
-    beta_optimizer->Optimize(learning_rate, time_step);
-    bias_optimizer->Optimize(learning_rate, time_step);
-  }
+}
+
+void Layer::Optimize(uint64_t const time_step) {
+  // Apply learning rate decay
+  decayFunc.Apply(learning_rate, time_step);
+
+  // Optimize all parameters
+  embedding_optimizer->Optimize(learning_rate, time_step);
+  weights_optimizer->Optimize(learning_rate, time_step);
+  gamma_optimizer->Optimize(learning_rate, time_step);
+  beta_optimizer->Optimize(learning_rate, time_step);
+  bias_optimizer->Optimize(learning_rate, time_step);
 }

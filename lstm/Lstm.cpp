@@ -16,7 +16,7 @@ Lstm::Lstm(
   , hidden_error(shape.num_cells)                     // 200
   , output_bias(shape.output_size)                    // 256
   , output_bias_u(shape.output_size)                  // 256
-  , input_history(shape.horizon)                      // 100
+  , input_symbol_history(shape.horizon + 1)           // 101: at position i it's both the input symbol for epoch i and also the target symbol for epoch i-1
   , saved_timestep(0)
   , num_cells(shape.num_cells)
   , horizon(shape.horizon)
@@ -80,7 +80,9 @@ static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t ep
   return offset;
 }
 
-float* Lstm::Predict(uint8_t const input) {
+float* Lstm::Predict(uint8_t const input_symbol) {
+
+  input_symbol_history[epoch] = input_symbol;
 
   for (size_t i = 0; i < num_layers; i++) {
     float* hidden_i = &hidden[i * num_cells];
@@ -104,8 +106,9 @@ float* Lstm::Predict(uint8_t const input) {
     layers[i]->ForwardPass(
       layer_input_ptr,
       layer_input_size,
-      input,
+      input_symbol,
       hidden_i,
+      epoch,
       current_sequence_size_target);
   }
 
@@ -123,35 +126,47 @@ float* Lstm::Predict(uint8_t const input) {
     output_offset
   );
 
-  size_t const epoch_ = epoch;
-  epoch++;
-  if (epoch == current_sequence_size_target) epoch = 0;
-
   // Return pointer to the output slice for this epoch in the persistent output array
-  return &output[epoch_ * output_size];              // &output[epoch_ * 256]
+  return &output[epoch * output_size];              // &output[epoch * 256]
 }
 
-void Lstm::Perceive(const uint8_t input) {
-  size_t const last_epoch = ((epoch > 0) ? epoch : current_sequence_size_target) - 1; // ((epoch > 0) ? epoch : 100) - 1
-  uint8_t const old_input = input_history[last_epoch];
-  input_history[last_epoch] = input;
+void Lstm::Perceive(const uint8_t target_symbol) {
+  input_symbol_history[epoch + 1] = target_symbol;
+
+  bool is_last_epoch = epoch == current_sequence_size_target - 1;
 
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
 
-  if (epoch == 0) {
+  if (is_last_epoch) {
+    // Backward pass through all timesteps in reverse order
     for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) {
+      size_t target_symbol_index = epoch_ + 1;
+      // Backward pass through all layers in reverse order
       for (int layer = static_cast<int>(layers.size()) - 1; layer >= 0; layer--) {
+        // The hidden_error buffer is reused to accumulate gradients from multiple sources,
+        // we must not clear them here - it would break the gradient flow between layers.
+        //
+        //   Output Layer
+        //       /    \
+        //      /      \
+        //     v        v
+        //   Layer 1   Direct gradient to Layer 0
+        //     |
+        //     v
+        //   Layer 0
+
+        // Backpropagate from output layer to this LSTM layer
         int offset = layer * static_cast<int>(num_cells); // layer * 200
         for (size_t i = 0; i < output_size; i++) {   // 256 iterations
-          float const error = (i == input_history[epoch_]) ? output[epoch_ * output_size + i] - 1.f : output[epoch_ * output_size + i];
+          float const error = (i == input_symbol_history[target_symbol_index]) ? output[epoch_ * output_size + i] - 1.f : output[epoch_ * output_size + i];
 
           for (size_t j = 0; j < hidden_error.size(); j++) { // 200 iterations
             hidden_error[j] += output_layer[i * hidden_size + (j + offset)] * error;
           }
         }
 
-        size_t const prev_epoch = ((epoch_ > 0) ? epoch_ : current_sequence_size_target) - 1;
-        uint8_t const input_symbol = (epoch_ > 0) ? input_history[prev_epoch] : old_input;
+        // Get the input symbol for this timestep
+        uint8_t const input_symbol = input_symbol_history[epoch_];
 
         // Get pointer to this layer's input
         size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, epoch_, layer);
@@ -162,16 +177,21 @@ void Lstm::Perceive(const uint8_t input) {
           layer_input_ptr,
           layer_input_size,
           epoch_,
-          time_step,
           current_sequence_size_target,
           layer,
           input_symbol,
           &hidden_error[0]);
       }
     }
+
+    // After full backward pass, optimize all layers
+    for (size_t layer = 0; layer < num_layers; layer++) {
+      layers[layer]->Optimize(time_step);
+    }
   }
 
-  size_t previous_output_offset = last_epoch * output_size;
+  // Accumulate output layer gradients for the current timestep
+  size_t previous_output_offset = epoch * output_size;
   float* output_ptr = &output[previous_output_offset];
 
   float* output_layer_ptr = &output_layer_u[0];
@@ -185,9 +205,10 @@ void Lstm::Perceive(const uint8_t input) {
     hidden_ptr,
     output_size,
     hidden_size,
-    input);
+    target_symbol);
 
-  if (epoch == 0) {
+  // Optimize output layer after full sequence
+  if (is_last_epoch) {
     output_decay_func.Apply(output_learning_rate, time_step);
     output_weights_optimizer->Optimize(output_learning_rate, time_step);
     output_bias_optimizer->Optimize(output_learning_rate, time_step);
@@ -204,5 +225,9 @@ void Lstm::Perceive(const uint8_t input) {
     }
 
     time_step++;
+    epoch = 0;
+  }
+  else {
+    epoch++;
   }
 }

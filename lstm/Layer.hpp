@@ -92,16 +92,20 @@ public:
   void ForwardPass(
     float* input,
     size_t input_size,
-    uint8_t input_symbol,
-    size_t epoch);
+    uint8_t const input_symbol,
+    size_t const epoch
+  );
 
   void BackwardPass(
     float* input,
     size_t input_size,
     float* hidden_error,
     float* stored_error,
-    uint64_t time_step,
-    size_t epoch,
-    size_t layer,
-    uint8_t input_symbol);
+    size_t const epoch,
+    size_t const layer,
+    uint8_t const input_symbol
+  );
+
+  void Optimize(uint64_t const time_step);
+
 };

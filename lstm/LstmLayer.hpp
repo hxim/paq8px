@@ -8,7 +8,7 @@
 
 class LstmLayer {
 private:
-  SIMDType simd;
+  const SIMDType simd;
 
   Array<float, 32> state;
   Array<float, 32> state_error;
@@ -18,9 +18,9 @@ private:
   Array<float, 32> input_gate_state;   // Flat: [horizon * num_cells]
   Array<float, 32> last_state;         // Flat: [horizon * num_cells]
 
-  size_t num_cells;
+  const size_t num_cells;
+  const size_t horizon;
   size_t epoch;
-  size_t horizon;
 
   Layer forget_gate;
   Layer input_node;
@@ -42,15 +42,17 @@ public:
     size_t input_size,
     uint8_t const input_symbol,
     float* hidden,
+    size_t const epoch,
     size_t current_sequence_size_target);
 
   void BackwardPass(
     float* input,
     size_t input_size,
     size_t const epoch,
-    size_t const time_step,
-    size_t current_sequence_size_target,
+    size_t const current_sequence_size_target,
     size_t const layer,
     uint8_t const input_symbol,
     float* hidden_error);
+
+  void Optimize(uint64_t const time_step);
 };

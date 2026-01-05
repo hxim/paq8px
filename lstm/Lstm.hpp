@@ -38,7 +38,7 @@ private:
   Array<float, 32> hidden_error;
   Array<float, 32> output_bias;    // [output_size] = 256
   Array<float, 32> output_bias_u;  // [output_size] = 256
-  std::vector<uint8_t> input_history;
+  std::vector<uint8_t> input_symbol_history;
 
   std::unique_ptr<Adam> output_weights_optimizer;
   std::unique_ptr<Adam> output_bias_optimizer;
@@ -63,6 +63,6 @@ public:
     SIMDType simdType,
     LSTM::Shape shape);
 
-  float* Predict(uint8_t input);
-  void Perceive(uint8_t input);
+  float* Predict(uint8_t input_symbol);
+  void Perceive(uint8_t target_symbol);
 };
