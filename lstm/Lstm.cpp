@@ -137,12 +137,24 @@ void Lstm::Perceive(const uint8_t target_symbol) {
 
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
 
+  // Calculate error_on_output
+  size_t output_offset = epoch * output_size;
+  output[output_offset + target_symbol] -= 1;
+
   if (is_last_epoch) {
+
+    for (size_t layer = 0; layer < num_layers; layer++) {
+      layers[layer]->InitializeBackwardPass();;
+    }
+
     // Backward pass through all timesteps in reverse order
     for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) {
-      size_t target_symbol_index = epoch_ + 1;
+
+      size_t output_offset_this_epoch = epoch_ * output_size;
+
+
       // Backward pass through all layers in reverse order
-      for (int layer = static_cast<int>(layers.size()) - 1; layer >= 0; layer--) {
+      for (int layer = static_cast<int>(num_layers) - 1; layer >= 0; layer--) {
         // The hidden_error buffer is reused to accumulate gradients from multiple sources,
         // we must not clear them here - it would break the gradient flow between layers.
         //
@@ -156,14 +168,15 @@ void Lstm::Perceive(const uint8_t target_symbol) {
         //   Layer 0
 
         // Backpropagate from output layer to this LSTM layer
-        int offset = layer * static_cast<int>(num_cells); // layer * 200
-        for (size_t i = 0; i < output_size; i++) {   // 256 iterations
-          float const error = (i == input_symbol_history[target_symbol_index]) ? output[epoch_ * output_size + i] - 1.f : output[epoch_ * output_size + i];
-
-          for (size_t j = 0; j < hidden_error.size(); j++) { // 200 iterations
-            hidden_error[j] += output_layer[i * hidden_size + (j + offset)] * error;
-          }
-        }
+        VectorFunctions->AccumulateLstmGradients(
+          num_cells,
+          hidden_size,
+          output_size,
+          layer,
+          &output[output_offset_this_epoch],
+          &hidden_error[0],
+          &output_layer[0]
+        );
 
         // Get the input symbol for this timestep
         uint8_t const input_symbol = input_symbol_history[epoch_];
@@ -177,7 +190,6 @@ void Lstm::Perceive(const uint8_t target_symbol) {
           layer_input_ptr,
           layer_input_size,
           epoch_,
-          current_sequence_size_target,
           layer,
           input_symbol,
           &hidden_error[0]);
@@ -191,15 +203,13 @@ void Lstm::Perceive(const uint8_t target_symbol) {
   }
 
   // Accumulate output layer gradients for the current timestep
-  size_t previous_output_offset = epoch * output_size;
-  float* output_ptr = &output[previous_output_offset];
 
   float* output_layer_ptr = &output_layer_u[0];
   const float* hidden_ptr = &hidden[0];
 
   VectorFunctions->AccumulateOutputLayerGradients(
-    previous_output_offset,
-    output_ptr,
+    output_offset,
+    &output[output_offset],
     output_layer_ptr,
     &output_bias_u[0],
     hidden_ptr,
@@ -207,12 +217,13 @@ void Lstm::Perceive(const uint8_t target_symbol) {
     hidden_size,
     target_symbol);
 
-  // Optimize output layer after full sequence
   if (is_last_epoch) {
+    // Optimize output layer after full sequence
     output_decay_func.Apply(output_learning_rate, time_step);
     output_weights_optimizer->Optimize(output_learning_rate, time_step);
     output_bias_optimizer->Optimize(output_learning_rate, time_step);
 
+    // Increase sequence size
     sequence_step_cntr++;
     if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
       sequence_step_cntr = 0;

@@ -72,6 +72,9 @@ LstmLayer::LstmLayer(
     1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
 {
+
+  VectorFunctions = CreateVectorFunctions(simd);
+
   // Set random weights for each gate
   float* forget_emb = &forget_gate.embedding[0];
   float* input_emb = &input_node.embedding[0];
@@ -141,65 +144,35 @@ void LstmLayer::ForwardPass(
   }
 }
 
+void LstmLayer::InitializeBackwardPass() {
+  memset(&stored_error[0], 0, num_cells * sizeof(float));
+  memset(&state_error[0], 0, num_cells * sizeof(float));
+}
+
 void LstmLayer::BackwardPass(
   float* input,
   size_t input_size,
   size_t const epoch,
-  size_t current_sequence_size_target,
   size_t const layer,
   uint8_t const input_symbol,
   float* hidden_error)
 {
-  const size_t ebase = epoch * num_cells;            // epoch * 200
-
-  float* fg_state = &forget_gate.state[0];
-  float* ig_state = &input_node.state[0];
-  float* og_state = &output_gate.state[0];
-
-  float* fg_error = &forget_gate.error[0];
-  float* ig_error = &input_node.error[0];
-  float* og_error = &output_gate.error[0];
-
-  // Initialize stored_error at the last epoch of the sequence
-  if (epoch == current_sequence_size_target - 1) {
-    memcpy(&stored_error[0], &hidden_error[0], num_cells * sizeof(float));
-    memset(&state_error[0], 0, num_cells * sizeof(float));
-  }
-
-  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    const size_t idx = ebase + i;                   // epoch*200 + i
-
-    stored_error[i] += hidden_error[i];
-    hidden_error[i] = 0.0f;
-
-    const float tanh_v = tanh_state[idx];
-    const float forget = fg_state[idx];
-    const float inputv = ig_state[idx];
-    const float output = og_state[idx];
-    const float input_gate = input_gate_state[idx];
-
-    og_error[i] =
-      tanh_v * stored_error[i] *
-      output * (1.0f - output); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
-
-    state_error[i] +=
-      stored_error[i] * output *
-      (1.0f - tanh_v * tanh_v); // tanh derivative: tanh'(x) = 1 - tanh²(x)
-
-    ig_error[i] =
-      state_error[i] * input_gate *
-      (1.0f - inputv * inputv); // tanh derivative: tanh'(x) = 1 - tanh²(x)
-
-    fg_error[i] =
-      (last_state[idx] - inputv) *
-      state_error[i] *
-      forget * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
-
-    if (epoch > 0) {
-      state_error[i] *= forget;
-      stored_error[i] = 0.0f;
-    }
-  }
+  VectorFunctions->AccumulateLstmLayerGradients(
+    num_cells,
+    epoch * num_cells, //ebase
+    &stored_error[0],
+    &hidden_error[0],
+    &tanh_state[0],
+    &forget_gate.state[0],
+    &input_node.state[0],
+    &output_gate.state[0],
+    &input_gate_state[0],
+    &output_gate.error[0],
+    &state_error[0], 
+    &input_node.error[0],
+    &forget_gate.error[0],
+    &last_state[0]
+  );
 
   forget_gate.BackwardPass(
     input,

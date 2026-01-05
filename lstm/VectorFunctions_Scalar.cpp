@@ -170,6 +170,76 @@ void VectorFunctions_Scalar::NormalizeThenActivate_Tanh(
   }
 }
 
+void VectorFunctions_Scalar::AccumulateLstmGradients(
+  size_t num_cells,
+  size_t hidden_size,
+  size_t output_size,
+  size_t layer,
+  float* error_on_output,
+  float* hidden_error,
+  float* output_layer)
+{
+  size_t output_layer_offset = layer * num_cells; // layer * 200
+  for (size_t i = 0; i < output_size; i++) {   // 256 iterations
+    float const error = error_on_output[i];
+    for (size_t j = 0; j < num_cells; j++) { // 200 iterations
+      hidden_error[j] += output_layer[output_layer_offset + j] * error;
+    }
+    output_layer_offset += hidden_size;
+  }
+}
+
+void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
+  size_t num_cells,
+  size_t ebase,
+  float* stored_error,
+  float* hidden_error,
+  float* tanh_state,
+  float* fg_state,
+  float* ig_state,
+  float* og_state,
+  float* input_gate_state,
+  float* og_error,
+  float* state_error,
+  float* ig_error,
+  float* fg_error,
+  float* last_state)
+{
+  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
+    stored_error[i] += hidden_error[i];
+    hidden_error[i] = 0.0f;
+
+    const size_t idx = ebase + i;                   // epoch*200 + i
+    const float tanh_v = tanh_state[idx];
+    const float forget = fg_state[idx];
+    const float inputv = ig_state[idx];
+    const float output = og_state[idx];
+    const float input_gate = input_gate_state[idx];
+
+    og_error[i] =
+      tanh_v * stored_error[i] *
+      output * (1.0f - output); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
+
+    state_error[i] +=
+      stored_error[i] * output *
+      (1.0f - tanh_v * tanh_v); // tanh derivative: tanh'(x) = 1 - tanh²(x)
+
+    ig_error[i] =
+      state_error[i] * input_gate *
+      (1.0f - inputv * inputv); // tanh derivative: tanh'(x) = 1 - tanh²(x)
+
+    fg_error[i] =
+      (last_state[idx] - inputv) *
+      state_error[i] *
+      forget * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
+
+    if (ebase > 0) { // epoch > 0
+      state_error[i] *= forget;
+      stored_error[i] = 0.0f;
+    }
+  }
+}
+
 void VectorFunctions_Scalar::BackpropagateErrors(
   size_t len,         // num_cells (200)
   size_t base_offset, // 0 for temporal, num_cells for spatial
@@ -240,7 +310,7 @@ void VectorFunctions_Scalar::AccumulateLayerGradients(
 
 void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
-  float* output_ptr,
+  float* error_on_output,
   float* output_layer_ptr,
   float* output_bias_u,
   const float* hidden_ptr,
@@ -250,9 +320,7 @@ void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
 {
 
   for (size_t i = 0; i < output_size; i++) {
-    float error = output_ptr[i];
-    error -= (i == input_symbol);
-
+    float error = error_on_output[i];
     output_bias_u[i] += error;
 
     for (size_t j = 0; j < hidden_size; j++) {

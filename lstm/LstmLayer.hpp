@@ -9,6 +9,7 @@
 class LstmLayer {
 private:
   const SIMDType simd;
+  std::unique_ptr<VectorFunctions> VectorFunctions;
 
   Array<float, 32> state;
   Array<float, 32> state_error;
@@ -45,11 +46,12 @@ public:
     size_t const epoch,
     size_t current_sequence_size_target);
 
+  void InitializeBackwardPass();
+
   void BackwardPass(
     float* input,
     size_t input_size,
     size_t const epoch,
-    size_t const current_sequence_size_target,
     size_t const layer,
     uint8_t const input_symbol,
     float* hidden_error);

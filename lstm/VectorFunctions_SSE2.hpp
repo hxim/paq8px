@@ -35,6 +35,33 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
     float inverse_variance
   ) override;
 
+  virtual void AccumulateLstmGradients(
+    size_t num_cells,
+    size_t hidden_size,
+    size_t output_size,
+    size_t layer,
+    float* error_on_output,
+    float* hidden_error,
+    float* output_layer
+  ) override;
+
+  virtual void AccumulateLstmLayerGradients(
+    size_t num_cells,
+    size_t ebase,
+    float* stored_error,
+    float* hidden_error,
+    float* tanh_state,
+    float* fg_state,
+    float* ig_state,
+    float* og_state,
+    float* input_gate_state,
+    float* og_error,
+    float* state_error,
+    float* ig_error,
+    float* fg_error,
+    float* last_state
+  ) override;
+
   void virtual BackpropagateErrors(
     size_t len,         // num_cells (200)
     size_t base_offset, // 0 for temporal, num_cells for spatial
@@ -56,7 +83,7 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
 
   virtual void AccumulateOutputLayerGradients(
     size_t previous_output_offset,
-    float* output_ptr,
+    float* error_on_output,
     float* output_layer_ptr,
     float* output_bias_u,
     const float* hidden_ptr,

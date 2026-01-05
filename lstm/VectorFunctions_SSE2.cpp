@@ -138,6 +138,124 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
   }
 }
 
+void VectorFunctions_SSE2::AccumulateLstmGradients(
+  size_t num_cells,
+  size_t hidden_size,
+  size_t output_size,
+  size_t layer,
+  float* error_on_output,
+  float* hidden_error,
+  float* output_layer)
+{
+  size_t output_layer_offset = layer * num_cells; // layer * 200
+
+  for (size_t i = 0; i < output_size; i += 4) {   // 256 iterations, 4 at a time
+    // Load 4 errors as a vector
+    __m128 errors = _mm_load_ps(&error_on_output[i]);
+
+    // Broadcast each error to its own vector
+    __m128 error_vec0 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 error_vec1 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 error_vec2 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 error_vec3 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(3, 3, 3, 3));
+
+    for (size_t j = 0; j < num_cells; j += 4) { // 200 iterations, 4 at a time
+      size_t base_offset = output_layer_offset + j;
+
+      // Load hidden_error once
+      __m128 hidden = _mm_load_ps(&hidden_error[j]);
+
+      // Load from 4 different output_layer rows and accumulate
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec0)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec1)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec2)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec3));
+
+      // Store back to hidden_error
+      _mm_store_ps(&hidden_error[j], hidden);
+    }
+
+    output_layer_offset += hidden_size * 4;
+  }
+}
+
+void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
+  size_t num_cells,
+  size_t ebase,
+  float* stored_error,
+  float* hidden_error,
+  float* tanh_state,
+  float* fg_state,
+  float* ig_state,
+  float* og_state,
+  float* input_gate_state,
+  float* og_error,
+  float* state_error,
+  float* ig_error,
+  float* fg_error,
+  float* last_state)
+{
+  const __m128 ones = _mm_set1_ps(1.0f);
+  const __m128 zeros = _mm_setzero_ps();
+
+  for (size_t i = 0; i < num_cells; i += 4) {
+    __m128 stored_err = _mm_load_ps(&stored_error[i]);
+    __m128 hidden_err = _mm_load_ps(&hidden_error[i]);
+
+    // stored_error[i] += hidden_error[i]
+    stored_err = _mm_add_ps(stored_err, hidden_err);
+    _mm_store_ps(&stored_error[i], stored_err);
+
+    // hidden_error[i] = 0.0f
+    _mm_store_ps(&hidden_error[i], zeros);
+
+    // Load states from epoch offset
+    const size_t idx = ebase + i;
+    __m128 tanh_v = _mm_load_ps(&tanh_state[idx]);
+    __m128 forget = _mm_load_ps(&fg_state[idx]);
+    __m128 inputv = _mm_load_ps(&ig_state[idx]);
+    __m128 output = _mm_load_ps(&og_state[idx]);
+    __m128 input_gate = _mm_load_ps(&input_gate_state[idx]);
+
+    // og_error[i] = tanh_v * stored_error[i] * output * (1.0f - output)
+    __m128 one_minus_output = _mm_sub_ps(ones, output);
+    __m128 og_err = _mm_mul_ps(tanh_v, stored_err);
+    og_err = _mm_mul_ps(og_err, output);
+    og_err = _mm_mul_ps(og_err, one_minus_output);
+    _mm_store_ps(&og_error[i], og_err);
+
+    // state_error[i] += stored_error[i] * output * (1.0f - tanh_v * tanh_v)
+    __m128 state_err = _mm_load_ps(&state_error[i]);
+    __m128 tanh_sq = _mm_mul_ps(tanh_v, tanh_v);
+    __m128 one_minus_tanh_sq = _mm_sub_ps(ones, tanh_sq);
+    __m128 temp = _mm_mul_ps(stored_err, output);
+    temp = _mm_mul_ps(temp, one_minus_tanh_sq);
+    state_err = _mm_add_ps(state_err, temp);
+
+    // ig_error[i] = state_error[i] * input_gate * (1.0f - inputv * inputv)
+    __m128 inputv_sq = _mm_mul_ps(inputv, inputv);
+    __m128 one_minus_inputv_sq = _mm_sub_ps(ones, inputv_sq);
+    __m128 ig_err = _mm_mul_ps(state_err, input_gate);
+    ig_err = _mm_mul_ps(ig_err, one_minus_inputv_sq);
+    _mm_store_ps(&ig_error[i], ig_err);
+
+    // fg_error[i] = (last_state[idx] - inputv) * state_error[i] * forget * input_gate
+    __m128 last_st = _mm_load_ps(&last_state[idx]);
+    __m128 fg_err = _mm_sub_ps(last_st, inputv);
+    fg_err = _mm_mul_ps(fg_err, state_err);
+    fg_err = _mm_mul_ps(fg_err, forget);
+    fg_err = _mm_mul_ps(fg_err, input_gate);
+    _mm_store_ps(&fg_error[i], fg_err);
+
+    if (ebase > 0) { // epoch > 0
+      state_err = _mm_mul_ps(state_err, forget);
+      _mm_store_ps(&stored_error[i], zeros);
+    }
+
+    _mm_store_ps(&state_error[i], state_err);
+  }
+}
+
 void VectorFunctions_SSE2::BackpropagateErrors(
   size_t len,         // num_cells (200)
   size_t base_offset, // 0 for temporal, num_cells for spatial
@@ -186,31 +304,60 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
   float* embedding_ptr,
   float* update)
 {
-  for (size_t i = 0; i < num_cells; i++) {
-    const float ei = error[i];
-
+  for (size_t i = 0; i < num_cells; i += 4) {
+    // Load 4 errors as a vector
+    __m128 errors = _mm_load_ps(&error[i]);
+    
+    // Broadcast each error
+    __m128 error_vec0 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 error_vec1 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 error_vec2 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 error_vec3 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(3, 3, 3, 3));
+    
+    // Extract scalar values from the broadcast vectors (just get first element)
+    float e0 = _mm_cvtss_f32(error_vec0);
+    float e1 = _mm_cvtss_f32(error_vec1);
+    float e2 = _mm_cvtss_f32(error_vec2);
+    float e3 = _mm_cvtss_f32(error_vec3);
+    
     // Update embedding gradient
-    *embedding_ptr += ei;
-    embedding_ptr += embedding_size;
-
+    size_t emb_offset = i * embedding_size;
+    embedding_ptr[emb_offset] += e0; emb_offset += embedding_size;
+    embedding_ptr[emb_offset] += e1; emb_offset += embedding_size;
+    embedding_ptr[emb_offset] += e2; emb_offset += embedding_size;
+    embedding_ptr[emb_offset] += e3;
+    
     // Update hidden state weight gradients
-    __m128 ei_vec = _mm_set1_ps(ei);
-
+    size_t update_offset = i * hidden_size;
     for (size_t j = 0; j < hidden_size; j += 4) {
-      __m128 input_vec = _mm_load_ps(&input[j]);
-      __m128 update_vec = _mm_load_ps(&update[j]);
-      __m128 product = _mm_mul_ps(ei_vec, input_vec);
-      update_vec = _mm_add_ps(update_vec, product);
-      _mm_store_ps(&update[j], update_vec);
+      size_t base_offset = update_offset + j;
+      
+      __m128 inp = _mm_load_ps(&input[j]);
+      
+      __m128 upd0 = _mm_load_ps(&update[base_offset]);
+      upd0 = _mm_add_ps(upd0, _mm_mul_ps(inp, error_vec0)); base_offset += hidden_size;
+      
+      __m128 upd1 = _mm_load_ps(&update[base_offset]);
+      upd1 = _mm_add_ps(upd1, _mm_mul_ps(inp, error_vec1)); base_offset += hidden_size;
+      
+      __m128 upd2 = _mm_load_ps(&update[base_offset]);
+      upd2 = _mm_add_ps(upd2, _mm_mul_ps(inp, error_vec2)); base_offset += hidden_size;
+      
+      __m128 upd3 = _mm_load_ps(&update[base_offset]);
+      upd3 = _mm_add_ps(upd3, _mm_mul_ps(inp, error_vec3));
+      
+      base_offset = update_offset + j;
+      _mm_store_ps(&update[base_offset], upd0); base_offset += hidden_size;
+      _mm_store_ps(&update[base_offset], upd1); base_offset += hidden_size;
+      _mm_store_ps(&update[base_offset], upd2); base_offset += hidden_size;
+      _mm_store_ps(&update[base_offset], upd3);
     }
-
-    update += hidden_size;
   }
 }
 
 void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
-  float* output_ptr,
+  float* error_on_output,
   float* output_layer_ptr,
   float* output_bias_u,
   const float* hidden_ptr,
@@ -218,23 +365,46 @@ void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
   const size_t hidden_size,
   const size_t input_symbol)
 {
-  for (size_t i = 0; i < output_size; i++) {
-    float error = output_ptr[i];
-    error -= (i == input_symbol);
+  for (size_t i = 0; i < output_size; i += 4) {
+    // Load 4 errors
+    __m128 errors = _mm_load_ps(&error_on_output[i]);
 
-    output_bias_u[i] += error;
+    // Broadcast each error
+    __m128 error_vec0 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(0, 0, 0, 0));
+    __m128 error_vec1 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(1, 1, 1, 1));
+    __m128 error_vec2 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(2, 2, 2, 2));
+    __m128 error_vec3 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(3, 3, 3, 3));
 
-    __m128 error_vec = _mm_set1_ps(error);
+    // Update bias (vectorized)
+    __m128 bias = _mm_load_ps(&output_bias_u[i]);
+    bias = _mm_add_ps(bias, errors);
+    _mm_store_ps(&output_bias_u[i], bias);
 
+    // Update output layer weights
+    size_t output_offset = i * hidden_size;
     for (size_t j = 0; j < hidden_size; j += 4) {
-      __m128 hidden_vec = _mm_load_ps(&hidden_ptr[j]);
-      __m128 output_vec = _mm_load_ps(&output_layer_ptr[j]);
-      __m128 product = _mm_mul_ps(error_vec, hidden_vec);
-      output_vec = _mm_add_ps(output_vec, product);
-      _mm_store_ps(&output_layer_ptr[j], output_vec);
-    }
+      size_t base_offset = output_offset + j;
 
-    output_layer_ptr += hidden_size;
+      __m128 hidden = _mm_load_ps(&hidden_ptr[j]);
+
+      __m128 out = _mm_load_ps(&output_layer_ptr[base_offset]);
+      out = _mm_add_ps(out, _mm_mul_ps(hidden, error_vec0)); base_offset += hidden_size;
+
+      __m128 out1 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      out1 = _mm_add_ps(out1, _mm_mul_ps(hidden, error_vec1)); base_offset += hidden_size;
+
+      __m128 out2 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      out2 = _mm_add_ps(out2, _mm_mul_ps(hidden, error_vec2)); base_offset += hidden_size;
+
+      __m128 out3 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      out3 = _mm_add_ps(out3, _mm_mul_ps(hidden, error_vec3));
+
+      base_offset = output_offset + j;
+      _mm_store_ps(&output_layer_ptr[base_offset], out); base_offset += hidden_size;
+      _mm_store_ps(&output_layer_ptr[base_offset], out1); base_offset += hidden_size;
+      _mm_store_ps(&output_layer_ptr[base_offset], out2); base_offset += hidden_size;
+      _mm_store_ps(&output_layer_ptr[base_offset], out3);
+    }
   }
 }
 

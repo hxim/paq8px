@@ -123,19 +123,17 @@ void Layer::ForwardPass(
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
   float* state_epoch = &state[epoch * num_cells]; // epoch * 200
 
+  const float* embed_ptr = &embedding[input_symbol]; // Embedding lookup for this cell
+  const float* weight_ptr = &weights[0];
+  const float* bias_ptr = &bias[0];
+
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    // Embedding lookup for this cell
-    float embed_value = embedding[i * embedding_size + input_symbol]; // embedding[i*256 + input_symbol]
+    // Compute: embedding_value + bias_value + dot(input, hidden_weights)
+    norm_epoch[i] = VectorFunctions->DotProduct(input, weight_ptr, input_size) + (*embed_ptr) + (*bias_ptr);
 
-    // Hidden state weights for this cell
-    float* w = &weights[i * hidden_size]; // i * (200 or 400)
-
-    // Compute: embedding_value + dot(input, hidden_weights)
-    norm_epoch[i] = VectorFunctions->DotProduct(
-      input,
-      w,
-      input_size     // Size of hidden state input array, = hidden_size
-    ) + embed_value + bias[i];
+    embed_ptr += embedding_size; // + 256
+    weight_ptr += hidden_size;   // + (200 or 400)
+    bias_ptr++;
   }
 
   const float ss = VectorFunctions->SumOfSquares(norm_epoch, num_cells);
