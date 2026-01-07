@@ -15,6 +15,7 @@
 #include "Utils.hpp"
 
 #include <stdexcept>  //std::exception
+#include <string> //std::stof, std::to_string
 
 #include "Encoder.hpp"
 #include "ProgramChecker.hpp"
@@ -250,7 +251,7 @@ int processCommandLine(int argc, char **argv) {
     bool verbose = false;
     int c = 0;
     int simdIset = -1; //simd instruction set to use
-
+    
     FileName input;
     FileName output;
     FileName inputPath;
@@ -335,6 +336,17 @@ int processCommandLine(int argc, char **argv) {
           shared.SetOptionDetectBlockAsBinary();
         } else if( strcasecmp(argv[i], "-forcetext") == 0 ) {
           shared.SetOptionDetectBlockAsText();
+        }
+        else if ( strncmp(argv[i], "-param=", 7) == 0 )
+        {
+          try
+          {
+            shared.tuning_param = std::stof(argv[i] + 7);
+          }
+          catch (...)
+          {
+            quit("Could not parse tuning param.");
+          }
         }
         else if( strcasecmp(argv[i], "-simd") == 0 ) {
           if( ++i == argc ) {
@@ -767,7 +779,7 @@ int processCommandLine(int argc, char **argv) {
         //Write header if needed
         if( pathType == 3 /*does not exist*/ ||
             (pathType == 1 && getFileSize(logfile.c_str()) == 0)/*exists but does not contain a header*/) {
-          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\tINPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
+          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\tPARAM\tINPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
         }
         //Write results to logfile
         results += PROGNAME "\t" PROGVERSION "\t";
@@ -779,6 +791,8 @@ int processCommandLine(int argc, char **argv) {
         }
         results += "\t";
         results += uint64_t(shared.level);
+        results += "\t";
+        results += (shared.tuning_param == 0.0f ? "" : std::to_string(shared.tuning_param).c_str());
         results += "\t";
         results += input.c_str();
         results += "\t";

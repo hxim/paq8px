@@ -49,6 +49,7 @@ public:
   SIMDType chosenSimd = SIMDType::SIMD_NONE; /**< default value, will be overridden by the CPU dispatcher, and may be overridden from the command line */
   uint8_t level = 0; /**< level=0: no compression (only transformations), level=1..12 compress using less..more RAM */
   uint64_t mem = 0; /**< pre-calculated value of 65536 * 2^level */
+  float tuning_param = 0.0f; /**< used during development to find optimal model parameters */
   bool toScreen = true;
 
   // Getters

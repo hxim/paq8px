@@ -57,13 +57,17 @@ private:
   size_t output_size;
   size_t num_layers;
 
+  float tuning_param;
+
 public:
   size_t epoch;
   size_t time_step; // processed bytes+1
 
   Lstm(
     SIMDType simdType,
-    LSTM::Shape shape);
+    LSTM::Shape shape,
+    float tuning_param
+  );
 
   float* Predict(uint8_t input_symbol);
   void Perceive(uint8_t target_symbol);

@@ -10,7 +10,7 @@ LstmModelContainer::LstmModelContainer(
   : shared(sh)
   , simd(sh->chosenSimd)
   , shape{ alphabetSize, num_cells, num_layers, horizon }
-  , lstm(sh->chosenSimd, shape)
+  , lstm(sh->chosenSimd, shape, sh->tuning_param)
   , probs(nullptr)
   , byteModelToBitModel()
   , apm1{ sh, 0x10000, 24, 255 }

@@ -4,8 +4,10 @@
 
 Lstm::Lstm(
   SIMDType simdType,
-  LSTM::Shape shape)
+  LSTM::Shape shape,
+  float tuning_param)
   : simd(simdType)
+  , tuning_param(tuning_param)
   // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
   , layer_input(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
   , output_layer(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
