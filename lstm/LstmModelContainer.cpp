@@ -63,7 +63,7 @@ void LstmModelContainer::mix(Mixer& m) {
   m.add(stretch(pr2) >> 1);
   m.add(stretch(pr3) >> 1);
   m.set((bpos << 8) | expectedByte, 8 * 256);
-  m.set(static_cast<uint32_t>(lstm.epoch) << 3 | bpos, 100 * 8);
+  m.set(static_cast<uint32_t>(lstm.sequence_position) << 3 | bpos, 100 * 8);
 }
 
 void LstmModelContainer::update() {

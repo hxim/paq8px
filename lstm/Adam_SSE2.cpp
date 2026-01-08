@@ -5,14 +5,14 @@
 
 #pragma GCC target("sse2")
 
-void Adam_SSE2::Optimize(float learning_rate, uint64_t time_step)
+void Adam_SSE2::Optimize(float learning_rate, uint64_t training_iterations)
 {
   __m128 const zero_vec = _mm_setzero_ps();
   __m128 const vec_beta2 = _mm_set1_ps(beta2);
   __m128 const vec_eps = _mm_set1_ps(eps);
   __m128 const vec_beta2_complement = _mm_set1_ps(1.f - beta2);
 
-  double const t = static_cast<double>(time_step);
+  double const t = static_cast<double>(training_iterations);
   float const bias_v = 1.f - static_cast<float>(std::pow(beta2, t));
   __m128 const vec_bias_v = _mm_set1_ps(bias_v);
   __m128 const vec_lr = _mm_set1_ps(learning_rate);

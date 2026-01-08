@@ -23,5 +23,5 @@ public:
     
     ~PolynomialDecay() = default;
     
-    void Apply(float& rate, uint64_t time_step) const;
+    void Apply(float& rate, uint64_t training_iterations) const;
 };

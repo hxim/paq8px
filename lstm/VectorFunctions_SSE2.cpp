@@ -56,7 +56,7 @@ float VectorFunctions_SSE2::SumOfSquares(float* array, size_t array_length)
 
 void VectorFunctions_SSE2::NormalizeThenActivate_Sigmoid(
   size_t array_length,
-  float* norm,
+  float* pre_norm_values,
   float* state,
   float* gamma,
   float* beta,
@@ -71,13 +71,13 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Sigmoid(
 
   for (size_t i = 0; i < array_length; i += 4) {
 
-    __m128 norm_vec = _mm_load_ps(norm + i);
-    norm_vec = _mm_mul_ps(norm_vec, inv_var_vec);
-    _mm_store_ps(norm + i, norm_vec);
+    __m128 pre_activation_vec = _mm_load_ps(pre_norm_values + i);
+    pre_activation_vec = _mm_mul_ps(pre_activation_vec, inv_var_vec);
+    _mm_store_ps(pre_norm_values + i, pre_activation_vec);
 
     __m128 gamma_vec = _mm_load_ps(gamma + i);
     __m128 beta_vec = _mm_load_ps(beta + i);
-    __m128 x = _mm_mul_ps(norm_vec, gamma_vec);
+    __m128 x = _mm_mul_ps(pre_activation_vec, gamma_vec);
     x = _mm_add_ps(x, beta_vec);
 
     // sigmoid
@@ -101,7 +101,7 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Sigmoid(
 
 void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
   size_t array_length,
-  float* norm,
+  float* pre_norm_values,
   float* state,
   float* gamma,
   float* beta,
@@ -115,13 +115,13 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
 
   for (size_t i = 0; i < array_length; i += 4) {
 
-    __m128 norm_vec = _mm_load_ps(norm + i);
-    norm_vec = _mm_mul_ps(norm_vec, inv_var_vec);
-    _mm_store_ps(norm + i, norm_vec);
+    __m128 pre_activation_vec = _mm_load_ps(pre_norm_values + i);
+    pre_activation_vec = _mm_mul_ps(pre_activation_vec, inv_var_vec);
+    _mm_store_ps(pre_norm_values + i, pre_activation_vec);
 
     __m128 gamma_vec = _mm_load_ps(gamma + i);
     __m128 beta_vec = _mm_load_ps(beta + i);
-    __m128 x = _mm_mul_ps(norm_vec, gamma_vec);
+    __m128 x = _mm_mul_ps(pre_activation_vec, gamma_vec);
     x = _mm_add_ps(x, beta_vec);
 
     // tanh
@@ -141,15 +141,15 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
 void VectorFunctions_SSE2::AccumulateLstmGradients(
   size_t num_cells,
   size_t hidden_size,
-  size_t output_size,
-  size_t layer,
+  size_t vocabulary_size,
+  size_t layer_id,
   float* error_on_output,
-  float* hidden_error,
+  float* hidden_gradient,
   float* output_weights)
 {
-  size_t output_layer_offset = layer * num_cells; // layer * 200
+  size_t output_layer_offset = layer_id * num_cells; // layer_id * 200
 
-  for (size_t i = 0; i < output_size; i += 4) {   // 256 iterations, 4 at a time
+  for (size_t i = 0; i < vocabulary_size; i += 4) {   // 256 iterations, 4 at a time
     // Load 4 errors as a vector
     __m128 errors = _mm_load_ps(&error_on_output[i]);
 
@@ -162,8 +162,8 @@ void VectorFunctions_SSE2::AccumulateLstmGradients(
     for (size_t j = 0; j < num_cells; j += 4) { // 200 iterations, 4 at a time
       size_t base_offset = output_layer_offset + j;
 
-      // Load hidden_error once
-      __m128 hidden = _mm_load_ps(&hidden_error[j]);
+      // Load hidden_gradient once
+      __m128 hidden = _mm_load_ps(&hidden_gradient[j]);
 
       // Load from 4 different output_weights rows and accumulate
       hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec0)); base_offset += hidden_size;
@@ -171,8 +171,8 @@ void VectorFunctions_SSE2::AccumulateLstmGradients(
       hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec2)); base_offset += hidden_size;
       hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec3));
 
-      // Store back to hidden_error
-      _mm_store_ps(&hidden_error[j], hidden);
+      // Store back to hidden_gradient
+      _mm_store_ps(&hidden_gradient[j], hidden);
     }
 
     output_layer_offset += hidden_size * 4;
@@ -181,78 +181,78 @@ void VectorFunctions_SSE2::AccumulateLstmGradients(
 
 void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
   size_t num_cells,
-  size_t ebase,
-  float* stored_error,
-  float* hidden_error,
+  size_t sequence_position_offset,
+  float* temporal_hidden_gradient,
+  float* hidden_gradient,
   float* tanh_state,
-  float* fg_state,
-  float* ig_state,
-  float* og_state,
-  float* input_gate_state,
-  float* og_error,
-  float* state_error,
-  float* ig_error,
-  float* fg_error,
-  float* last_state)
+  float* forget_gate_outputs,
+  float* input_gate_outputs,
+  float* output_gate_outputs,
+  float* input_gate_complement,
+  float* output_gate_gradients,
+  float* cell_state_gradient,
+  float* input_gate_gradients,
+  float* forget_gate_gradients,
+  float* last_cell_state)
 {
   const __m128 ones = _mm_set1_ps(1.0f);
   const __m128 zeros = _mm_setzero_ps();
 
   for (size_t i = 0; i < num_cells; i += 4) {
-    __m128 stored_err = _mm_load_ps(&stored_error[i]);
-    __m128 hidden_err = _mm_load_ps(&hidden_error[i]);
+    __m128 stored_err = _mm_load_ps(&temporal_hidden_gradient[i]);
+    __m128 hidden_err = _mm_load_ps(&hidden_gradient[i]);
 
-    // stored_error[i] += hidden_error[i]
+    // temporal_hidden_gradient[i] += hidden_gradient[i]
     stored_err = _mm_add_ps(stored_err, hidden_err);
-    _mm_store_ps(&stored_error[i], stored_err);
+    _mm_store_ps(&temporal_hidden_gradient[i], stored_err);
 
-    // hidden_error[i] = 0.0f
-    _mm_store_ps(&hidden_error[i], zeros);
+    // hidden_gradient[i] = 0.0f
+    _mm_store_ps(&hidden_gradient[i], zeros);
 
-    // Load states from epoch offset
-    const size_t idx = ebase + i;
+    // Load states from sequence_position offset
+    const size_t idx = sequence_position_offset + i;
     __m128 tanh_v = _mm_load_ps(&tanh_state[idx]);
-    __m128 forget = _mm_load_ps(&fg_state[idx]);
-    __m128 inputv = _mm_load_ps(&ig_state[idx]);
-    __m128 output = _mm_load_ps(&og_state[idx]);
-    __m128 input_gate = _mm_load_ps(&input_gate_state[idx]);
+    __m128 forget = _mm_load_ps(&forget_gate_outputs[idx]);
+    __m128 inputv = _mm_load_ps(&input_gate_outputs[idx]);
+    __m128 output = _mm_load_ps(&output_gate_outputs[idx]);
+    __m128 input_gate = _mm_load_ps(&input_gate_complement[idx]);
 
-    // og_error[i] = tanh_v * stored_error[i] * output * (1.0f - output)
+    // output_gate_gradients[i] = tanh_v * temporal_hidden_gradient[i] * output * (1.0f - output)
     __m128 one_minus_output = _mm_sub_ps(ones, output);
     __m128 og_err = _mm_mul_ps(tanh_v, stored_err);
     og_err = _mm_mul_ps(og_err, output);
     og_err = _mm_mul_ps(og_err, one_minus_output);
-    _mm_store_ps(&og_error[i], og_err);
+    _mm_store_ps(&output_gate_gradients[i], og_err);
 
-    // state_error[i] += stored_error[i] * output * (1.0f - tanh_v * tanh_v)
-    __m128 state_err = _mm_load_ps(&state_error[i]);
+    // cell_state_gradient[i] += temporal_hidden_gradient[i] * output * (1.0f - tanh_v * tanh_v)
+    __m128 state_err = _mm_load_ps(&cell_state_gradient[i]);
     __m128 tanh_sq = _mm_mul_ps(tanh_v, tanh_v);
     __m128 one_minus_tanh_sq = _mm_sub_ps(ones, tanh_sq);
     __m128 temp = _mm_mul_ps(stored_err, output);
     temp = _mm_mul_ps(temp, one_minus_tanh_sq);
     state_err = _mm_add_ps(state_err, temp);
 
-    // ig_error[i] = state_error[i] * input_gate * (1.0f - inputv * inputv)
+    // input_gate_gradients[i] = cell_state_gradient[i] * input_gate * (1.0f - inputv * inputv)
     __m128 inputv_sq = _mm_mul_ps(inputv, inputv);
     __m128 one_minus_inputv_sq = _mm_sub_ps(ones, inputv_sq);
     __m128 ig_err = _mm_mul_ps(state_err, input_gate);
     ig_err = _mm_mul_ps(ig_err, one_minus_inputv_sq);
-    _mm_store_ps(&ig_error[i], ig_err);
+    _mm_store_ps(&input_gate_gradients[i], ig_err);
 
-    // fg_error[i] = (last_state[idx] - inputv) * state_error[i] * forget * input_gate
-    __m128 last_st = _mm_load_ps(&last_state[idx]);
+    // forget_gate_gradients[i] = (last_cell_state[idx] - inputv) * cell_state_gradient[i] * forget * input_gate
+    __m128 last_st = _mm_load_ps(&last_cell_state[idx]);
     __m128 fg_err = _mm_sub_ps(last_st, inputv);
     fg_err = _mm_mul_ps(fg_err, state_err);
     fg_err = _mm_mul_ps(fg_err, forget);
     fg_err = _mm_mul_ps(fg_err, input_gate);
-    _mm_store_ps(&fg_error[i], fg_err);
+    _mm_store_ps(&forget_gate_gradients[i], fg_err);
 
-    if (ebase > 0) { // epoch > 0
+    if (sequence_position_offset > 0) { // sequence_position > 0
       state_err = _mm_mul_ps(state_err, forget);
-      _mm_store_ps(&stored_error[i], zeros);
+      _mm_store_ps(&temporal_hidden_gradient[i], zeros);
     }
 
-    _mm_store_ps(&state_error[i], state_err);
+    _mm_store_ps(&cell_state_gradient[i], state_err);
   }
 }
 
@@ -260,8 +260,8 @@ void VectorFunctions_SSE2::BackpropagateErrors(
   size_t len,         // num_cells (200)
   size_t base_offset, // 0 for temporal, num_cells for spatial
   size_t hidden_size, // Layer 0: 200, Layer 1: 400
-  float* weights,     // Weight matrix
-  float* error,       // Current layer errors
+  float* recurrent_weights,     // Weight matrix
+  float* gate_gradient_buffer,  // Current layer errors
   float* grad_store)   // Where to accumulate gradients
 {
   for (size_t i = 0; i < len; i += 8) {
@@ -274,14 +274,14 @@ void VectorFunctions_SSE2::BackpropagateErrors(
 
     size_t weight_idx = base_offset + i;
     for (size_t i = 0; i < len; i++) {
-      __m128 ei = _mm_set1_ps(error[i]);
+      __m128 g = _mm_set1_ps(gate_gradient_buffer[i]);
 
-      __m128 w0 = _mm_load_ps(&weights[weight_idx]);
-      __m128 prod0 = _mm_mul_ps(ei, w0);
+      __m128 w0 = _mm_load_ps(&recurrent_weights[weight_idx]);
+      __m128 prod0 = _mm_mul_ps(g, w0);
       sum0 = _mm_add_ps(sum0, prod0);
 
-      __m128 w1 = _mm_load_ps(&weights[weight_idx + 4]);
-      __m128 prod1 = _mm_mul_ps(ei, w1);
+      __m128 w1 = _mm_load_ps(&recurrent_weights[weight_idx + 4]);
+      __m128 prod1 = _mm_mul_ps(g, w1);
       sum1 = _mm_add_ps(sum1, prod1);
 
       weight_idx += hidden_size;
@@ -297,16 +297,16 @@ void VectorFunctions_SSE2::BackpropagateErrors(
 
 void VectorFunctions_SSE2::AccumulateLayerGradients(
   const size_t num_cells,
-  const size_t embedding_size,
+  const size_t vocabulary_size,
   const size_t hidden_size,
   const float* input,
-  const float* error,
+  const float* gate_gradient_buffer,
   float* embedding_ptr,
-  float* weight_gradients)
+  float* recurrent_weight_gradients)
 {
   for (size_t i = 0; i < num_cells; i += 4) {
     // Load 4 errors as a vector
-    __m128 errors = _mm_load_ps(&error[i]);
+    __m128 errors = _mm_load_ps(&gate_gradient_buffer[i]);
     
     // Broadcast each error
     __m128 error_vec0 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(0, 0, 0, 0));
@@ -320,11 +320,11 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
     float e2 = _mm_cvtss_f32(error_vec2);
     float e3 = _mm_cvtss_f32(error_vec3);
     
-    // Update embedding gradient
-    size_t emb_offset = i * embedding_size;
-    embedding_ptr[emb_offset] += e0; emb_offset += embedding_size;
-    embedding_ptr[emb_offset] += e1; emb_offset += embedding_size;
-    embedding_ptr[emb_offset] += e2; emb_offset += embedding_size;
+    // Update symbol_embeddings gradient
+    size_t emb_offset = i * vocabulary_size;
+    embedding_ptr[emb_offset] += e0; emb_offset += vocabulary_size;
+    embedding_ptr[emb_offset] += e1; emb_offset += vocabulary_size;
+    embedding_ptr[emb_offset] += e2; emb_offset += vocabulary_size;
     embedding_ptr[emb_offset] += e3;
     
     // Update hidden state weight gradients
@@ -334,23 +334,23 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
       
       __m128 inp = _mm_load_ps(&input[j]);
       
-      __m128 upd0 = _mm_load_ps(&weight_gradients[base_offset]);
+      __m128 upd0 = _mm_load_ps(&recurrent_weight_gradients[base_offset]);
       upd0 = _mm_add_ps(upd0, _mm_mul_ps(inp, error_vec0)); base_offset += hidden_size;
       
-      __m128 upd1 = _mm_load_ps(&weight_gradients[base_offset]);
+      __m128 upd1 = _mm_load_ps(&recurrent_weight_gradients[base_offset]);
       upd1 = _mm_add_ps(upd1, _mm_mul_ps(inp, error_vec1)); base_offset += hidden_size;
       
-      __m128 upd2 = _mm_load_ps(&weight_gradients[base_offset]);
+      __m128 upd2 = _mm_load_ps(&recurrent_weight_gradients[base_offset]);
       upd2 = _mm_add_ps(upd2, _mm_mul_ps(inp, error_vec2)); base_offset += hidden_size;
       
-      __m128 upd3 = _mm_load_ps(&weight_gradients[base_offset]);
+      __m128 upd3 = _mm_load_ps(&recurrent_weight_gradients[base_offset]);
       upd3 = _mm_add_ps(upd3, _mm_mul_ps(inp, error_vec3));
       
       base_offset = update_offset + j;
-      _mm_store_ps(&weight_gradients[base_offset], upd0); base_offset += hidden_size;
-      _mm_store_ps(&weight_gradients[base_offset], upd1); base_offset += hidden_size;
-      _mm_store_ps(&weight_gradients[base_offset], upd2); base_offset += hidden_size;
-      _mm_store_ps(&weight_gradients[base_offset], upd3);
+      _mm_store_ps(&recurrent_weight_gradients[base_offset], upd0); base_offset += hidden_size;
+      _mm_store_ps(&recurrent_weight_gradients[base_offset], upd1); base_offset += hidden_size;
+      _mm_store_ps(&recurrent_weight_gradients[base_offset], upd2); base_offset += hidden_size;
+      _mm_store_ps(&recurrent_weight_gradients[base_offset], upd3);
     }
   }
 }
@@ -361,11 +361,11 @@ void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
   float* output_weight_gradients,
   float* output_bias_gradients,
   const float* hidden_ptr,
-  const size_t output_size,
+  const size_t vocabulary_size,
   const size_t hidden_size,
   const size_t input_symbol)
 {
-  for (size_t i = 0; i < output_size; i += 4) {
+  for (size_t i = 0; i < vocabulary_size; i += 4) {
     // Load 4 errors
     __m128 errors = _mm_load_ps(&error_on_output[i]);
 
@@ -446,11 +446,11 @@ void VectorFunctions_SSE2::MatvecThenSoftmax(
   float* output,
   float* output_bias,
   size_t const hidden_size_from_all_layers,
-  size_t const output_size,
+  size_t const vocabulary_size,
   size_t const output_offset)
 {
   // Compute logits via dot products
-  for (size_t i = 0; i < output_size; i++) {
+  for (size_t i = 0; i < vocabulary_size; i++) {
     logits[output_offset + i] = DotProduct(
       &hidden[0],
       &output_weights[i * hidden_size_from_all_layers],
@@ -459,13 +459,13 @@ void VectorFunctions_SSE2::MatvecThenSoftmax(
   }
 
   // Find max logit for numerical stability
-  float max_logit = ComputeMaxLogit(&logits[output_offset], output_size);
+  float max_logit = ComputeMaxLogit(&logits[output_offset], vocabulary_size);
 
   // Compute softmax
   Softmax(
     &logits[output_offset],
     &output[output_offset],
-    output_size,
+    vocabulary_size,
     max_logit);
 }
 

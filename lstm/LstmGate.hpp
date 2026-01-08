@@ -29,18 +29,18 @@ std::unique_ptr<Adam> CreateOptimizer(
   float epsilon
 );
 
-class Layer {
+class LstmGate{
 public:
   SIMDType simd;
 
-  Array<float, 32> embedding;             // Flat: [num_cells * embedding_size] - embedding matrix
-  Array<float, 32> embedding_gradients;   // Flat: [num_cells * embedding_size] - embedding gradients
+  Array<float, 32> symbol_embeddings;             // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
+  Array<float, 32> symbol_embedding_gradients;   // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
 
-  Array<float, 32> weights;               // Flat: [num_cells * hidden_size] - hidden state weights only
-  Array<float, 32> weight_gradients;      // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> recurrent_weights;               // Flat: [num_cells * hidden_size] - hidden state recurrent_weights only
+  Array<float, 32> recurrent_weight_gradients;      // Flat: [num_cells * hidden_size] - hidden state gradients
 
-  Array<float, 32> norm;                  // Flat: [horizon * num_cells]
-  Array<float, 32> state;                 // Flat: [horizon * num_cells]
+  Array<float, 32> pre_norm_values;        // Flat: [horizon * num_cells]
+  Array<float, 32> gate_outputs;          // Flat: [horizon * num_cells]
 
   Array<float, 32> inverse_variance;
 
@@ -50,22 +50,22 @@ public:
   Array<float, 32> beta;
   Array<float, 32> beta_gradients;
 
-  Array<float, 32> error;
+  Array<float, 32> gate_gradient_buffer;
 
   // Biases
   Array<float, 32> bias;                  // [num_cells] - gate bias
   Array<float, 32> bias_gradients;        // [num_cells] - gate bias gradients
   std::unique_ptr<Adam> bias_optimizer;
 
-  size_t embedding_size;   // Vocabulary size / embedding dimension
-  size_t hidden_size;      // Size of hidden state input
+  size_t vocabulary_size;    // Vocabulary size / symbol_embeddings dimension
+  size_t hidden_size;        // Size of hidden state input
   size_t num_cells;
 
   float learning_rate;
 
   std::unique_ptr<VectorFunctions> VectorFunctions;
-  std::unique_ptr<Adam> embedding_optimizer;
-  std::unique_ptr<Adam> weights_optimizer;
+  std::unique_ptr<Adam> symbol_embeddings_optimizer;
+  std::unique_ptr<Adam> recurrent_weights_optimizer;
   std::unique_ptr<Adam> gamma_optimizer;
   std::unique_ptr<Adam> beta_optimizer;
 
@@ -73,9 +73,9 @@ public:
 
   bool use_tanh; // true for Tanh, false for Logistic
 
-  Layer(
+  LstmGate(
     SIMDType simdType,
-    size_t embedding_size,
+    size_t vocabulary_size,
     size_t hidden_size,
     size_t num_cells,
     size_t horizon,
@@ -93,19 +93,19 @@ public:
   void ForwardPass(
     float* layer_input_ptr,
     uint8_t const input_symbol,
-    size_t const epoch
+    size_t const sequence_position
   );
 
   void BackwardPass(
     float* layer_input_ptr,
-    float* hidden_error,
-    float* stored_error,
-    size_t const epoch,
-    size_t const layer,
+    float* hidden_gradient,
+    float* temporal_hidden_gradient,
+    size_t const sequence_position,
+    size_t const layer_id,
     uint8_t const input_symbol
   );
 
-  void Optimize(uint64_t const time_step);
+  void Optimize(uint64_t const training_iterations);
 
   void SaveWeights(LoadSave& stream);
   void LoadWeights(LoadSave& stream);

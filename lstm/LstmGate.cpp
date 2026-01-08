@@ -1,4 +1,4 @@
-﻿#include "Layer.hpp"
+﻿#include "LstmGate.hpp"
 #include <cstring>
 
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
@@ -26,9 +26,9 @@ std::unique_ptr<Adam> CreateOptimizer(
     return std::make_unique<Adam_Scalar>(length, w, g, beta2Value, epsilon);
 }
 
-Layer::Layer(
+LstmGate::LstmGate(
   SIMDType simdType,
-  size_t embedding_size,  // 256 (vocabulary size)
+  size_t vocabulary_size,  // 256 (vocabulary size)
   size_t hidden_size,     // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
   size_t num_cells,       // 200
   size_t horizon,         // 100
@@ -42,21 +42,21 @@ Layer::Layer(
   float decayExponent,
   uint64_t decaySteps)
   : simd(simdType)
-  , embedding(num_cells * embedding_size)           // 200*256 - embedding matrix
-  , embedding_gradients(num_cells * embedding_size) // 200*256 - embedding gradients
-  , weights(num_cells * hidden_size)                // Layer 0: 200*200, Layer 1: 200*400 - hidden weights
-  , weight_gradients(num_cells * hidden_size)       // Layer 0: 200*200, Layer 1: 200*400 - hidden gradients
-  , norm(horizon * num_cells)                       // 100*200
-  , state(horizon * num_cells)                      // 100*200
+  , symbol_embeddings(num_cells * vocabulary_size)   // 200*256
+  , symbol_embedding_gradients(num_cells * vocabulary_size) // 200*256
+  , recurrent_weights(num_cells * hidden_size)      // Layer 0: 200*200, Layer 1: 200*400
+  , recurrent_weight_gradients(num_cells * hidden_size) // Layer 0: 200*200, Layer 1: 200*400
+  , pre_norm_values(horizon * num_cells)            // 100*200
+  , gate_outputs(horizon * num_cells)               // 100*200
   , inverse_variance(horizon)                       // 100
   , gamma(num_cells)                                // 200 (RMSNorm scale)
-  , gamma_gradients(num_cells)                              // 200 (RMSNorm scale update)
+  , gamma_gradients(num_cells)                      // 200 (RMSNorm scale update)
   , beta(num_cells)                                 // 200 (RMSNorm bias)
   , beta_gradients(num_cells)                       // 200 (RMSNorm bias update)
   , bias(num_cells)                                 // 200
   , bias_gradients(num_cells)                       // 200
-  , error(num_cells)                                // 200
-  , embedding_size(embedding_size)
+  , gate_gradient_buffer(num_cells)                 // 200
+  , vocabulary_size(vocabulary_size)
   , hidden_size(hidden_size)
   , num_cells(num_cells)
   , learning_rate(0.f)
@@ -72,19 +72,19 @@ Layer::Layer(
     bias[i] = bias_init;
   }
 
-  embedding_optimizer = CreateOptimizer(
+  symbol_embeddings_optimizer = CreateOptimizer(
     simdType,
-    num_cells * embedding_size,       // 200*256 - embedding parameters
-    &embedding[0],
-    &embedding_gradients[0],
+    num_cells * vocabulary_size,       // 200*256 = symbol_embeddings parameters
+    &symbol_embeddings[0],
+    &symbol_embedding_gradients[0],
     beta2,
     epsilon
   );
-  weights_optimizer = CreateOptimizer(
+  recurrent_weights_optimizer = CreateOptimizer(
     simdType,
     num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
-    &weights[0],
-    &weight_gradients[0],
+    &recurrent_weights[0],
+    &recurrent_weight_gradients[0],
     beta2,
     epsilon
   );
@@ -114,138 +114,138 @@ Layer::Layer(
   );
 }
 
-void Layer::ForwardPass(
+void LstmGate::ForwardPass(
   float* layer_input_ptr,
   uint8_t const input_symbol,
-  size_t const epoch)
+  size_t const sequence_position)
 {
-  float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
-  float* state_epoch = &state[epoch * num_cells]; // epoch * 200
+  float* pre_activation_at_seq_pos = &pre_norm_values[sequence_position * num_cells];   // sequence_position * 200
+  float* gate_outputs_at_seq_pos = &gate_outputs[sequence_position * num_cells];      // sequence_position * 200
 
-  const float* embed_ptr = &embedding[input_symbol]; // Embedding lookup for this cell
-  const float* weight_ptr = &weights[0];
+  const float* embed_ptr = &symbol_embeddings[input_symbol]; // Embedding lookup for this cell
+  const float* weight_ptr = &recurrent_weights[0];
   const float* bias_ptr = &bias[0];
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     // Compute: embedding_value + bias_value + dot(input, hidden_weights)
-    norm_epoch[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
+    pre_activation_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
 
-    embed_ptr += embedding_size; // + 256
+    embed_ptr += vocabulary_size; // + 256
     weight_ptr += hidden_size;   // + (200 or 400)
     bias_ptr++;
   }
 
-  const float ss = VectorFunctions->SumOfSquares(norm_epoch, num_cells);
+  const float ss = VectorFunctions->SumOfSquares(pre_activation_at_seq_pos, num_cells);
 
   const float inv_var = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
-  inverse_variance[epoch] = inv_var;
+  inverse_variance[sequence_position] = inv_var;
 
   if (use_tanh)
     VectorFunctions->NormalizeThenActivate_Tanh(
       num_cells,
-      norm_epoch,
-      state_epoch,
+      pre_activation_at_seq_pos,
+      gate_outputs_at_seq_pos,
       &gamma[0],
       &beta[0],
       inv_var);
   else
     VectorFunctions->NormalizeThenActivate_Sigmoid(
       num_cells,
-      norm_epoch,
-      state_epoch,
+      pre_activation_at_seq_pos,
+      gate_outputs_at_seq_pos,
       &gamma[0],
       &beta[0],
       inv_var);
 }
 
-void Layer::BackwardPass(
+void LstmGate::BackwardPass(
   float* layer_input_ptr,
-  float* hidden_error,
-  float* stored_error,
-  size_t const epoch,
-  size_t const layer,
+  float* hidden_gradient,
+  float* temporal_hidden_gradient,
+  size_t const sequence_position,
+  size_t const layer_id,
   uint8_t const input_symbol)
 {
-  float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
+  float* pre_activation_at_seq_pos = &pre_norm_values[sequence_position * num_cells]; // sequence_position * 200
 
   for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
-    bias_gradients[i] += error[i];
-    beta_gradients[i] += error[i];                       // RMSNorm bias gradient
-    gamma_gradients[i] += error[i] * norm_epoch[i];
-    error[i] *= gamma[i] * inverse_variance[epoch];
+    bias_gradients[i] += gate_gradient_buffer[i];
+    beta_gradients[i] += gate_gradient_buffer[i];                       // RMSNorm bias gradient
+    gamma_gradients[i] += gate_gradient_buffer[i] * pre_activation_at_seq_pos[i];
+    gate_gradient_buffer[i] *= gamma[i] * inverse_variance[sequence_position];
   }
 
   const float dop = VectorFunctions->DotProduct(
-    &error[0],
-    norm_epoch,
-    num_cells) / num_cells;             // SumOfProducts(..., 200) / 200
+    &gate_gradient_buffer[0],
+    pre_activation_at_seq_pos,
+    num_cells) / num_cells; // DotProduct(..., 200) / 200
 
   for (size_t i = 0; i < num_cells; i++)  // 200 iterations
-    error[i] -= dop * norm_epoch[i];
+    gate_gradient_buffer[i] -= dop * pre_activation_at_seq_pos[i];
 
   // Layer backprop: backpropagate to previous layer's hidden state
-  // The first num_cells weights are temporal connections, next num_cells are from previous layer
-  // weights[i * hidden_size + j] where j >= num_cells connects to previous layer
-  if (layer > 0) {
+  // The first num_cells recurrent_weights are temporal connections, next num_cells are from previous layer
+  // recurrent_weights[i * hidden_size + j] where j >= num_cells connects to previous layer
+  if (layer_id > 0) {
     VectorFunctions->BackpropagateErrors(
       num_cells,
       num_cells, // base_offset
       hidden_size,
-      &weights[0],
-      &error[0],
-      hidden_error);
+      &recurrent_weights[0],
+      &gate_gradient_buffer[0],
+      hidden_gradient);
   }
 
-  // Temporal backprop: backpropagate to previous timestep's hidden state
-  // stored_error is for the previous timestep (size: num_cells)
-  // The previous timestep's output feeds back as input to current cell
-  // weights[i * hidden_size + j] where j < num_cells for temporal connections
-  if (epoch > 0) {
+  // Temporal backprop: backpropagate to previous seq_pos's hidden state
+  // temporal_hidden_gradient is for the previous seq_pos (size: num_cells)
+  // Output from the previous seq_pos feeds back as input to current cell
+  // recurrent_weights[i * hidden_size + j] where j < num_cells for temporal connections
+  if (sequence_position > 0) {
     VectorFunctions->BackpropagateErrors(
       num_cells,
       0, // base_offset
       hidden_size,
-      &weights[0],
-      &error[0],
-      stored_error);
+      &recurrent_weights[0],
+      &gate_gradient_buffer[0],
+      temporal_hidden_gradient);
   }
 
   VectorFunctions->AccumulateLayerGradients(
     num_cells,
-    embedding_size,
+    vocabulary_size,
     hidden_size,
     layer_input_ptr,
-    &error[0],
-    &embedding_gradients[input_symbol],
-    &weight_gradients[0]
+    &gate_gradient_buffer[0],
+    &symbol_embedding_gradients[input_symbol],
+    &recurrent_weight_gradients[0]
   );
 }
 
-void Layer::Optimize(uint64_t const time_step) {
+void LstmGate::Optimize(uint64_t const training_iterations) {
   // Apply learning rate decay
-  decayFunc.Apply(learning_rate, time_step);
+  decayFunc.Apply(learning_rate, training_iterations);
 
   // Optimize all parameters
-  embedding_optimizer->Optimize(learning_rate, time_step);
-  weights_optimizer->Optimize(learning_rate, time_step);
-  gamma_optimizer->Optimize(learning_rate, time_step);
-  beta_optimizer->Optimize(learning_rate, time_step);
-  bias_optimizer->Optimize(learning_rate, time_step);
+  symbol_embeddings_optimizer->Optimize(learning_rate, training_iterations);
+  recurrent_weights_optimizer->Optimize(learning_rate, training_iterations);
+  gamma_optimizer->Optimize(learning_rate, training_iterations);
+  beta_optimizer->Optimize(learning_rate, training_iterations);
+  bias_optimizer->Optimize(learning_rate, training_iterations);
 }
 
-void Layer::SaveWeights(LoadSave& stream) {
+void LstmGate::SaveWeights(LoadSave& stream) {
   // Save learned parameters
-  stream.WriteFloatArray(&embedding[0], embedding.size());
-  stream.WriteFloatArray(&weights[0], weights.size());
+  stream.WriteFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
+  stream.WriteFloatArray(&recurrent_weights[0], recurrent_weights.size());
   stream.WriteFloatArray(&bias[0], bias.size());
   stream.WriteFloatArray(&gamma[0], gamma.size());
   stream.WriteFloatArray(&beta[0], beta.size());
 }
 
-void Layer::LoadWeights(LoadSave& stream) {
+void LstmGate::LoadWeights(LoadSave& stream) {
   // Load learned parameters
-  stream.ReadFloatArray(&embedding[0], embedding.size());
-  stream.ReadFloatArray(&weights[0], weights.size());
+  stream.ReadFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
+  stream.ReadFloatArray(&recurrent_weights[0], recurrent_weights.size());
   stream.ReadFloatArray(&bias[0], bias.size());
   stream.ReadFloatArray(&gamma[0], gamma.size());
   stream.ReadFloatArray(&beta[0], beta.size());

@@ -10,22 +10,25 @@ Lstm::Lstm(
   : simd(simdType)
   , tuning_param(tuning_param)
   // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
-  , layer_input(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
-  , output_weights(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output_weight_gradients(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output(shape.horizon * shape.output_size)         // 100 * 256
-  , logits(shape.horizon * shape.output_size)         // 100 * 256
-  , hidden_of_all_layers(shape.num_cells * shape.num_layers)        // 200 * 2
-  , hidden_error(shape.num_cells)                     // 200
-  , output_bias(shape.output_size)                    // 256
-  , output_bias_gradients(shape.output_size)                  // 256
-  , input_symbol_history(shape.horizon + 1)           // 101: at position i it's both the input symbol for epoch i and also the target symbol for epoch i-1
+  , all_layer_inputs(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
+  , output_weights(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
+  , output_weight_gradients(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
+  , output_probabilities(shape.horizon * shape.vocabulary_size)     // 100 * 256
+  , logits(shape.horizon * shape.vocabulary_size)                   // 100 * 256
+  , hidden_states_all_layers(shape.num_cells * shape.num_layers)     // 200 * 2
+  , hidden_gradient(shape.num_cells)                  // 200
+  , output_bias(shape.vocabulary_size)                // 256
+  , output_bias_gradients(shape.vocabulary_size)      // 256
+  , input_symbol_history(shape.horizon + 1)           // 101: at position i it's both the input symbol for sequence_position i and also the target symbol for sequence_position i-1
   , num_cells(shape.num_cells)
   , horizon(shape.horizon)
-  , output_size(shape.output_size)
+  , vocabulary_size(shape.vocabulary_size)
   , num_layers(shape.num_layers)
-  , epoch(0)
-  , time_step(1)
+  , sequence_length(6)        // 6..horizon-1, for curriculum learning
+  , sequence_step_target(12)
+  , sequence_step_cntr(0)     // 0..sequence_step_target-1
+  , sequence_position(0)
+  , training_iterations(1)
   , output_learning_rate(0.f)
   , output_decay_func(
     0.015f,      // learningRate
@@ -39,7 +42,7 @@ Lstm::Lstm(
 
   output_weights_optimizer = CreateOptimizer(
     simdType,
-    shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
+    shape.vocabulary_size * (shape.num_cells * shape.num_layers), // 256 * 400
     &output_weights[0],
     &output_weight_gradients[0],
     0.9995f,  // beta2
@@ -47,7 +50,7 @@ Lstm::Lstm(
   );
   output_bias_optimizer = CreateOptimizer(
     simdType,
-    shape.output_size,
+    shape.vocabulary_size,
     &output_bias[0],
     &output_bias_gradients[0],
     0.9995f,
@@ -62,7 +65,7 @@ Lstm::Lstm(
       std::make_unique<LstmLayer>(
         simdType,
         tuning_param,
-        output_size,              // 256 - embedding size
+        vocabulary_size,          // 256
         hidden_size,              // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
         num_cells,                // 200
         horizon                   // 100
@@ -71,10 +74,10 @@ Lstm::Lstm(
   }
 }
 
-static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t epoch, size_t current_layer_idx) {
-  // Calculate offset for this epoch and layer
-  size_t size_per_epoch = num_cells + (num_layers - 1) * num_cells * 2;
-  size_t offset = epoch * size_per_epoch;   // Start of this epoch
+static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t sequence_position, size_t current_layer_idx) {
+  // Calculate offset for sequence_position and layer
+  size_t layer_input_stride = num_cells + (num_layers - 1) * num_cells * 2;
+  size_t offset = sequence_position * layer_input_stride;   // Start of sequence_position
 
   // Add offset for layers before layer i
   for (size_t j = 0; j < current_layer_idx; j++) {
@@ -85,13 +88,13 @@ static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t ep
 
 float* Lstm::Predict(uint8_t const input_symbol) {
 
-  input_symbol_history[epoch] = input_symbol;
+  input_symbol_history[sequence_position] = input_symbol;
 
   for (size_t i = 0; i < num_layers; i++) {
-    float* hidden_i = &hidden_of_all_layers[i * num_cells];
+    float* hidden_i = &hidden_states_all_layers[i * num_cells];
 
-    size_t base_idx = GetLayerInputOffset(num_cells, num_layers, epoch, i);
-    float* layer_input_ptr = &layer_input[base_idx];
+    size_t base_idx = GetLayerInputOffset(num_cells, num_layers, sequence_position, i);
+    float* layer_input_ptr = &all_layer_inputs[base_idx];
 
     // First copy own previous hidden to position 0
     // Then copy previous layer's output to position num_cells
@@ -101,61 +104,61 @@ float* Lstm::Predict(uint8_t const input_symbol) {
     // Copy previous layer's output (when there's a previous layer)
     if (i > 0) {
       // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
-      memcpy(layer_input_ptr + num_cells, &hidden_of_all_layers[(i - 1) * num_cells], num_cells * sizeof(float));
+      memcpy(layer_input_ptr + num_cells, &hidden_states_all_layers[(i - 1) * num_cells], num_cells * sizeof(float));
     }
 
     layers[i]->ForwardPass(
       layer_input_ptr,
       input_symbol,
       hidden_i,
-      epoch,
-      current_sequence_size_target);
+      sequence_position,
+      sequence_length);
   }
 
   size_t const hidden_size_from_all_layers = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
-  size_t const output_offset = epoch * output_size; // epoch * 256
+  size_t const output_offset = sequence_position * vocabulary_size; // sequence_position * 256
 
   VectorFunctions->MatvecThenSoftmax(
-    &hidden_of_all_layers[0],
+    &hidden_states_all_layers[0],
     &logits[0],
     &output_weights[0],
-    &output[0],
+    &output_probabilities[0],
     &output_bias[0],
     hidden_size_from_all_layers,
-    output_size,
+    vocabulary_size,
     output_offset
   );
 
-  // Return pointer to the output slice for this epoch in the persistent output array
-  return &output[epoch * output_size];              // &output[epoch * 256]
+  // Return pointer to the output slice for sequence_position in the persistent output array
+  return &output_probabilities[sequence_position * vocabulary_size];              // &output_probabilities[sequence_position * 256]
 }
 
 void Lstm::Perceive(const uint8_t target_symbol) {
-  input_symbol_history[epoch + 1] = target_symbol;
+  input_symbol_history[sequence_position + 1] = target_symbol;
 
-  bool is_last_epoch = epoch == current_sequence_size_target - 1;
+  bool is_last_seq_pos = sequence_position == sequence_length - 1;
 
   size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
 
   // Calculate error_on_output
-  size_t output_offset = epoch * output_size;
-  output[output_offset + target_symbol] -= 1;
+  size_t output_offset = sequence_position * vocabulary_size;
+  output_probabilities[output_offset + target_symbol] -= 1.0f;
 
-  if (is_last_epoch) {
+  if (is_last_seq_pos) {
 
     for (size_t layer = 0; layer < num_layers; layer++) {
       layers[layer]->InitializeBackwardPass();;
     }
 
-    // Backward pass through all timesteps in reverse order
-    for (int epoch_ = static_cast<int>(current_sequence_size_target) - 1; epoch_ >= 0; epoch_--) {
+    // Backward pass through all sequence_positions in reverse order
+    for (int seq_pos = static_cast<int>(sequence_length) - 1; seq_pos >= 0; seq_pos--) {
 
-      size_t output_offset_this_epoch = epoch_ * output_size;
+      size_t output_offset_at_seq_pos = seq_pos * vocabulary_size;
 
 
       // Backward pass through all layers in reverse order
-      for (int layer = static_cast<int>(num_layers) - 1; layer >= 0; layer--) {
-        // The hidden_error buffer is reused to accumulate gradients from multiple sources,
+      for (int layer_id = static_cast<int>(num_layers) - 1; layer_id >= 0; layer_id--) {
+        // The hidden_gradient buffer is reused to accumulate gradients from multiple sources,
         // we must not clear them here - it would break the gradient flow between layers.
         //
         //   Output Layer
@@ -168,73 +171,78 @@ void Lstm::Perceive(const uint8_t target_symbol) {
         //   Layer 0
 
         // Backpropagate from output layer to this LSTM layer
+
+        float* error_on_output = &output_probabilities[output_offset_at_seq_pos];
+
         VectorFunctions->AccumulateLstmGradients(
           num_cells,
           hidden_size,
-          output_size,
-          layer,
-          &output[output_offset_this_epoch],
-          &hidden_error[0],
+          vocabulary_size,
+          layer_id,
+          error_on_output,
+          &hidden_gradient[0],
           &output_weights[0]
         );
 
-        // Get the input symbol for this timestep
-        uint8_t const input_symbol = input_symbol_history[epoch_];
+        // Get the input symbol for sequence_position
+        uint8_t const input_symbol = input_symbol_history[seq_pos];
 
         // Get pointer to this layer's input
-        size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, epoch_, layer);
-        float* layer_input_ptr = &layer_input[layer_input_offset];
+        size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, seq_pos, layer_id);
+        float* layer_input_ptr = &all_layer_inputs[layer_input_offset];
 
-        layers[layer]->BackwardPass(
+        layers[layer_id]->BackwardPass(
           layer_input_ptr,
-          epoch_,
-          layer,
+          seq_pos,
+          layer_id,
           input_symbol,
-          &hidden_error[0]);
+          &hidden_gradient[0]);
       }
     }
 
     // After full backward pass, optimize all layers
     for (size_t layer = 0; layer < num_layers; layer++) {
-      layers[layer]->Optimize(time_step);
+      layers[layer]->Optimize(training_iterations);
     }
   }
 
-  // Accumulate output layer gradients for the current timestep
+  // Accumulate output layer gradients for the sequence_position
+
+  float* error_on_output = &output_probabilities[output_offset];
 
   VectorFunctions->AccumulateOutputLayerGradients(
     output_offset,
-    &output[output_offset],
+    error_on_output, 
     &output_weight_gradients[0],
     &output_bias_gradients[0],
-    &hidden_of_all_layers[0],
-    output_size,
+    &hidden_states_all_layers[0],
+    vocabulary_size,
     hidden_size,
     target_symbol);
 
-  if (is_last_epoch) {
+  if (is_last_seq_pos) {
     // Optimize output layer after full sequence
-    output_decay_func.Apply(output_learning_rate, time_step);
-    output_weights_optimizer->Optimize(output_learning_rate, time_step);
-    output_bias_optimizer->Optimize(output_learning_rate, time_step);
+    output_decay_func.Apply(output_learning_rate, training_iterations);
+    output_weights_optimizer->Optimize(output_learning_rate, training_iterations);
+    output_bias_optimizer->Optimize(output_learning_rate, training_iterations);
 
     // Increase sequence size
     sequence_step_cntr++;
     if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
       sequence_step_cntr = 0;
-      if (current_sequence_size_target < horizon) {
-        current_sequence_size_target++;
+      if (sequence_length < horizon) {
+        sequence_length++;
         //debug:
-        //printf("current_sequence_size_target: %d\n", (int)current_sequence_size_target);
-        sequence_step_target = 12 + 1 * (current_sequence_size_target - 1);
+        //printf("sequence_length: %d\n", (int)sequence_length);
+        sequence_step_target = 12 + 1 * (sequence_length - 1);
       }
     }
 
-    time_step++;
-    epoch = 0;
+    training_iterations++;
+    sequence_position = 0;
   }
   else {
-    epoch++;
+    sequence_position++;
   }
 }
 
@@ -244,7 +252,7 @@ void Lstm::SaveModelParameters(LoadSave& stream) {
   stream.WriteTextLine("paq8pxlstmparams");
 
   char buffer[64];
-  snprintf(buffer, sizeof(buffer), "%zu", output_size);
+  snprintf(buffer, sizeof(buffer), "%zu", vocabulary_size);
   stream.WriteTextLine(buffer);
 
   snprintf(buffer, sizeof(buffer), "%zu", num_cells);
@@ -265,7 +273,7 @@ void Lstm::SaveModelParameters(LoadSave& stream) {
     layers[i]->SaveWeights(stream);
   }
 
-  // Save output layer weights and biases
+  // Save output layer recurrent_weights and biases
   stream.WriteFloatArray(&output_weights[0], output_weights.size());
   stream.WriteFloatArray(&output_bias[0], output_bias.size());
 }
@@ -282,10 +290,10 @@ void Lstm::LoadModelParameters(LoadSave& stream) {
 
   // Read shape parameters
   if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
-    fprintf(stderr, "Error: Failed to read output_size\n");
+    fprintf(stderr, "Error: Failed to read vocabulary_size\n");
     exit(1);
   }
-  size_t saved_output_size = strtoull(buffer, nullptr, 10);
+  size_t saved_vocabulary_size = strtoull(buffer, nullptr, 10);
 
   if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
     fprintf(stderr, "Error: Failed to read num_cells\n");
@@ -313,15 +321,15 @@ void Lstm::LoadModelParameters(LoadSave& stream) {
   }
 
   // Verify shape matches
-  if (saved_output_size != output_size ||
+  if (saved_vocabulary_size != vocabulary_size ||
     saved_num_cells != num_cells ||
     saved_num_layers != num_layers ||
     saved_horizon != horizon) {
     fprintf(stderr, "Error: Model shape mismatch\n");
-    fprintf(stderr, "Expected: output_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
-      output_size, num_cells, num_layers, horizon);
-    fprintf(stderr, "Got:      output_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
-      saved_output_size, saved_num_cells, saved_num_layers, saved_horizon);
+    fprintf(stderr, "Expected: vocabulary_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
+      vocabulary_size, num_cells, num_layers, horizon);
+    fprintf(stderr, "Got:      vocabulary_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
+      saved_vocabulary_size, saved_num_cells, saved_num_layers, saved_horizon);
     exit(1);
   }
 

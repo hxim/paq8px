@@ -17,5 +17,5 @@ public:
   Adam(size_t length, float* w, float* g, float beta2, float epsilon);
   ~Adam() = default;
 
-  virtual void Optimize(float learning_rate, uint64_t time_step) = 0;
+  virtual void Optimize(float learning_rate, uint64_t training_iterations) = 0;
 };

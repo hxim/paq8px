@@ -17,17 +17,17 @@ PolynomialDecay::PolynomialDecay(
 {
 }
 
-void PolynomialDecay::Apply(float& rate, uint64_t const time_step) const {
+void PolynomialDecay::Apply(float& rate, uint64_t const training_iterations) const {
     if (steps > 0) {
-        if (time_step < steps) {
+        if (training_iterations < steps) {
             rate = (learning_rate - end_learning_rate) * 
-                   (std::pow((1.0f - time_step * mul), exponent)) + end_learning_rate;
+                   (std::pow((1.0f - training_iterations * mul), exponent)) + end_learning_rate;
         } else {
-            rate = end_learning_rate / std::pow(decayMultiplier * (time_step - steps) + 1.0f, exponent);
+            rate = end_learning_rate / std::pow(decayMultiplier * (training_iterations - steps) + 1.0f, exponent);
         }
     } else {
         rate = std::max<float>(
-            learning_rate / std::pow(decayMultiplier * time_step + 1.0f, exponent),
+            learning_rate / std::pow(decayMultiplier * training_iterations + 1.0f, exponent),
             end_learning_rate
         );
     }

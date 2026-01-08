@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "Layer.hpp"
+#include "LstmGate.hpp"
 #include "../Array.hpp"
 #include "../SIMDType.hpp"
 #include <vector>
@@ -11,20 +11,20 @@ private:
   const SIMDType simd;
   std::unique_ptr<VectorFunctions> VectorFunctions;
 
-  Array<float, 32> state;
-  Array<float, 32> state_error;
-  Array<float, 32> stored_error;
+  Array<float, 32> cell_state;
+  Array<float, 32> cell_state_gradient;
+  Array<float, 32> temporal_hidden_gradient;
 
   Array<float, 32> tanh_state;         // Flat: [horizon * num_cells]
-  Array<float, 32> input_gate_state;   // Flat: [horizon * num_cells]
-  Array<float, 32> last_state;         // Flat: [horizon * num_cells]
+  Array<float, 32> input_gate_complement; // Flat: [horizon * num_cells]
+  Array<float, 32> last_cell_state;    // Flat: [horizon * num_cells]
 
   const size_t hidden_size;
   const size_t num_cells;
 
-  Layer forget_gate;
-  Layer input_node;
-  Layer output_gate;
+  LstmGate forget_gate;
+  LstmGate input_gate;
+  LstmGate output_gate;
 
   static float Rand(float range);
 
@@ -32,7 +32,7 @@ public:
   LstmLayer(
     SIMDType simdType,
     float tuning_param,
-    size_t embedding_size,
+    size_t vocabulary_size,
     size_t hidden_size,
     size_t num_cells,
     size_t horizon,
@@ -42,19 +42,19 @@ public:
     float* input,
     uint8_t const input_symbol,
     float* hidden,
-    size_t const epoch,
-    size_t current_sequence_size_target);
+    size_t const sequence_position,
+    size_t sequence_length);
 
   void InitializeBackwardPass();
 
   void BackwardPass(
     float* input,
-    size_t const epoch,
-    size_t const layer,
+    size_t const sequence_position,
+    size_t const layer_id,
     uint8_t const input_symbol,
-    float* hidden_error);
+    float* hidden_gradient);
 
-  void Optimize(uint64_t const time_step);
+  void Optimize(uint64_t const training_iterations);
 
   void SaveWeights(LoadSave& stream);
   void LoadWeights(LoadSave& stream);

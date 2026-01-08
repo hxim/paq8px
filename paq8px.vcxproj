@@ -274,7 +274,7 @@
     <ClCompile Include="lstm\Adam_Scalar.cpp" />
     <ClCompile Include="lstm\Adam_SSE2.cpp" />
     <ClCompile Include="lstm\ByteModelToBitModel.cpp" />
-    <ClCompile Include="lstm\Layer.cpp" />
+    <ClCompile Include="lstm\LstmGate.cpp" />
     <ClCompile Include="lstm\LoadSave.cpp" />
     <ClCompile Include="lstm\Lstm.cpp" />
     <ClCompile Include="lstm\LstmLayer.cpp" />
@@ -423,7 +423,7 @@
     <ClInclude Include="lstm\Adam_Scalar.hpp" />
     <ClInclude Include="lstm\Adam_SSE2.hpp" />
     <ClInclude Include="lstm\ByteModelToBitModel.hpp" />
-    <ClInclude Include="lstm\Layer.hpp" />
+    <ClInclude Include="lstm\LstmGate.hpp" />
     <ClInclude Include="lstm\LoadSave.hpp" />
     <ClInclude Include="lstm\Lstm.hpp" />
     <ClInclude Include="lstm\LstmLayer.hpp" />

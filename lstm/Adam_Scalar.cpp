@@ -1,9 +1,9 @@
 ﻿#include <cmath>
 #include "Adam_Scalar.hpp"
 
-void Adam_Scalar::Optimize(float learning_rate, uint64_t time_step)
+void Adam_Scalar::Optimize(float learning_rate, uint64_t training_iterations)
 {
-  float const t = static_cast<float>(time_step);
+  float const t = static_cast<float>(training_iterations);
   float const bias_v = 1.f - std::pow(beta2, t);
 
   for (size_t i = 0; i < length; i++) {

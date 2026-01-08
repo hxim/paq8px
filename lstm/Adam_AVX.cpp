@@ -5,14 +5,14 @@
 
 #pragma GCC target("avx")
 
-void Adam_AVX::Optimize(float learning_rate, uint64_t time_step)
+void Adam_AVX::Optimize(float learning_rate, uint64_t training_iterations)
 {
   __m256 const zero_vec = _mm256_setzero_ps();
   __m256 const vec_beta2 = _mm256_set1_ps(beta2);
   __m256 const vec_eps = _mm256_set1_ps(eps);
   __m256 const vec_beta2_complement = _mm256_set1_ps(1.f - beta2);
 
-  double const t = static_cast<double>(time_step);
+  double const t = static_cast<double>(training_iterations);
   float const bias_v = 1.f - static_cast<float>(std::pow(beta2, t));
   __m256 const vec_bias_v = _mm256_set1_ps(bias_v);
   __m256 const vec_lr = _mm256_set1_ps(learning_rate);

@@ -12,6 +12,6 @@ public:
   {
   }
 
-  virtual void Optimize(float learning_rate, uint64_t time_step) override;
+  virtual void Optimize(float learning_rate, uint64_t training_iterations) override;
 };
 #endif
