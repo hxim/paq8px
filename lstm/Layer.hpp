@@ -33,28 +33,28 @@ class Layer {
 public:
   SIMDType simd;
 
-  Array<float, 32> embedding;      // Flat: [num_cells * embedding_size] - embedding matrix
-  Array<float, 32> embedding_u;    // Flat: [num_cells * embedding_size] - embedding gradients
+  Array<float, 32> embedding;             // Flat: [num_cells * embedding_size] - embedding matrix
+  Array<float, 32> embedding_gradients;   // Flat: [num_cells * embedding_size] - embedding gradients
 
-  Array<float, 32> weights;        // Flat: [num_cells * hidden_size] - hidden state weights only
-  Array<float, 32> update;         // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> weights;               // Flat: [num_cells * hidden_size] - hidden state weights only
+  Array<float, 32> weight_gradients;      // Flat: [num_cells * hidden_size] - hidden state gradients
 
-  Array<float, 32> norm;           // Flat: [horizon * num_cells]
-  Array<float, 32> state;          // Flat: [horizon * num_cells]
+  Array<float, 32> norm;                  // Flat: [horizon * num_cells]
+  Array<float, 32> state;                 // Flat: [horizon * num_cells]
 
   Array<float, 32> inverse_variance;
 
   Array<float, 32> gamma;
-  Array<float, 32> gamma_u;
+  Array<float, 32> gamma_gradients;
 
   Array<float, 32> beta;
-  Array<float, 32> beta_u;
+  Array<float, 32> beta_gradients;
 
   Array<float, 32> error;
 
   // Biases
-  Array<float, 32> bias;           // [num_cells] - gate bias
-  Array<float, 32> bias_u;         // [num_cells] - gate bias gradients
+  Array<float, 32> bias;                  // [num_cells] - gate bias
+  Array<float, 32> bias_gradients;        // [num_cells] - gate bias gradients
   std::unique_ptr<Adam> bias_optimizer;
 
   size_t embedding_size;   // Vocabulary size / embedding dimension
@@ -91,15 +91,13 @@ public:
   );
 
   void ForwardPass(
-    float* input,
-    size_t input_size,
+    float* layer_input_ptr,
     uint8_t const input_symbol,
     size_t const epoch
   );
 
   void BackwardPass(
-    float* input,
-    size_t input_size,
+    float* layer_input_ptr,
     float* hidden_error,
     float* stored_error,
     size_t const epoch,

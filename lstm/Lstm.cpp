@@ -5,22 +5,21 @@
 
 Lstm::Lstm(
   SIMDType simdType,
-  LSTM::Shape shape,
+  LstmShape shape,
   float tuning_param)
   : simd(simdType)
   , tuning_param(tuning_param)
   // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
   , layer_input(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
-  , output_layer(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output_layer_u(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
+  , output_weights(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
+  , output_weight_gradients(shape.output_size * (shape.num_cells * shape.num_layers)) // 256 * 400
   , output(shape.horizon * shape.output_size)         // 100 * 256
   , logits(shape.horizon * shape.output_size)         // 100 * 256
-  , hidden(shape.num_cells * shape.num_layers)        // 200 * 2
+  , hidden_of_all_layers(shape.num_cells * shape.num_layers)        // 200 * 2
   , hidden_error(shape.num_cells)                     // 200
   , output_bias(shape.output_size)                    // 256
-  , output_bias_u(shape.output_size)                  // 256
+  , output_bias_gradients(shape.output_size)                  // 256
   , input_symbol_history(shape.horizon + 1)           // 101: at position i it's both the input symbol for epoch i and also the target symbol for epoch i-1
-  , saved_timestep(0)
   , num_cells(shape.num_cells)
   , horizon(shape.horizon)
   , output_size(shape.output_size)
@@ -41,8 +40,8 @@ Lstm::Lstm(
   output_weights_optimizer = CreateOptimizer(
     simdType,
     shape.output_size * (shape.num_cells * shape.num_layers), // 256 * 400
-    &output_layer[0],
-    &output_layer_u[0],
+    &output_weights[0],
+    &output_weight_gradients[0],
     0.9995f,  // beta2
     1e-6f     // epsilon
   );
@@ -50,7 +49,7 @@ Lstm::Lstm(
     simdType,
     shape.output_size,
     &output_bias[0],
-    &output_bias_u[0],
+    &output_bias_gradients[0],
     0.9995f,
     1e-6f
   );
@@ -62,7 +61,7 @@ Lstm::Lstm(
     layers.push_back(
       std::make_unique<LstmLayer>(
         simdType,
-        output_size,              // 256
+        output_size,              // 256 - embedding size
         hidden_size,              // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
         num_cells,                // 200
         horizon                   // 100
@@ -88,7 +87,7 @@ float* Lstm::Predict(uint8_t const input_symbol) {
   input_symbol_history[epoch] = input_symbol;
 
   for (size_t i = 0; i < num_layers; i++) {
-    float* hidden_i = &hidden[i * num_cells];
+    float* hidden_i = &hidden_of_all_layers[i * num_cells];
 
     size_t base_idx = GetLayerInputOffset(num_cells, num_layers, epoch, i);
     float* layer_input_ptr = &layer_input[base_idx];
@@ -101,30 +100,27 @@ float* Lstm::Predict(uint8_t const input_symbol) {
     // Copy previous layer's output (when there's a previous layer)
     if (i > 0) {
       // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
-      memcpy(layer_input_ptr + num_cells, &hidden[(i - 1) * num_cells], num_cells * sizeof(float));
+      memcpy(layer_input_ptr + num_cells, &hidden_of_all_layers[(i - 1) * num_cells], num_cells * sizeof(float));
     }
-
-    size_t layer_input_size = num_cells * (i > 0 ? 2 : 1);
 
     layers[i]->ForwardPass(
       layer_input_ptr,
-      layer_input_size,
       input_symbol,
       hidden_i,
       epoch,
       current_sequence_size_target);
   }
 
-  size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
+  size_t const hidden_size_from_all_layers = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
   size_t const output_offset = epoch * output_size; // epoch * 256
 
   VectorFunctions->MatvecThenSoftmax(
-    &hidden[0],
+    &hidden_of_all_layers[0],
     &logits[0],
-    &output_layer[0],
+    &output_weights[0],
     &output[0],
     &output_bias[0],
-    hidden_size,
+    hidden_size_from_all_layers,
     output_size,
     output_offset
   );
@@ -178,7 +174,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
           layer,
           &output[output_offset_this_epoch],
           &hidden_error[0],
-          &output_layer[0]
+          &output_weights[0]
         );
 
         // Get the input symbol for this timestep
@@ -187,11 +183,9 @@ void Lstm::Perceive(const uint8_t target_symbol) {
         // Get pointer to this layer's input
         size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, epoch_, layer);
         float* layer_input_ptr = &layer_input[layer_input_offset];
-        size_t layer_input_size = num_cells * (layer > 0 ? 2 : 1); // Layer 0: 200, Layer 1: 400
 
         layers[layer]->BackwardPass(
           layer_input_ptr,
-          layer_input_size,
           epoch_,
           layer,
           input_symbol,
@@ -207,15 +201,12 @@ void Lstm::Perceive(const uint8_t target_symbol) {
 
   // Accumulate output layer gradients for the current timestep
 
-  float* output_layer_ptr = &output_layer_u[0];
-  const float* hidden_ptr = &hidden[0];
-
   VectorFunctions->AccumulateOutputLayerGradients(
     output_offset,
     &output[output_offset],
-    output_layer_ptr,
-    &output_bias_u[0],
-    hidden_ptr,
+    &output_weight_gradients[0],
+    &output_bias_gradients[0],
+    &hidden_of_all_layers[0],
     output_size,
     hidden_size,
     target_symbol);
@@ -274,7 +265,7 @@ void Lstm::SaveModelParameters(LoadSave& stream) {
   }
 
   // Save output layer weights and biases
-  stream.WriteFloatArray(&output_layer[0], output_layer.size());
+  stream.WriteFloatArray(&output_weights[0], output_weights.size());
   stream.WriteFloatArray(&output_bias[0], output_bias.size());
 }
 
@@ -339,6 +330,6 @@ void Lstm::LoadModelParameters(LoadSave& stream) {
   }
 
   // Load output layer weights and biases
-  stream.ReadFloatArray(&output_layer[0], output_layer.size());
+  stream.ReadFloatArray(&output_weights[0], output_weights.size());
   stream.ReadFloatArray(&output_bias[0], output_bias.size());
 }

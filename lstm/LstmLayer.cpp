@@ -25,7 +25,7 @@ LstmLayer::LstmLayer(
   , input_gate_state(horizon * num_cells) // 100 * 200 = 20,000
   , last_state(horizon * num_cells)       // 100 * 200 = 20,000
   , num_cells(num_cells)         // 200
-  , horizon(horizon)             // 100
+  , hidden_size(hidden_size)     // Layer 0: 200 (200*1), Layer 1: 400 (200*2) - hidden_size = num_cells * (layer_id > 0 ? 2 : 1)
   , forget_gate(
     simdType,
     embedding_size,            // 256
@@ -105,7 +105,6 @@ LstmLayer::LstmLayer(
 
 void LstmLayer::ForwardPass(
   float* input,
-  size_t input_size,
   uint8_t const input_symbol,
   float* hidden,
   size_t const epoch,
@@ -122,9 +121,9 @@ void LstmLayer::ForwardPass(
   float* dst = &last_state[ebase];
   memcpy(dst, src, num_cells * sizeof(float));
 
-  forget_gate.ForwardPass(input, input_size, input_symbol, epoch);
-  input_node.ForwardPass(input, input_size, input_symbol, epoch);
-  output_gate.ForwardPass(input, input_size, input_symbol, epoch);
+  forget_gate.ForwardPass(input, input_symbol, epoch);
+  input_node.ForwardPass(input, input_symbol, epoch);
+  output_gate.ForwardPass(input, input_symbol, epoch);
 
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
     const size_t idx = ebase + i;                   // epoch*200 + i
@@ -150,8 +149,7 @@ void LstmLayer::InitializeBackwardPass() {
 }
 
 void LstmLayer::BackwardPass(
-  float* input,
-  size_t input_size,
+  float* layer_input_ptr,
   size_t const epoch,
   size_t const layer,
   uint8_t const input_symbol,
@@ -175,24 +173,21 @@ void LstmLayer::BackwardPass(
   );
 
   forget_gate.BackwardPass(
-    input,
-    input_size,
+    layer_input_ptr,
     hidden_error,
     &stored_error[0],
     epoch,
     layer,
     input_symbol);
   input_node.BackwardPass(
-    input,
-    input_size,
+    layer_input_ptr,
     hidden_error,
     &stored_error[0],
     epoch,
     layer,
     input_symbol);
   output_gate.BackwardPass(
-    input,
-    input_size,
+    layer_input_ptr,
     hidden_error,
     &stored_error[0],
     epoch,

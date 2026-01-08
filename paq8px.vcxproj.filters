@@ -776,9 +776,6 @@
     <ClInclude Include="model\ContextModelBlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="file\BitFileDisk.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
     <ClInclude Include="PredictorBlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>

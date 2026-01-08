@@ -17,7 +17,7 @@ private:
   Shared* const shared;
 
   SIMDType simd;
-  LSTM::Shape shape;
+  LstmShape shape;
   Lstm lstm;
 
   float* probs;

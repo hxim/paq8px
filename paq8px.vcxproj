@@ -375,7 +375,6 @@
     <ClInclude Include="DivisionTable.hpp" />
     <ClInclude Include="DummyMixer.hpp" />
     <ClInclude Include="Encoder.hpp" />
-    <ClInclude Include="file\BitFileDisk.hpp" />
     <ClInclude Include="file\File.hpp" />
     <ClInclude Include="file\FileDisk.hpp" />
     <ClInclude Include="file\FileName.hpp" />

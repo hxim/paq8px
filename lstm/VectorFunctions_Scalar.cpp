@@ -177,13 +177,13 @@ void VectorFunctions_Scalar::AccumulateLstmGradients(
   size_t layer,
   float* error_on_output,
   float* hidden_error,
-  float* output_layer)
+  float* output_weights)
 {
   size_t output_layer_offset = layer * num_cells; // layer * 200
   for (size_t i = 0; i < output_size; i++) {   // 256 iterations
     float const error = error_on_output[i];
     for (size_t j = 0; j < num_cells; j++) { // 200 iterations
-      hidden_error[j] += output_layer[output_layer_offset + j] * error;
+      hidden_error[j] += output_weights[output_layer_offset + j] * error;
     }
     output_layer_offset += hidden_size;
   }
@@ -291,7 +291,7 @@ void VectorFunctions_Scalar::AccumulateLayerGradients(
   const float* input,
   const float* error,
   float* embedding_ptr,
-  float* update)
+  float* weight_gradients)
 {
   for (size_t i = 0; i < num_cells; i++) {
     const float ei = error[i];
@@ -302,17 +302,17 @@ void VectorFunctions_Scalar::AccumulateLayerGradients(
 
     // Update hidden state weight gradients
     for (size_t j = 0; j < hidden_size; j++)
-      update[j] += ei * input[j];
+      weight_gradients[j] += ei * input[j];
 
-    update += hidden_size;
+    weight_gradients += hidden_size;
   }
 }
 
 void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
   float* error_on_output,
-  float* output_layer_ptr,
-  float* output_bias_u,
+  float* output_weight_gradients,
+  float* output_bias_gradients,
   const float* hidden_ptr,
   const size_t output_size,
   const size_t hidden_size,
@@ -321,13 +321,13 @@ void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
 
   for (size_t i = 0; i < output_size; i++) {
     float error = error_on_output[i];
-    output_bias_u[i] += error;
+    output_bias_gradients[i] += error;
 
     for (size_t j = 0; j < hidden_size; j++) {
-      output_layer_ptr[j] += error * hidden_ptr[j];
+      output_weight_gradients[j] += error * hidden_ptr[j];
     }
 
-    output_layer_ptr += hidden_size;
+    output_weight_gradients += hidden_size;
   }
 }
 
@@ -347,10 +347,10 @@ float VectorFunctions_Scalar::ComputeMaxLogit(
 void VectorFunctions_Scalar::MatvecThenSoftmax(
   float* hidden,
   float* logits,
-  float* output_layer,
+  float* output_weights,
   float* output,
   float* output_bias,
-  size_t const hidden_size, // 200*2 = 400
+  size_t const hidden_size_from_all_layers, // 200*2 = 400
   size_t const output_size, // 256
   size_t const output_offset
 )
@@ -359,8 +359,8 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   for (size_t i = 0; i < output_size; i++) {   // 256 iterations
     logits[output_offset + i] = DotProduct( // logits[epoch * 256 + i]
       &hidden[0],
-      &output_layer[i * hidden_size],
-      hidden_size    // 400
+      &output_weights[i * hidden_size_from_all_layers],
+      hidden_size_from_all_layers // 400
     ) + output_bias[i];
   }
 

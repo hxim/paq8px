@@ -19,9 +19,8 @@ private:
   Array<float, 32> input_gate_state;   // Flat: [horizon * num_cells]
   Array<float, 32> last_state;         // Flat: [horizon * num_cells]
 
+  const size_t hidden_size;
   const size_t num_cells;
-  const size_t horizon;
-  size_t epoch;
 
   Layer forget_gate;
   Layer input_node;
@@ -40,7 +39,6 @@ public:
 
   void ForwardPass(
     float* input,
-    size_t input_size,
     uint8_t const input_symbol,
     float* hidden,
     size_t const epoch,
@@ -50,7 +48,6 @@ public:
 
   void BackwardPass(
     float* input,
-    size_t input_size,
     size_t const epoch,
     size_t const layer,
     uint8_t const input_symbol,

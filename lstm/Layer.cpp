@@ -43,18 +43,18 @@ Layer::Layer(
   uint64_t decaySteps)
   : simd(simdType)
   , embedding(num_cells * embedding_size)           // 200*256 - embedding matrix
-  , embedding_u(num_cells * embedding_size)         // 200*256 - embedding gradients
+  , embedding_gradients(num_cells * embedding_size) // 200*256 - embedding gradients
   , weights(num_cells * hidden_size)                // Layer 0: 200*200, Layer 1: 200*400 - hidden weights
-  , update(num_cells * hidden_size)                 // Layer 0: 200*200, Layer 1: 200*400 - hidden gradients
+  , weight_gradients(num_cells * hidden_size)       // Layer 0: 200*200, Layer 1: 200*400 - hidden gradients
   , norm(horizon * num_cells)                       // 100*200
   , state(horizon * num_cells)                      // 100*200
   , inverse_variance(horizon)                       // 100
   , gamma(num_cells)                                // 200 (RMSNorm scale)
-  , gamma_u(num_cells)                              // 200 (RMSNorm scale update)
+  , gamma_gradients(num_cells)                              // 200 (RMSNorm scale update)
   , beta(num_cells)                                 // 200 (RMSNorm bias)
-  , beta_u(num_cells)                               // 200 (RMSNorm bias update)
+  , beta_gradients(num_cells)                       // 200 (RMSNorm bias update)
   , bias(num_cells)                                 // 200
-  , bias_u(num_cells)                               // 200
+  , bias_gradients(num_cells)                       // 200
   , error(num_cells)                                // 200
   , embedding_size(embedding_size)
   , hidden_size(hidden_size)
@@ -76,7 +76,7 @@ Layer::Layer(
     simdType,
     num_cells * embedding_size,       // 200*256 - embedding parameters
     &embedding[0],
-    &embedding_u[0],
+    &embedding_gradients[0],
     beta2,
     epsilon
   );
@@ -84,7 +84,7 @@ Layer::Layer(
     simdType,
     num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
     &weights[0],
-    &update[0],
+    &weight_gradients[0],
     beta2,
     epsilon
   );
@@ -92,7 +92,7 @@ Layer::Layer(
     simdType,
     num_cells,                        // 200 (RMS scale)
     &gamma[0],
-    &gamma_u[0],
+    &gamma_gradients[0],
     beta2,
     epsilon
   );
@@ -100,7 +100,7 @@ Layer::Layer(
     simdType,
     num_cells,                        // 200 (RMSNorm bias)
     &beta[0],
-    &beta_u[0],
+    &beta_gradients[0],
     beta2,
     epsilon
   );
@@ -108,15 +108,14 @@ Layer::Layer(
     simdType,
     num_cells,                        // 200 (bias)
     &bias[0],
-    &bias_u[0],
+    &bias_gradients[0],
     beta2,
     epsilon
   );
 }
 
 void Layer::ForwardPass(
-  float* input,
-  size_t input_size,
+  float* layer_input_ptr,
   uint8_t const input_symbol,
   size_t const epoch)
 {
@@ -129,7 +128,7 @@ void Layer::ForwardPass(
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     // Compute: embedding_value + bias_value + dot(input, hidden_weights)
-    norm_epoch[i] = VectorFunctions->DotProduct(input, weight_ptr, input_size) + (*embed_ptr) + (*bias_ptr);
+    norm_epoch[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
 
     embed_ptr += embedding_size; // + 256
     weight_ptr += hidden_size;   // + (200 or 400)
@@ -160,8 +159,7 @@ void Layer::ForwardPass(
 }
 
 void Layer::BackwardPass(
-  float* input,
-  size_t input_size,
+  float* layer_input_ptr,
   float* hidden_error,
   float* stored_error,
   size_t const epoch,
@@ -171,9 +169,9 @@ void Layer::BackwardPass(
   float* norm_epoch = &norm[epoch * num_cells]; // epoch * 200
 
   for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
-    bias_u[i] += error[i];
-    beta_u[i] += error[i];                       // RMSNorm bias gradient
-    gamma_u[i] += error[i] * norm_epoch[i];
+    bias_gradients[i] += error[i];
+    beta_gradients[i] += error[i];                       // RMSNorm bias gradient
+    gamma_gradients[i] += error[i] * norm_epoch[i];
     error[i] *= gamma[i] * inverse_variance[epoch];
   }
 
@@ -215,11 +213,11 @@ void Layer::BackwardPass(
   VectorFunctions->AccumulateLayerGradients(
     num_cells,
     embedding_size,
-    hidden_size, // same as input_size
-    input,
+    hidden_size,
+    layer_input_ptr,
     &error[0],
-    &embedding_u[input_symbol],
-    &update[0]
+    &embedding_gradients[input_symbol],
+    &weight_gradients[0]
   );
 }
 

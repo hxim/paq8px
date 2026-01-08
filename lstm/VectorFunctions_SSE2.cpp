@@ -145,7 +145,7 @@ void VectorFunctions_SSE2::AccumulateLstmGradients(
   size_t layer,
   float* error_on_output,
   float* hidden_error,
-  float* output_layer)
+  float* output_weights)
 {
   size_t output_layer_offset = layer * num_cells; // layer * 200
 
@@ -165,11 +165,11 @@ void VectorFunctions_SSE2::AccumulateLstmGradients(
       // Load hidden_error once
       __m128 hidden = _mm_load_ps(&hidden_error[j]);
 
-      // Load from 4 different output_layer rows and accumulate
-      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec0)); base_offset += hidden_size;
-      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec1)); base_offset += hidden_size;
-      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec2)); base_offset += hidden_size;
-      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_layer[base_offset]), error_vec3));
+      // Load from 4 different output_weights rows and accumulate
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec0)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec1)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec2)); base_offset += hidden_size;
+      hidden = _mm_add_ps(hidden, _mm_mul_ps(_mm_load_ps(&output_weights[base_offset]), error_vec3));
 
       // Store back to hidden_error
       _mm_store_ps(&hidden_error[j], hidden);
@@ -302,7 +302,7 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
   const float* input,
   const float* error,
   float* embedding_ptr,
-  float* update)
+  float* weight_gradients)
 {
   for (size_t i = 0; i < num_cells; i += 4) {
     // Load 4 errors as a vector
@@ -334,23 +334,23 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
       
       __m128 inp = _mm_load_ps(&input[j]);
       
-      __m128 upd0 = _mm_load_ps(&update[base_offset]);
+      __m128 upd0 = _mm_load_ps(&weight_gradients[base_offset]);
       upd0 = _mm_add_ps(upd0, _mm_mul_ps(inp, error_vec0)); base_offset += hidden_size;
       
-      __m128 upd1 = _mm_load_ps(&update[base_offset]);
+      __m128 upd1 = _mm_load_ps(&weight_gradients[base_offset]);
       upd1 = _mm_add_ps(upd1, _mm_mul_ps(inp, error_vec1)); base_offset += hidden_size;
       
-      __m128 upd2 = _mm_load_ps(&update[base_offset]);
+      __m128 upd2 = _mm_load_ps(&weight_gradients[base_offset]);
       upd2 = _mm_add_ps(upd2, _mm_mul_ps(inp, error_vec2)); base_offset += hidden_size;
       
-      __m128 upd3 = _mm_load_ps(&update[base_offset]);
+      __m128 upd3 = _mm_load_ps(&weight_gradients[base_offset]);
       upd3 = _mm_add_ps(upd3, _mm_mul_ps(inp, error_vec3));
       
       base_offset = update_offset + j;
-      _mm_store_ps(&update[base_offset], upd0); base_offset += hidden_size;
-      _mm_store_ps(&update[base_offset], upd1); base_offset += hidden_size;
-      _mm_store_ps(&update[base_offset], upd2); base_offset += hidden_size;
-      _mm_store_ps(&update[base_offset], upd3);
+      _mm_store_ps(&weight_gradients[base_offset], upd0); base_offset += hidden_size;
+      _mm_store_ps(&weight_gradients[base_offset], upd1); base_offset += hidden_size;
+      _mm_store_ps(&weight_gradients[base_offset], upd2); base_offset += hidden_size;
+      _mm_store_ps(&weight_gradients[base_offset], upd3);
     }
   }
 }
@@ -358,8 +358,8 @@ void VectorFunctions_SSE2::AccumulateLayerGradients(
 void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
   float* error_on_output,
-  float* output_layer_ptr,
-  float* output_bias_u,
+  float* output_weight_gradients,
+  float* output_bias_gradients,
   const float* hidden_ptr,
   const size_t output_size,
   const size_t hidden_size,
@@ -376,9 +376,9 @@ void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
     __m128 error_vec3 = _mm_shuffle_ps(errors, errors, _MM_SHUFFLE(3, 3, 3, 3));
 
     // Update bias (vectorized)
-    __m128 bias = _mm_load_ps(&output_bias_u[i]);
+    __m128 bias = _mm_load_ps(&output_bias_gradients[i]);
     bias = _mm_add_ps(bias, errors);
-    _mm_store_ps(&output_bias_u[i], bias);
+    _mm_store_ps(&output_bias_gradients[i], bias);
 
     // Update output layer weights
     size_t output_offset = i * hidden_size;
@@ -387,23 +387,23 @@ void VectorFunctions_SSE2::AccumulateOutputLayerGradients(
 
       __m128 hidden = _mm_load_ps(&hidden_ptr[j]);
 
-      __m128 out = _mm_load_ps(&output_layer_ptr[base_offset]);
+      __m128 out = _mm_load_ps(&output_weight_gradients[base_offset]);
       out = _mm_add_ps(out, _mm_mul_ps(hidden, error_vec0)); base_offset += hidden_size;
 
-      __m128 out1 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      __m128 out1 = _mm_load_ps(&output_weight_gradients[base_offset]);
       out1 = _mm_add_ps(out1, _mm_mul_ps(hidden, error_vec1)); base_offset += hidden_size;
 
-      __m128 out2 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      __m128 out2 = _mm_load_ps(&output_weight_gradients[base_offset]);
       out2 = _mm_add_ps(out2, _mm_mul_ps(hidden, error_vec2)); base_offset += hidden_size;
 
-      __m128 out3 = _mm_load_ps(&output_layer_ptr[base_offset]);
+      __m128 out3 = _mm_load_ps(&output_weight_gradients[base_offset]);
       out3 = _mm_add_ps(out3, _mm_mul_ps(hidden, error_vec3));
 
       base_offset = output_offset + j;
-      _mm_store_ps(&output_layer_ptr[base_offset], out); base_offset += hidden_size;
-      _mm_store_ps(&output_layer_ptr[base_offset], out1); base_offset += hidden_size;
-      _mm_store_ps(&output_layer_ptr[base_offset], out2); base_offset += hidden_size;
-      _mm_store_ps(&output_layer_ptr[base_offset], out3);
+      _mm_store_ps(&output_weight_gradients[base_offset], out); base_offset += hidden_size;
+      _mm_store_ps(&output_weight_gradients[base_offset], out1); base_offset += hidden_size;
+      _mm_store_ps(&output_weight_gradients[base_offset], out2); base_offset += hidden_size;
+      _mm_store_ps(&output_weight_gradients[base_offset], out3);
     }
   }
 }
@@ -442,10 +442,10 @@ float VectorFunctions_SSE2::ComputeMaxLogit(
 void VectorFunctions_SSE2::MatvecThenSoftmax(
   float* hidden,
   float* logits,
-  float* output_layer,
+  float* output_weights,
   float* output,
   float* output_bias,
-  size_t const hidden_size,
+  size_t const hidden_size_from_all_layers,
   size_t const output_size,
   size_t const output_offset)
 {
@@ -453,8 +453,8 @@ void VectorFunctions_SSE2::MatvecThenSoftmax(
   for (size_t i = 0; i < output_size; i++) {
     logits[output_offset + i] = DotProduct(
       &hidden[0],
-      &output_layer[i * hidden_size],
-      hidden_size
+      &output_weights[i * hidden_size_from_all_layers],
+      hidden_size_from_all_layers
     ) + output_bias[i];
   }
 

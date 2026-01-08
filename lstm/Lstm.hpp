@@ -1,8 +1,7 @@
 ﻿#pragma once
 
 #include "LstmLayer.hpp"
-#include "../file/BitFileDisk.hpp"
-#include "../file/OpenFromMyFolder.hpp"
+
 #include "../Utils.hpp"
 #include "../Array.hpp"
 #include "../SIMDType.hpp"
@@ -14,14 +13,12 @@
 #include "PolynomialDecay.hpp"
 #include <cstdint>
 
-namespace LSTM {
-  struct Shape {
-    size_t output_size;
-    size_t num_cells;
-    size_t num_layers;
-    size_t horizon;
-  };
-}
+struct LstmShape {
+  size_t output_size;
+  size_t num_cells;
+  size_t num_layers;
+  size_t horizon;
+};
 
 class Lstm {
 private:
@@ -29,17 +26,17 @@ private:
   std::unique_ptr<VectorFunctions> VectorFunctions;
 
   std::vector<std::unique_ptr<LstmLayer>> layers;
-  Array<float, 32> layer_input;    // [horizon * num_layers * max_layer_input_size]
+  Array<float, 32> layer_input;             // [horizon * num_layers * max_layer_input_size]
 
-  Array<float, 32> output_layer;   // [output_size * hidden_size] = 256 * 400
-  Array<float, 32> output_layer_u; // [output_size * hidden_size] = 256 * 400 - gradients
+  Array<float, 32> output_weights;          // [output_size * hidden_size] = 256 * 400
+  Array<float, 32> output_weight_gradients; // [output_size * hidden_size] = 256 * 400 - gradients
 
-  Array<float, 32> output;         // [horizon * output_size] - used both as raw output, then when the target_symbol is revealed, it's the error_on_output
-  Array<float, 32> logits;         // [horizon * output_size]
-  Array<float, 32> hidden;
+  Array<float, 32> output;                  // [horizon * output_size] - used both as raw output, then when the target_symbol is revealed, it's the error_on_output
+  Array<float, 32> logits;                  // [horizon * output_size]
+  Array<float, 32> hidden_of_all_layers;
   Array<float, 32> hidden_error;
-  Array<float, 32> output_bias;    // [output_size] = 256
-  Array<float, 32> output_bias_u;  // [output_size] = 256
+  Array<float, 32> output_bias;             // [output_size] = 256
+  Array<float, 32> output_bias_gradients;   // [output_size] = 256
 
   std::vector<uint8_t> input_symbol_history;
 
@@ -48,7 +45,6 @@ private:
   PolynomialDecay output_decay_func;
   float output_learning_rate;
 
-  uint64_t saved_timestep;
   size_t num_cells;
   size_t horizon;
   size_t current_sequence_size_target = 6; //6..horizon-1
@@ -65,7 +61,7 @@ public:
 
   Lstm(
     SIMDType simdType,
-    LSTM::Shape shape,
+    LstmShape shape,
     float tuning_param
   );
 

@@ -42,7 +42,7 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
     size_t layer,
     float* error_on_output,
     float* hidden_error,
-    float* output_layer
+    float* output_weights
   ) override;
 
   virtual void AccumulateLstmLayerGradients(
@@ -78,14 +78,14 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
     const float* input,
     const float* error,
     float* embedding_ptr,
-    float* update
+    float* weight_gradients
   ) override;
 
   virtual void AccumulateOutputLayerGradients(
     size_t previous_output_offset,
     float* error_on_output,
-    float* output_layer_ptr,
-    float* output_bias_u,
+    float* output_weight_gradients,
+    float* output_bias_gradients,
     const float* hidden_ptr,
     const size_t output_size,
     const size_t hidden_size,
@@ -100,10 +100,10 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
   virtual void MatvecThenSoftmax(
     float* hidden,
     float* logits,
-    float* output_layer,
+    float* output_weights,
     float* output,
     float* output_bias,
-    size_t const hidden_size,
+    size_t const hidden_size_from_all_layers,
     size_t const output_size,
     size_t const output_offset
   ) override;
