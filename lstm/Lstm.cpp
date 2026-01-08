@@ -1,6 +1,7 @@
 ﻿#include "Lstm.hpp"
 #include <cstring>
 #include <cmath>
+#include <cstdlib>
 
 Lstm::Lstm(
   SIMDType simdType,
@@ -243,4 +244,101 @@ void Lstm::Perceive(const uint8_t target_symbol) {
   else {
     epoch++;
   }
+}
+
+void Lstm::SaveModelParameters(LoadSave& stream) {
+
+  // Write ASCII header
+  stream.WriteTextLine("paq8pxlstmparams");
+
+  char buffer[64];
+  snprintf(buffer, sizeof(buffer), "%zu", output_size);
+  stream.WriteTextLine(buffer);
+
+  snprintf(buffer, sizeof(buffer), "%zu", num_cells);
+  stream.WriteTextLine(buffer);
+
+  snprintf(buffer, sizeof(buffer), "%zu", num_layers);
+  stream.WriteTextLine(buffer);
+
+  snprintf(buffer, sizeof(buffer), "%zu", horizon);
+  stream.WriteTextLine(buffer);
+
+  // Write ESC character to mark end of text header
+  fputc(0x1B, stream.file);
+  // From here on binary data follows
+
+  // Save all LSTM layers
+  for (size_t i = 0; i < num_layers; i++) {
+    layers[i]->SaveWeights(stream);
+  }
+
+  // Save output layer weights and biases
+  stream.WriteFloatArray(&output_layer[0], output_layer.size());
+  stream.WriteFloatArray(&output_bias[0], output_bias.size());
+}
+
+void Lstm::LoadModelParameters(LoadSave& stream) {
+  char buffer[256];
+
+  // Read and verify magic string
+  if (!stream.ReadTextLine(buffer, sizeof(buffer)) ||
+    strcmp(buffer, "paq8pxlstmparams") != 0) {
+    fprintf(stderr, "Error: Invalid model file - wrong magic string\n");
+    exit(1);
+  }
+
+  // Read shape parameters
+  if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
+    fprintf(stderr, "Error: Failed to read output_size\n");
+    exit(1);
+  }
+  size_t saved_output_size = strtoull(buffer, nullptr, 10);
+
+  if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
+    fprintf(stderr, "Error: Failed to read num_cells\n");
+    exit(1);
+  }
+  size_t saved_num_cells = strtoull(buffer, nullptr, 10);
+
+  if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
+    fprintf(stderr, "Error: Failed to read num_layers\n");
+    exit(1);
+  }
+  size_t saved_num_layers = strtoull(buffer, nullptr, 10);
+
+  if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
+    fprintf(stderr, "Error: Failed to read horizon\n");
+    exit(1);
+  }
+  size_t saved_horizon = strtoull(buffer, nullptr, 10);
+
+  // Read and verify ESC character
+  int esc = fgetc(stream.file);
+  if (esc != 0x1B) {
+    fprintf(stderr, "Error: Missing ESC marker after header (got 0x%02X)\n", esc);
+    exit(1);
+  }
+
+  // Verify shape matches
+  if (saved_output_size != output_size ||
+    saved_num_cells != num_cells ||
+    saved_num_layers != num_layers ||
+    saved_horizon != horizon) {
+    fprintf(stderr, "Error: Model shape mismatch\n");
+    fprintf(stderr, "Expected: output_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
+      output_size, num_cells, num_layers, horizon);
+    fprintf(stderr, "Got:      output_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
+      saved_output_size, saved_num_cells, saved_num_layers, saved_horizon);
+    exit(1);
+  }
+
+  // Load all LSTM layers
+  for (size_t i = 0; i < num_layers; i++) {
+    layers[i]->LoadWeights(stream);
+  }
+
+  // Load output layer weights and biases
+  stream.ReadFloatArray(&output_layer[0], output_layer.size());
+  stream.ReadFloatArray(&output_bias[0], output_bias.size());
 }

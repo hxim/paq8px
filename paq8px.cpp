@@ -25,6 +25,7 @@
 #include "file/ListOfFiles.hpp"
 #include "file/fileUtils2.hpp"
 #include "filter/Filters.hpp"
+#include "Models.hpp"
 #include "Simd.hpp"
 
 typedef enum { DoNone, DoCompress, DoExtract, DoCompare, DoList } WHATTODO;
@@ -258,6 +259,8 @@ int processCommandLine(int argc, char **argv) {
     FileName outputPath;
     FileName archiveName;
     FileName logfile;
+    FileName lstmLoadFilename;
+    FileName lstmSaveFilename;
 
     for( int i = 1; i < argc; i++ ) {
       int argLen = static_cast<int>(strlen(argv[i]));
@@ -332,7 +335,24 @@ int processCommandLine(int argc, char **argv) {
             quit("The -log switch requires a filename.");
           }
           logfile += argv[i];
-        } else if( strcasecmp(argv[i], "-forcebinary") == 0 ) {
+        } else if (strcasecmp(argv[i], "-loadlstm:text") == 0) {
+          if (lstmLoadFilename.strsize() != 0) {
+            quit("Only one LSTM load file may be specified.");
+          }
+          if (++i == argc) {
+            quit("The -loadlstm:text switch requires a filename.");
+          }
+          lstmLoadFilename += argv[i];
+        } else if (strcasecmp(argv[i], "-savelstm:text") == 0) {
+          if (lstmSaveFilename.strsize() != 0) {
+            quit("Only one LSTM save file may be specified.");
+          }
+          if (++i == argc) {
+            quit("The -savelstm:text switch requires a filename.");
+          }
+          lstmSaveFilename += argv[i];
+        }
+        else if( strcasecmp(argv[i], "-forcebinary") == 0 ) {
           shared.SetOptionDetectBlockAsBinary();
         } else if( strcasecmp(argv[i], "-forcetext") == 0 ) {
           shared.SetOptionDetectBlockAsText();
@@ -480,6 +500,14 @@ int processCommandLine(int argc, char **argv) {
       }
     }
 
+    // Validate LSTM parameters
+    if (lstmLoadFilename.strsize() != 0 && !shared.GetOptionUseLSTM()) {
+      quit("The -loadlstm:text switch requires the -L option to be set.");
+    }
+    if (lstmSaveFilename.strsize() != 0 && !shared.GetOptionUseLSTM()) {
+      quit("The -savelstm:text switch requires the -L option to be set.");
+    }
+
     // Separate paths from input filename/directory name
     pathType = examinePath(input.c_str());
     if( pathType == 2 || pathType == 4 ) {
@@ -599,6 +627,21 @@ int processCommandLine(int argc, char **argv) {
         printf("Unexpected end of archive file.\n");
       }
       shared.options = static_cast<uint8_t>(c);
+    }
+
+    // Load LSTM model if requested
+    if (lstmLoadFilename.strsize() != 0) {
+      printf("Loading LSTM model from %s", lstmLoadFilename.c_str());
+      FILE* lstmFile = fopen(lstmLoadFilename.c_str(), "rb");
+      if (!lstmFile) {
+        printf("\nError: Cannot open LSTM model file: %s\n", lstmLoadFilename.c_str());
+        quit();
+      }
+      Models models = Models(&shared, nullptr);
+      LstmModelContainer& lstmModel = models.lstmModelText();
+      lstmModel.LoadModelParameters(lstmFile);
+      fclose(lstmFile);
+      printf(" ... Done.\n");
     }
 
     if( verbose ) {
@@ -826,6 +869,22 @@ int processCommandLine(int argc, char **argv) {
     }
 
     archive.close();
+
+    // Save LSTM model if requested
+    if (lstmSaveFilename.strsize() != 0) {
+      printf("\nSaving LSTM model parameters to %s", lstmSaveFilename.c_str());
+      FILE* lstmFile = fopen(lstmSaveFilename.c_str(), "wb");
+      if (!lstmFile) {
+        printf("\nError: Cannot create LSTM model file: %s\n", lstmSaveFilename.c_str());
+        quit();
+      }
+      Models models = Models(&shared, nullptr);
+      LstmModelContainer& lstmModel = models.lstmModelText();
+      lstmModel.SaveModelParameters(lstmFile);
+      fclose(lstmFile);
+      printf(" ... Done.\n");
+    }
+
     if( whattodo != DoList ) {
       programChecker->print();
     }

@@ -71,4 +71,7 @@ public:
 
   float* Predict(uint8_t input_symbol);
   void Perceive(uint8_t target_symbol);
+
+  void SaveModelParameters(LoadSave& stream);
+  void LoadModelParameters(LoadSave& stream);
 };

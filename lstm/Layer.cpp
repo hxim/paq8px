@@ -234,3 +234,21 @@ void Layer::Optimize(uint64_t const time_step) {
   beta_optimizer->Optimize(learning_rate, time_step);
   bias_optimizer->Optimize(learning_rate, time_step);
 }
+
+void Layer::SaveWeights(LoadSave& stream) {
+  // Save learned parameters
+  stream.WriteFloatArray(&embedding[0], embedding.size());
+  stream.WriteFloatArray(&weights[0], weights.size());
+  stream.WriteFloatArray(&bias[0], bias.size());
+  stream.WriteFloatArray(&gamma[0], gamma.size());
+  stream.WriteFloatArray(&beta[0], beta.size());
+}
+
+void Layer::LoadWeights(LoadSave& stream) {
+  // Load learned parameters
+  stream.ReadFloatArray(&embedding[0], embedding.size());
+  stream.ReadFloatArray(&weights[0], weights.size());
+  stream.ReadFloatArray(&bias[0], bias.size());
+  stream.ReadFloatArray(&gamma[0], gamma.size());
+  stream.ReadFloatArray(&beta[0], beta.size());
+}

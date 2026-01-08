@@ -57,4 +57,7 @@ public:
     float* hidden_error);
 
   void Optimize(uint64_t const time_step);
+
+  void SaveWeights(LoadSave& stream);
+  void LoadWeights(LoadSave& stream);
 };

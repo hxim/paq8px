@@ -42,4 +42,7 @@ public:
   int getp();
   void mix(Mixer& m);
   void update() override;
+
+  void SaveModelParameters(FILE* file);
+  void LoadModelParameters(FILE* file);
 };

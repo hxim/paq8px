@@ -205,3 +205,17 @@ void LstmLayer::Optimize(uint64_t const time_step) {
   input_node.Optimize(time_step);
   output_gate.Optimize(time_step);
 }
+
+void LstmLayer::SaveWeights(LoadSave& stream) {
+  // Save weights for all three gates
+  forget_gate.SaveWeights(stream);
+  input_node.SaveWeights(stream);
+  output_gate.SaveWeights(stream);
+}
+
+void LstmLayer::LoadWeights(LoadSave& stream) {
+  // Load weights for all three gates
+  forget_gate.LoadWeights(stream);
+  input_node.LoadWeights(stream);
+  output_gate.LoadWeights(stream);
+}

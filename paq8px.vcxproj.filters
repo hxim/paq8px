@@ -366,6 +366,9 @@
     <ClCompile Include="lstm\Adam_SSE2.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
+    <ClCompile Include="lstm\LoadSave.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -840,6 +843,9 @@
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\Adam_SSE2.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\LoadSave.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>

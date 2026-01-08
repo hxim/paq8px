@@ -76,3 +76,13 @@ void LstmModelContainer::update() {
     byteModelToBitModel.SliceForNextBit(probs, shared->State.y);
   }
 }
+
+void LstmModelContainer::LoadModelParameters(FILE* file) {
+  LoadSave stream(file);
+  lstm.LoadModelParameters(stream);
+}
+
+void LstmModelContainer::SaveModelParameters(FILE* file) {
+  LoadSave stream(file);
+  lstm.SaveModelParameters(stream);
+}

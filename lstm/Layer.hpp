@@ -12,6 +12,7 @@
 #endif
 
 #include "PolynomialDecay.hpp"
+#include "LoadSave.hpp"
 #include "../SIMDType.hpp"
 #include "../Array.hpp"
 #include <cstdint>
@@ -108,4 +109,6 @@ public:
 
   void Optimize(uint64_t const time_step);
 
+  void SaveWeights(LoadSave& stream);
+  void LoadWeights(LoadSave& stream);
 };
