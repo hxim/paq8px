@@ -61,6 +61,7 @@ Lstm::Lstm(
     layers.push_back(
       std::make_unique<LstmLayer>(
         simdType,
+        tuning_param,
         output_size,              // 256 - embedding size
         hidden_size,              // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
         num_cells,                // 200

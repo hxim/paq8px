@@ -31,6 +31,7 @@ private:
 public:
   LstmLayer(
     SIMDType simdType,
+    float tuning_param,
     size_t embedding_size,
     size_t hidden_size,
     size_t num_cells,

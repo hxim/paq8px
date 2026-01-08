@@ -12,6 +12,7 @@ float LstmLayer::Rand(float const range) {
 
 LstmLayer::LstmLayer(
   SIMDType simdType,
+  float tuning_param,
   size_t const embedding_size,   // 256 (vocabulary size)
   size_t const hidden_size,      // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
   size_t const num_cells,        // 200
