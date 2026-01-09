@@ -42,8 +42,7 @@ private:
 
   std::unique_ptr<Adam> output_weights_optimizer;
   std::unique_ptr<Adam> output_bias_optimizer;
-  PolynomialDecay output_decay_func;
-  float output_learning_rate;
+  PolynomialDecay learning_rate_scheduler;
 
   size_t num_cells;
   size_t horizon;

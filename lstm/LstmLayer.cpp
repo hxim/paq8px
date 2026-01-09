@@ -37,8 +37,10 @@ LstmLayer::LstmLayer(
     1.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
-    0.007f,                    // learningRate
-    0.001f,                    // endLearningRate
+    0.01f,                    // learningRate_symbol_embeddings
+    0.01f,                    // learningRate_resurrent_weights
+    0.01f,                    // learningRate_rms
+    1.0f / 7.0f,               // endLearningRate
     0.0005f,                   // decayMultiplier
     1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
@@ -52,8 +54,10 @@ LstmLayer::LstmLayer(
     0.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
-    0.007f,                    // learningRate
-    0.001f,                    // endLearningRate
+    0.002f,                    // learningRate_symbol_embeddings
+    0.002f,                    // learningRate_resurrent_weights
+    0.002f,                    // learningRate_rms
+    1.0f / 7.0f,               // endLearningRate
     0.0005f,                   // decayMultiplier
     1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps
@@ -67,8 +71,10 @@ LstmLayer::LstmLayer(
     0.0f,                      // bias_init
     0.9995f,                   // beta2
     1e-6f,                     // epsilon
-    0.007f,                    // learningRate
-    0.001f,                    // endLearningRate
+    0.013f,                    // learningRate_symbol_embeddings
+    0.013f,                    // learningRate_resurrent_weights
+    0.013f,                    // learningRate_rms
+    1.0f / 7.0f,               // endLearningRate
     0.0005f,                   // decayMultiplier
     1.0f / 2.0f,               // decayExponent
     0)                         // decaySteps

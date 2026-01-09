@@ -5,7 +5,7 @@
 
 #pragma GCC target("sse2")
 
-void Adam_SSE2::Optimize(float learning_rate, uint64_t training_iterations)
+void Adam_SSE2::Optimize(float lr_scale, uint64_t training_iterations)
 {
   __m128 const zero_vec = _mm_setzero_ps();
   __m128 const vec_beta2 = _mm_set1_ps(beta2);
@@ -15,7 +15,7 @@ void Adam_SSE2::Optimize(float learning_rate, uint64_t training_iterations)
   double const t = static_cast<double>(training_iterations);
   float const bias_v = 1.f - static_cast<float>(std::pow(beta2, t));
   __m128 const vec_bias_v = _mm_set1_ps(bias_v);
-  __m128 const vec_lr = _mm_set1_ps(learning_rate);
+  __m128 const vec_lr = _mm_set1_ps(base_lr * lr_scale);
 
   for (size_t i = 0; i < length; i += 4) {
     __m128 vec_gi = _mm_load_ps(&g[i]);

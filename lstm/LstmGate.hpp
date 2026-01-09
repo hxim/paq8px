@@ -25,6 +25,7 @@ std::unique_ptr<Adam> CreateOptimizer(
   size_t length,
   float* w,
   float* g,
+  float base_lr,
   float beta2Value,
   float epsilon
 );
@@ -61,15 +62,13 @@ public:
   size_t hidden_size;        // Size of hidden state input
   size_t num_cells;
 
-  float learning_rate;
-
   std::unique_ptr<VectorFunctions> VectorFunctions;
   std::unique_ptr<Adam> symbol_embeddings_optimizer;
   std::unique_ptr<Adam> recurrent_weights_optimizer;
   std::unique_ptr<Adam> gamma_optimizer;
   std::unique_ptr<Adam> beta_optimizer;
 
-  PolynomialDecay decayFunc;
+  PolynomialDecay learning_rate_scheduler;
 
   bool use_tanh; // true for Tanh, false for Logistic
 
@@ -83,7 +82,9 @@ public:
     float bias_init,
     float beta2,
     float epsilon,
-    float learningRate,
+    float learningRate_symbol_embeddings,
+    float learningRate_resurrent_weights,
+    float learningRate_rms,
     float endLearningRate,
     float decayMultiplier,
     float decayExponent,

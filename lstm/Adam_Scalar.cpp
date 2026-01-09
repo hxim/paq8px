@@ -1,8 +1,9 @@
 ﻿#include <cmath>
 #include "Adam_Scalar.hpp"
 
-void Adam_Scalar::Optimize(float learning_rate, uint64_t training_iterations)
+void Adam_Scalar::Optimize(float lr_rate, uint64_t training_iterations)
 {
+  float const lr = base_lr * lr_rate;
   float const t = static_cast<float>(training_iterations);
   float const bias_v = 1.f - std::pow(beta2, t);
 
@@ -16,6 +17,6 @@ void Adam_Scalar::Optimize(float learning_rate, uint64_t training_iterations)
     float denom = std::sqrt(v_corrected) + eps;
     float scaled_gradient = g_val / denom;
     g[i] = 0.0f;
-    w[i] = w[i] - learning_rate * scaled_gradient;
+    w[i] = w[i] - lr * scaled_gradient;
   }
 }

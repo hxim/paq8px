@@ -5,7 +5,7 @@
 
 #pragma GCC target("avx")
 
-void Adam_AVX::Optimize(float learning_rate, uint64_t training_iterations)
+void Adam_AVX::Optimize(float lr_scale, uint64_t training_iterations)
 {
   __m256 const zero_vec = _mm256_setzero_ps();
   __m256 const vec_beta2 = _mm256_set1_ps(beta2);
@@ -15,7 +15,7 @@ void Adam_AVX::Optimize(float learning_rate, uint64_t training_iterations)
   double const t = static_cast<double>(training_iterations);
   float const bias_v = 1.f - static_cast<float>(std::pow(beta2, t));
   __m256 const vec_bias_v = _mm256_set1_ps(bias_v);
-  __m256 const vec_lr = _mm256_set1_ps(learning_rate);
+  __m256 const vec_lr = _mm256_set1_ps(base_lr * lr_scale);
 
   for (size_t i = 0; i < length; i += 8) {
     __m256 vec_gi = _mm256_load_ps(&g[i]);

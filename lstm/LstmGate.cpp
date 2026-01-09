@@ -15,15 +15,16 @@ std::unique_ptr<Adam> CreateOptimizer(
   size_t length,
   float* w,
   float* g,
+  float base_lr,
   float beta2Value,
   float epsilon)
 {
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
-    return std::make_unique<Adam_AVX>(length, w, g, beta2Value, epsilon);
+    return std::make_unique<Adam_AVX>(length, w, g, base_lr, beta2Value, epsilon);
   else if (simd == SIMDType::SIMD_SSE2)
-    return std::make_unique<Adam_SSE2>(length, w, g, beta2Value, epsilon);
+    return std::make_unique<Adam_SSE2>(length, w, g, base_lr, beta2Value, epsilon);
   else
-    return std::make_unique<Adam_Scalar>(length, w, g, beta2Value, epsilon);
+    return std::make_unique<Adam_Scalar>(length, w, g, base_lr, beta2Value, epsilon);
 }
 
 LstmGate::LstmGate(
@@ -36,7 +37,9 @@ LstmGate::LstmGate(
   float bias_init,
   float beta2,
   float epsilon,
-  float learningRate,
+  float learningRate_symbol_embeddings,
+  float learningRate_resurrent_weights,
+  float learningRate_rms,
   float endLearningRate,
   float decayMultiplier,
   float decayExponent,
@@ -59,8 +62,7 @@ LstmGate::LstmGate(
   , vocabulary_size(vocabulary_size)
   , hidden_size(hidden_size)
   , num_cells(num_cells)
-  , learning_rate(0.f)
-  , decayFunc(learningRate, endLearningRate, decayMultiplier, decayExponent, decaySteps)
+  , learning_rate_scheduler(1.0f, endLearningRate, decayMultiplier, decayExponent, decaySteps)
   , use_tanh(useTanh)
 {
 
@@ -77,6 +79,7 @@ LstmGate::LstmGate(
     num_cells * vocabulary_size,       // 200*256 = symbol_embeddings parameters
     &symbol_embeddings[0],
     &symbol_embedding_gradients[0],
+    learningRate_symbol_embeddings,
     beta2,
     epsilon
   );
@@ -85,6 +88,7 @@ LstmGate::LstmGate(
     num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
     &recurrent_weights[0],
     &recurrent_weight_gradients[0],
+    learningRate_resurrent_weights,
     beta2,
     epsilon
   );
@@ -93,6 +97,7 @@ LstmGate::LstmGate(
     num_cells,                        // 200 (RMS scale)
     &gamma[0],
     &gamma_gradients[0],
+    learningRate_rms,
     beta2,
     epsilon
   );
@@ -101,6 +106,7 @@ LstmGate::LstmGate(
     num_cells,                        // 200 (RMSNorm bias)
     &beta[0],
     &beta_gradients[0],
+    learningRate_rms,
     beta2,
     epsilon
   );
@@ -109,6 +115,7 @@ LstmGate::LstmGate(
     num_cells,                        // 200 (bias)
     &bias[0],
     &bias_gradients[0],
+    learningRate_rms,
     beta2,
     epsilon
   );
@@ -223,14 +230,15 @@ void LstmGate::BackwardPass(
 
 void LstmGate::Optimize(uint64_t const training_iterations) {
   // Apply learning rate decay
-  decayFunc.Apply(learning_rate, training_iterations);
+  float lr_scale = 0.0f;
+  learning_rate_scheduler.Apply(lr_scale, training_iterations);
 
   // Optimize all parameters
-  symbol_embeddings_optimizer->Optimize(learning_rate, training_iterations);
-  recurrent_weights_optimizer->Optimize(learning_rate, training_iterations);
-  gamma_optimizer->Optimize(learning_rate, training_iterations);
-  beta_optimizer->Optimize(learning_rate, training_iterations);
-  bias_optimizer->Optimize(learning_rate, training_iterations);
+  symbol_embeddings_optimizer->Optimize(lr_scale, training_iterations);
+  recurrent_weights_optimizer->Optimize(lr_scale, training_iterations);
+  gamma_optimizer->Optimize(lr_scale, training_iterations);
+  beta_optimizer->Optimize(lr_scale, training_iterations);
+  bias_optimizer->Optimize(lr_scale, training_iterations);
 }
 
 void LstmGate::SaveWeights(LoadSave& stream) {

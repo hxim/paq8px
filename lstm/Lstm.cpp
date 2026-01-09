@@ -24,15 +24,14 @@ Lstm::Lstm(
   , horizon(shape.horizon)
   , vocabulary_size(shape.vocabulary_size)
   , num_layers(shape.num_layers)
-  , sequence_length(6)        // 6..horizon-1, for curriculum learning
+  , sequence_length(4)        // 4..horizon-1, for curriculum learning
   , sequence_step_target(12)
   , sequence_step_cntr(0)     // 0..sequence_step_target-1
   , sequence_position(0)
   , training_iterations(1)
-  , output_learning_rate(0.f)
-  , output_decay_func(
-    0.015f,      // learningRate
-    0.005f,      // endLearningRate
+  , learning_rate_scheduler(
+    1.0f,        // learningRate
+    0.333333333f,// endLearningRate
     0.0005f,     // decayMultiplier
     1.0f / 2.0f, // decayExponent
     0)           // decaySteps
@@ -45,6 +44,7 @@ Lstm::Lstm(
     shape.vocabulary_size * (shape.num_cells * shape.num_layers), // 256 * 400
     &output_weights[0],
     &output_weight_gradients[0],
+    0.018f,   // base_lr
     0.9995f,  // beta2
     1e-6f     // epsilon
   );
@@ -53,6 +53,7 @@ Lstm::Lstm(
     shape.vocabulary_size,
     &output_bias[0],
     &output_bias_gradients[0],
+    0.018f,
     0.9995f,
     1e-6f
   );
@@ -222,9 +223,10 @@ void Lstm::Perceive(const uint8_t target_symbol) {
 
   if (is_last_seq_pos) {
     // Optimize output layer after full sequence
-    output_decay_func.Apply(output_learning_rate, training_iterations);
-    output_weights_optimizer->Optimize(output_learning_rate, training_iterations);
-    output_bias_optimizer->Optimize(output_learning_rate, training_iterations);
+    float lr_scale = 0.0;
+    learning_rate_scheduler.Apply(lr_scale, training_iterations);
+    output_weights_optimizer->Optimize(lr_scale, training_iterations);
+    output_bias_optimizer->Optimize(lr_scale, training_iterations);
 
     // Increase sequence size
     sequence_step_cntr++;
