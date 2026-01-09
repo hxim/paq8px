@@ -24,7 +24,7 @@ Lstm::Lstm(
   , horizon(shape.horizon)
   , vocabulary_size(shape.vocabulary_size)
   , num_layers(shape.num_layers)
-  , sequence_length(4)        // 4..horizon-1, for curriculum learning
+  , sequence_length(4)        // 4..horizon-1
   , sequence_step_target(12)
   , sequence_step_cntr(0)     // 0..sequence_step_target-1
   , sequence_position(0)
@@ -200,11 +200,6 @@ void Lstm::Perceive(const uint8_t target_symbol) {
           &hidden_gradient[0]);
       }
     }
-
-    // After full backward pass, optimize all layers
-    for (size_t layer = 0; layer < num_layers; layer++) {
-      layers[layer]->Optimize(training_iterations);
-    }
   }
 
   // Accumulate output layer gradients for the sequence_position
@@ -221,24 +216,38 @@ void Lstm::Perceive(const uint8_t target_symbol) {
     hidden_size,
     target_symbol);
 
+  // After full backward pass, optimize
   if (is_last_seq_pos) {
-    // Optimize output layer after full sequence
-    float lr_scale = 0.0;
-    learning_rate_scheduler.Apply(lr_scale, training_iterations);
-    output_weights_optimizer->Optimize(lr_scale, training_iterations);
-    output_bias_optimizer->Optimize(lr_scale, training_iterations);
 
     // Increase sequence size
     sequence_step_cntr++;
     if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
       sequence_step_cntr = 0;
       if (sequence_length < horizon) {
+        float prev_sequence_length = (float)sequence_length;
         sequence_length++;
+        float scale = (float)sequence_length / prev_sequence_length;
+
         //debug:
         //printf("sequence_length: %d\n", (int)sequence_length);
         sequence_step_target = 12 + 1 * (sequence_length - 1);
+
+        for (size_t layer = 0; layer < num_layers; layer++) {
+          layers[layer]->Rescale(scale);
+        }
+        output_weights_optimizer->Rescale(scale);
+        output_bias_optimizer->Rescale(scale);
       }
     }
+
+    for (size_t layer = 0; layer < num_layers; layer++) {
+      layers[layer]->Optimize(training_iterations);
+    }
+
+    float lr_scale = 0.0;
+    learning_rate_scheduler.Apply(lr_scale, training_iterations);
+    output_weights_optimizer->Optimize(lr_scale, training_iterations);
+    output_bias_optimizer->Optimize(lr_scale, training_iterations);
 
     training_iterations++;
     sequence_position = 0;

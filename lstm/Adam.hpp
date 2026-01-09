@@ -19,4 +19,6 @@ public:
   ~Adam() = default;
 
   virtual void Optimize(float learning_rate, uint64_t training_iterations) = 0;
+
+  virtual void Rescale(float scale) = 0;
 };

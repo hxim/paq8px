@@ -108,6 +108,8 @@ public:
 
   void Optimize(uint64_t const training_iterations);
 
+  void Rescale(float scale);
+
   void SaveWeights(LoadSave& stream);
   void LoadWeights(LoadSave& stream);
 };

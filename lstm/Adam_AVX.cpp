@@ -43,4 +43,15 @@ void Adam_AVX::Optimize(float lr_scale, uint64_t training_iterations)
   }
 }
 
+void Adam_AVX::Rescale(float scale)
+{
+  __m256 const vec_scale = _mm256_set1_ps(scale);
+
+  for (size_t i = 0; i < length; i += 8) {
+    __m256 vec_vi = _mm256_load_ps(&v[i]);
+    vec_vi = _mm256_mul_ps(vec_vi, vec_scale);
+    _mm256_store_ps(&v[i], vec_vi);
+  }
+}
+
 #endif

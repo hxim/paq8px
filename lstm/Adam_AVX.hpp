@@ -13,5 +13,7 @@ public:
   }
 
   virtual void Optimize(float learning_rate, uint64_t training_iterations) override;
+
+  virtual void Rescale(float scale) override;
 };
 #endif

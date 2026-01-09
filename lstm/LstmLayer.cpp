@@ -208,6 +208,12 @@ void LstmLayer::Optimize(uint64_t const training_iterations) {
   output_gate.Optimize(training_iterations);
 }
 
+void LstmLayer::Rescale(float scale) {
+  forget_gate.Rescale(scale);
+  input_gate.Rescale(scale);
+  output_gate.Rescale(scale);
+}
+
 void LstmLayer::SaveWeights(LoadSave& stream) {
   // Save weights for all three gates
   forget_gate.SaveWeights(stream);

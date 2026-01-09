@@ -20,3 +20,10 @@ void Adam_Scalar::Optimize(float lr_rate, uint64_t training_iterations)
     w[i] = w[i] - lr * scaled_gradient;
   }
 }
+
+void Adam_Scalar::Rescale(float scale)
+{
+  for (size_t i = 0; i < length; i++) {
+    v[i] = v[i] * scale;
+  }
+}

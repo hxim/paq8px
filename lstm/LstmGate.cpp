@@ -241,6 +241,14 @@ void LstmGate::Optimize(uint64_t const training_iterations) {
   bias_optimizer->Optimize(lr_scale, training_iterations);
 }
 
+void LstmGate::Rescale(float scale) {
+  symbol_embeddings_optimizer->Rescale(scale);
+  recurrent_weights_optimizer->Rescale(scale);
+  gamma_optimizer->Rescale(scale);
+  beta_optimizer->Rescale(scale);
+  bias_optimizer->Rescale(scale);
+}
+
 void LstmGate::SaveWeights(LoadSave& stream) {
   // Save learned parameters
   stream.WriteFloatArray(&symbol_embeddings[0], symbol_embeddings.size());

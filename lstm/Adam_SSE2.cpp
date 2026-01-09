@@ -43,4 +43,15 @@ void Adam_SSE2::Optimize(float lr_scale, uint64_t training_iterations)
   }
 }
 
+void Adam_SSE2::Rescale(float scale)
+{
+  __m128 const vec_scale = _mm_set1_ps(scale);
+
+  for (size_t i = 0; i < length; i += 4) {
+    __m128 vec_vi = _mm_load_ps(&v[i]);
+    vec_vi = _mm_mul_ps(vec_vi, vec_scale);
+    _mm_store_ps(&v[i], vec_vi);
+  }
+}
+
 #endif
