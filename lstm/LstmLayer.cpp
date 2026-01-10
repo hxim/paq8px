@@ -23,7 +23,6 @@ LstmLayer::LstmLayer(
   , cell_state_gradient(num_cells)        // 200
   , temporal_hidden_gradient(num_cells)     // 200
   , tanh_state(horizon * num_cells)       // 100 * 200 = 20,000
-  , input_gate_complement(horizon * num_cells) // 100 * 200 = 20,000
   , last_cell_state(horizon * num_cells)  // 100 * 200 = 20,000
   , num_cells(num_cells)         // 200
   , hidden_size(hidden_size)     // Layer 0: 200 (200*1), Layer 1: 400 (200*2) - hidden_size = num_cells * (layer_id > 0 ? 2 : 1)
@@ -122,9 +121,7 @@ void LstmLayer::ForwardPass(
     const float forget_gate_i = forget_gate_activations[idx];
     const float cell_candidate_i = cell_candidate_activations[idx];
     const float output_gate_i = output_activations[idx];
-
     const float input_gate_i = 1.0f - forget_gate_i;
-    input_gate_complement[idx] = input_gate_i;
 
     cell_state[i] = cell_state[i] * forget_gate_i + cell_candidate_i * input_gate_i;
 
@@ -156,7 +153,6 @@ void LstmLayer::BackwardPass(
     &forget_gate.activations[0],
     &cell_candidate.activations[0],
     &output_gate.activations[0],
-    &input_gate_complement[0],
     &output_gate.gate_gradient_buffer[0],
     &cell_state_gradient[0], 
     &cell_candidate.gate_gradient_buffer[0],

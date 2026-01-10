@@ -54,7 +54,6 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
     float* forget_gate_activations,
     float* cell_candidate_activations,
     float* output_gate_actications,
-    float* input_gate_complement,
     float* output_gate_gradients,
     float* cell_state_gradient,
     float* input_gate_gradients,

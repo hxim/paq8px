@@ -243,7 +243,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
     else {
       // Forget the initial high gradients, i.e. adapt to a stable (more typical) second moment
       float n = ((training_iterations - 1) / 2.0f) + 1; // 1 .. 2047.5
-      beta2 = 1.0f - 1.0f / n; // 1.0f  down to  1.0f - 1.0f / 2047.5f 
+      beta2 = 1.0f - 1.0f / n; // 0.0f .. 1.0f - 1.0f / 2047.5f 
     };
 
     float lr_scale = 0.0;

@@ -188,7 +188,6 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
   float* forget_gate_activations,
   float* cell_candidate_activations,
   float* output_gate_actications,
-  float* input_gate_complement,
   float* output_gate_gradients,
   float* cell_state_gradient,
   float* input_gate_gradients,
@@ -212,15 +211,15 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
     // Load states from sequence_position offset
     const size_t idx = sequence_position_offset + i;
     __m128 tanh_v = _mm_load_ps(&tanh_state[idx]);
-    __m128 forget = _mm_load_ps(&forget_gate_activations[idx]);
-    __m128 inputv = _mm_load_ps(&cell_candidate_activations[idx]);
-    __m128 output = _mm_load_ps(&output_gate_actications[idx]);
-    __m128 input_gate = _mm_load_ps(&input_gate_complement[idx]);
+    __m128 forget_gate = _mm_load_ps(&forget_gate_activations[idx]);
+    __m128 cell_candidtae = _mm_load_ps(&cell_candidate_activations[idx]);
+    __m128 output_gate = _mm_load_ps(&output_gate_actications[idx]);
+    __m128 input_gate = _mm_sub_ps(ones, forget_gate);
 
     // output_gate_gradients[i] = tanh_v * temporal_hidden_gradient[i] * output * (1.0f - output)
-    __m128 one_minus_output = _mm_sub_ps(ones, output);
+    __m128 one_minus_output = _mm_sub_ps(ones, output_gate);
     __m128 og_err = _mm_mul_ps(tanh_v, stored_err);
-    og_err = _mm_mul_ps(og_err, output);
+    og_err = _mm_mul_ps(og_err, output_gate);
     og_err = _mm_mul_ps(og_err, one_minus_output);
     _mm_store_ps(&output_gate_gradients[i], og_err);
 
@@ -228,12 +227,12 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
     __m128 state_err = _mm_load_ps(&cell_state_gradient[i]);
     __m128 tanh_sq = _mm_mul_ps(tanh_v, tanh_v);
     __m128 one_minus_tanh_sq = _mm_sub_ps(ones, tanh_sq);
-    __m128 temp = _mm_mul_ps(stored_err, output);
+    __m128 temp = _mm_mul_ps(stored_err, output_gate);
     temp = _mm_mul_ps(temp, one_minus_tanh_sq);
     state_err = _mm_add_ps(state_err, temp);
 
     // input_gate_gradients[i] = cell_state_gradient[i] * input_gate * (1.0f - inputv * inputv)
-    __m128 inputv_sq = _mm_mul_ps(inputv, inputv);
+    __m128 inputv_sq = _mm_mul_ps(cell_candidtae, cell_candidtae);
     __m128 one_minus_inputv_sq = _mm_sub_ps(ones, inputv_sq);
     __m128 ig_err = _mm_mul_ps(state_err, input_gate);
     ig_err = _mm_mul_ps(ig_err, one_minus_inputv_sq);
@@ -241,14 +240,14 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
 
     // forget_gate_gradients[i] = (last_cell_state[idx] - inputv) * cell_state_gradient[i] * forget * input_gate
     __m128 last_st = _mm_load_ps(&last_cell_state[idx]);
-    __m128 fg_err = _mm_sub_ps(last_st, inputv);
+    __m128 fg_err = _mm_sub_ps(last_st, cell_candidtae);
     fg_err = _mm_mul_ps(fg_err, state_err);
-    fg_err = _mm_mul_ps(fg_err, forget);
+    fg_err = _mm_mul_ps(fg_err, forget_gate);
     fg_err = _mm_mul_ps(fg_err, input_gate);
     _mm_store_ps(&forget_gate_gradients[i], fg_err);
 
     if (sequence_position_offset > 0) { // sequence_position > 0
-      state_err = _mm_mul_ps(state_err, forget);
+      state_err = _mm_mul_ps(state_err, forget_gate);
       _mm_store_ps(&temporal_hidden_gradient[i], zeros);
     }
 

@@ -16,7 +16,6 @@ private:
   Array<float, 32> temporal_hidden_gradient;
 
   Array<float, 32> tanh_state;         // Flat: [horizon * num_cells]
-  Array<float, 32> input_gate_complement; // Flat: [horizon * num_cells]
   Array<float, 32> last_cell_state;    // Flat: [horizon * num_cells]
 
   const size_t hidden_size;

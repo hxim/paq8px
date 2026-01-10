@@ -198,7 +198,6 @@ void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
   float* forget_gate_activations,
   float* cell_candidate_activations,
   float* output_gate_actications,
-  float* input_gate_complement,
   float* output_gate_gradients,
   float* cell_state_gradient,
   float* input_gate_gradients,
@@ -211,30 +210,30 @@ void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
 
     const size_t idx = sequence_position_offset + i;         // sequence_position*200 + i
     const float tanh_v = tanh_state[idx];
-    const float forget = forget_gate_activations[idx];
-    const float inputv = cell_candidate_activations[idx];
-    const float output = output_gate_actications[idx];
-    const float input_gate = input_gate_complement[idx];
+    const float forge_gate = forget_gate_activations[idx];
+    const float cell_candidate = cell_candidate_activations[idx];
+    const float output_gate = output_gate_actications[idx];
+    const float input_gate = 1.0f - forge_gate;
 
     output_gate_gradients[i] =
       tanh_v * temporal_hidden_gradient[i] *
-      output * (1.0f - output); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
+      output_gate * (1.0f - output_gate); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
 
     cell_state_gradient[i] +=
-      temporal_hidden_gradient[i] * output *
+      temporal_hidden_gradient[i] * output_gate *
       (1.0f - tanh_v * tanh_v); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
     input_gate_gradients[i] =
       cell_state_gradient[i] * input_gate *
-      (1.0f - inputv * inputv); // tanh derivative: tanh'(x) = 1 - tanh²(x)
+      (1.0f - cell_candidate * cell_candidate); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
     forget_gate_gradients[i] =
-      (last_cell_state[idx] - inputv) *
+      (last_cell_state[idx] - cell_candidate) *
       cell_state_gradient[i] *
-      forget * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
+      forge_gate * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
 
     if (sequence_position_offset > 0) { // sequence_position > 0
-      cell_state_gradient[i] *= forget;
+      cell_state_gradient[i] *= forge_gate;
       temporal_hidden_gradient[i] = 0.0f;
     }
   }
