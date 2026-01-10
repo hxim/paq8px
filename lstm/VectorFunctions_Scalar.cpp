@@ -242,8 +242,8 @@ void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
 void VectorFunctions_Scalar::BackpropagateErrors(
   size_t len,         // num_cells (200)
   size_t base_offset, // 0 for temporal, num_cells for spatial
-  size_t hidden_size, // Layer 0: 200, Layer 1: 400
-  float* recurrent_weights,    // Weight matrix
+  size_t total_component_inputs, // Layer 0: 200, Layer 1: 400
+  float* weights,     // Weight matrix
   float* gate_gradient_buffer, // Current layer errors
   float* grad_store)    // Where to accumulate gradients
 {
@@ -261,15 +261,15 @@ void VectorFunctions_Scalar::BackpropagateErrors(
     size_t weight_idx = base_offset + i;  // Start at offset for previous layer connections
     for (size_t i = 0; i < len; i++) { // For each current cell
       float g = gate_gradient_buffer[i];
-      sum0 += g * recurrent_weights[weight_idx + 0];
-      sum1 += g * recurrent_weights[weight_idx + 1];
-      sum2 += g * recurrent_weights[weight_idx + 2];
-      sum3 += g * recurrent_weights[weight_idx + 3];
-      sum4 += g * recurrent_weights[weight_idx + 4];
-      sum5 += g * recurrent_weights[weight_idx + 5];
-      sum6 += g * recurrent_weights[weight_idx + 6];
-      sum7 += g * recurrent_weights[weight_idx + 7];
-      weight_idx += hidden_size;  // Move to next cell's recurrent_weights
+      sum0 += g * weights[weight_idx + 0];
+      sum1 += g * weights[weight_idx + 1];
+      sum2 += g * weights[weight_idx + 2];
+      sum3 += g * weights[weight_idx + 3];
+      sum4 += g * weights[weight_idx + 4];
+      sum5 += g * weights[weight_idx + 5];
+      sum6 += g * weights[weight_idx + 6];
+      sum7 += g * weights[weight_idx + 7];
+      weight_idx += total_component_inputs;  // Move to next cell's weights
     }
 
     grad_store[i + 0] += sum0;
@@ -286,11 +286,11 @@ void VectorFunctions_Scalar::BackpropagateErrors(
 void VectorFunctions_Scalar::AccumulateLayerGradients(
   const size_t num_cells,
   const size_t vocabulary_size,
-  const size_t hidden_size,
+  const size_t total_component_inputs,
   const float* input,
   const float* gate_gradient_buffer,
   float* embedding_ptr,
-  float* recurrent_weight_gradients)
+  float* weight_gradients)
 {
   for (size_t i = 0; i < num_cells; i++) {
     const float ei = gate_gradient_buffer[i];
@@ -300,10 +300,10 @@ void VectorFunctions_Scalar::AccumulateLayerGradients(
     embedding_ptr += vocabulary_size;
 
     // Update hidden state weight gradients
-    for (size_t j = 0; j < hidden_size; j++)
-      recurrent_weight_gradients[j] += ei * input[j];
+    for (size_t j = 0; j < total_component_inputs; j++)
+      weight_gradients[j] += ei * input[j];
 
-    recurrent_weight_gradients += hidden_size;
+    weight_gradients += total_component_inputs;
   }
 }
 
@@ -349,7 +349,7 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   float* output_weights,
   float* output,
   float* output_bias,
-  size_t const hidden_size_from_all_layers, // 200*2 = 400
+  size_t const concatenated_layer_outputs_size, // 200*2 = 400
   size_t const vocabulary_size, // 256
   size_t const output_offset
 )
@@ -358,8 +358,8 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   for (size_t i = 0; i < vocabulary_size; i++) {   // 256 iterations
     logits[output_offset + i] = DotProduct( // logits[sequence_position * 256 + i]
       &hidden[0],
-      &output_weights[i * hidden_size_from_all_layers],
-      hidden_size_from_all_layers // 400
+      &output_weights[i * concatenated_layer_outputs_size],
+      concatenated_layer_outputs_size // 400
     ) + output_bias[i];
   }
 

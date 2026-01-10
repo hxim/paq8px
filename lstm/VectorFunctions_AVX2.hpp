@@ -65,7 +65,7 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
     size_t len,         // num_cells (200)
     size_t base_offset, // 0 for temporal, num_cells for spatial
     size_t hidden_size, // Layer 0: 200, Layer 1: 400
-    float* recurrent_weights,     // Weight matrix
+    float* weights,     // Weight matrix
     float* gate_gradient_buffer, // Current layer errors
     float* grad_store     // Where to accumulate gradients
   ) override;
@@ -73,11 +73,11 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
   virtual void AccumulateLayerGradients(
     const size_t num_cells,
     const size_t vocabulary_size,
-    const size_t hidden_size,
+    const size_t total_component_inputs,
     const float* input,
     const float* gate_gradient_buffer,
     float* embedding_ptr,
-    float* recurrent_weight_gradients
+    float* weight_gradients
   ) override;
 
   virtual void AccumulateOutputLayerGradients(
@@ -102,7 +102,7 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
     float* output_weights,
     float* output,
     float* output_bias,
-    size_t const hidden_size_from_all_layers,
+    size_t const concatenated_layer_outputs_size,
     size_t const vocabulary_size,
     size_t const output_offset
   ) override;

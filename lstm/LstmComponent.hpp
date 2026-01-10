@@ -35,8 +35,8 @@ public:
   Array<float, 32> symbol_embeddings;           // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
   Array<float, 32> symbol_embedding_gradients;  // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
 
-  Array<float, 32> recurrent_weights;           // Flat: [num_cells * hidden_size] - hidden state recurrent_weights only
-  Array<float, 32> recurrent_weight_gradients;  // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> weights;           // Flat: [num_cells * hidden_size] - hidden state weights only
+  Array<float, 32> weight_gradients;  // Flat: [num_cells * hidden_size] - hidden state gradients
 
   Array<float, 32> pre_norm_values;             // Flat: [horizon * num_cells]
   Array<float, 32> activations;                 // Flat: [horizon * num_cells]
@@ -56,8 +56,8 @@ public:
   Array<float, 32> bias_gradients;        // [num_cells] - gate bias gradients
   std::unique_ptr<Adam> bias_optimizer;
 
-  size_t vocabulary_size;    // Vocabulary size / symbol_embeddings dimension
-  size_t hidden_size;        // Size of hidden state input
+  size_t vocabulary_size;                 // Vocabulary size / symbol_embeddings dimension
+  size_t total_component_inputs;          // Layer 0: 200, Layer 1: 400
   size_t num_cells;
 
   std::unique_ptr<VectorFunctions> VectorFunctions;
@@ -71,13 +71,13 @@ public:
   LstmComponent(
     SIMDType simdType,
     size_t vocabulary_size,
-    size_t hidden_size,
+    size_t total_component_inputs,
     size_t num_cells,
     size_t horizon,
     bool useTanh,
     float bias_init,
     float learningRate_symbol_embeddings,
-    float learningRate_resurrent_weights,
+    float learningRate_recurrent_weights,
     float learningRate_rms
   );
 

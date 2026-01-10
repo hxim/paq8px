@@ -15,7 +15,7 @@ Lstm::Lstm(
   , output_weight_gradients(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
   , output_probabilities(shape.horizon * shape.vocabulary_size)     // 100 * 256
   , logits(shape.horizon * shape.vocabulary_size)                   // 100 * 256
-  , hidden_states_all_layers(shape.num_cells * shape.num_layers)     // 200 * 2
+  , hidden_states_all_layers(shape.num_cells * shape.num_layers)    // 200 * 2
   , hidden_gradient(shape.num_cells)                  // 200
   , output_bias(shape.vocabulary_size)                // 256
   , output_bias_gradients(shape.vocabulary_size)      // 256
@@ -57,13 +57,12 @@ Lstm::Lstm(
 
   // Create LSTM layers
   for (size_t i = 0; i < num_layers; i++) {           // 2 iterations
-    size_t hidden_size = num_cells * (i > 0 ? 2 : 1); // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
     layers.push_back(
       std::make_unique<LstmLayer>(
         simdType,
         tuning_param,
+        i,                        // layer_id
         vocabulary_size,          // 256
-        hidden_size,              // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
         num_cells,                // 200
         horizon                   // 100
       )
@@ -112,7 +111,7 @@ float* Lstm::Predict(uint8_t const input_symbol) {
       sequence_length);
   }
 
-  size_t const hidden_size_from_all_layers = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
+  size_t const concatenated_layer_outputs_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
   size_t const output_offset = sequence_position * vocabulary_size; // sequence_position * 256
 
   VectorFunctions->MatvecThenSoftmax(
@@ -121,7 +120,7 @@ float* Lstm::Predict(uint8_t const input_symbol) {
     &output_weights[0],
     &output_probabilities[0],
     &output_bias[0],
-    hidden_size_from_all_layers,
+    concatenated_layer_outputs_size,
     vocabulary_size,
     output_offset
   );
@@ -244,7 +243,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
       // Forget the initial high gradients, i.e. adapt to a stable (more typical) second moment
       float n = ((training_iterations - 1) / 2.0f) + 1; // 1 .. 2047.5
       beta2 = 1.0f - 1.0f / n; // 0.0f .. 1.0f - 1.0f / 2047.5f 
-    };
+    }
 
     float lr_scale = 0.0;
     learning_rate_scheduler.Apply(lr_scale, training_iterations);
@@ -291,7 +290,7 @@ void Lstm::SaveModelParameters(LoadSave& stream) {
     layers[i]->SaveWeights(stream);
   }
 
-  // Save output layer recurrent_weights and biases
+  // Save output layer weights and biases
   stream.WriteFloatArray(&output_weights[0], output_weights.size());
   stream.WriteFloatArray(&output_bias[0], output_bias.size());
 }

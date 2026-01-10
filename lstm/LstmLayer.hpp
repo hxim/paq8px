@@ -18,7 +18,7 @@ private:
   Array<float, 32> tanh_state;         // Flat: [horizon * num_cells]
   Array<float, 32> last_cell_state;    // Flat: [horizon * num_cells]
 
-  const size_t hidden_size;
+  const size_t total_component_inputs;
   const size_t num_cells;
 
   LstmComponent forget_gate;
@@ -31,8 +31,8 @@ public:
   LstmLayer(
     SIMDType simdType,
     float tuning_param,
+    size_t const layer_id,
     size_t vocabulary_size,
-    size_t hidden_size,
     size_t num_cells,
     size_t horizon,
     float range = 0.4f);

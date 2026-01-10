@@ -256,8 +256,8 @@ void VectorFunctions_AVX2::AccumulateLstmLayerGradients(
 void VectorFunctions_AVX2::BackpropagateErrors(
   size_t len,         // num_cells (200)
   size_t base_offset, // 0 for temporal, num_cells for spatial
-  size_t hidden_size, // Layer 0: 200, Layer 1: 400
-  float* recurrent_weights,    // Weight matrix
+  size_t total_component_inputs, // Layer 0: 200, Layer 1: 400
+  float* weights,     // Weight matrix
   float* gate_gradient_buffer, // Current layer errors
   float* grad_store)    // Where to accumulate gradients
 {
@@ -270,10 +270,10 @@ void VectorFunctions_AVX2::BackpropagateErrors(
     size_t weight_idx = base_offset + i;
     for (size_t i = 0; i < len; i++) {
       __m256 g = _mm256_set1_ps(gate_gradient_buffer[i]);
-      __m256 w = _mm256_load_ps(&recurrent_weights[weight_idx]);
+      __m256 w = _mm256_load_ps(&weights[weight_idx]);
       __m256 prod = _mm256_mul_ps(g, w);
       sum = _mm256_add_ps(sum, prod);
-      weight_idx += hidden_size;
+      weight_idx += total_component_inputs;
     }
 
     grad_vec = _mm256_add_ps(grad_vec, sum);
@@ -284,11 +284,11 @@ void VectorFunctions_AVX2::BackpropagateErrors(
 void VectorFunctions_AVX2::AccumulateLayerGradients(
   const size_t num_cells,
   const size_t vocabulary_size,
-  const size_t hidden_size,
+  const size_t total_component_inputs,
   const float* input,
   const float* gate_gradient_buffer,
   float* embedding_ptr,
-  float* recurrent_weight_gradients)
+  float* weight_gradients)
 {
   for (size_t i = 0; i < num_cells; i += 4) {
     // Load 4 errors (using only lower half of AVX register)
@@ -315,29 +315,29 @@ void VectorFunctions_AVX2::AccumulateLayerGradients(
     embedding_ptr[emb_offset] += e3;
 
     // Update hidden state weight gradients
-    size_t update_offset = i * hidden_size;
-    for (size_t j = 0; j < hidden_size; j += 8) {
+    size_t update_offset = i * total_component_inputs;
+    for (size_t j = 0; j < total_component_inputs; j += 8) {
       size_t base_offset = update_offset + j;
 
       __m256 inp = _mm256_load_ps(&input[j]);
 
-      __m256 upd0 = _mm256_load_ps(&recurrent_weight_gradients[base_offset]);
-      upd0 = _mm256_add_ps(upd0, _mm256_mul_ps(inp, error_vec0)); base_offset += hidden_size;
+      __m256 upd0 = _mm256_load_ps(&weight_gradients[base_offset]);
+      upd0 = _mm256_add_ps(upd0, _mm256_mul_ps(inp, error_vec0)); base_offset += total_component_inputs;
 
-      __m256 upd1 = _mm256_load_ps(&recurrent_weight_gradients[base_offset]);
-      upd1 = _mm256_add_ps(upd1, _mm256_mul_ps(inp, error_vec1)); base_offset += hidden_size;
+      __m256 upd1 = _mm256_load_ps(&weight_gradients[base_offset]);
+      upd1 = _mm256_add_ps(upd1, _mm256_mul_ps(inp, error_vec1)); base_offset += total_component_inputs;
 
-      __m256 upd2 = _mm256_load_ps(&recurrent_weight_gradients[base_offset]);
-      upd2 = _mm256_add_ps(upd2, _mm256_mul_ps(inp, error_vec2)); base_offset += hidden_size;
+      __m256 upd2 = _mm256_load_ps(&weight_gradients[base_offset]);
+      upd2 = _mm256_add_ps(upd2, _mm256_mul_ps(inp, error_vec2)); base_offset += total_component_inputs;
 
-      __m256 upd3 = _mm256_load_ps(&recurrent_weight_gradients[base_offset]);
+      __m256 upd3 = _mm256_load_ps(&weight_gradients[base_offset]);
       upd3 = _mm256_add_ps(upd3, _mm256_mul_ps(inp, error_vec3));
 
       base_offset = update_offset + j;
-      _mm256_store_ps(&recurrent_weight_gradients[base_offset], upd0); base_offset += hidden_size;
-      _mm256_store_ps(&recurrent_weight_gradients[base_offset], upd1); base_offset += hidden_size;
-      _mm256_store_ps(&recurrent_weight_gradients[base_offset], upd2); base_offset += hidden_size;
-      _mm256_store_ps(&recurrent_weight_gradients[base_offset], upd3);
+      _mm256_store_ps(&weight_gradients[base_offset], upd0); base_offset += total_component_inputs;
+      _mm256_store_ps(&weight_gradients[base_offset], upd1); base_offset += total_component_inputs;
+      _mm256_store_ps(&weight_gradients[base_offset], upd2); base_offset += total_component_inputs;
+      _mm256_store_ps(&weight_gradients[base_offset], upd3);
     }
   }
 }
@@ -428,7 +428,7 @@ void VectorFunctions_AVX2::MatvecThenSoftmax(
   float* output_weights,
   float* output,
   float* output_bias,
-  size_t const hidden_size_from_all_layers, // 200*2 = 400
+  size_t const all_layer_inputs, // 200*2 = 400
   size_t const vocabulary_size, // 256
   size_t const output_offset)
 {
@@ -436,8 +436,8 @@ void VectorFunctions_AVX2::MatvecThenSoftmax(
   for (size_t i = 0; i < vocabulary_size; i++) {  // 256 iterations
     logits[output_offset + i] = DotProduct(
       &hidden[0],
-      &output_weights[i * hidden_size_from_all_layers],
-      hidden_size_from_all_layers // 400
+      &output_weights[i * all_layer_inputs],
+      all_layer_inputs // 400
     ) + output_bias[i];
   }
 

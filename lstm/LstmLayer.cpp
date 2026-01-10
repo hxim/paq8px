@@ -13,53 +13,53 @@ float LstmLayer::Rand(float const range) {
 LstmLayer::LstmLayer(
   SIMDType simdType,
   float tuning_param,
+  size_t const layer_id,         // 0, 1
   size_t const vocabulary_size,  // 256
-  size_t const hidden_size,      // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
   size_t const num_cells,        // 200
   size_t const horizon,          // 100
   float const range)
   : simd(simdType)
   , cell_state(num_cells)                 // 200
   , cell_state_gradient(num_cells)        // 200
-  , temporal_hidden_gradient(num_cells)     // 200
+  , temporal_hidden_gradient(num_cells)   // 200
   , tanh_state(horizon * num_cells)       // 100 * 200 = 20,000
   , last_cell_state(horizon * num_cells)  // 100 * 200 = 20,000
-  , num_cells(num_cells)         // 200
-  , hidden_size(hidden_size)     // Layer 0: 200 (200*1), Layer 1: 400 (200*2) - hidden_size = num_cells * (layer_id > 0 ? 2 : 1)
+  , num_cells(num_cells)                  // 200
+  , total_component_inputs(layer_id > 0 ? 2 * num_cells : num_cells) // recurrent inputs only or recurrent inputs + hidden state from the previous layer
   , forget_gate(
     simdType,
     vocabulary_size,           // 256
-    hidden_size,               // Layer 0: 200, Layer 1: 400
+    total_component_inputs,    // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
     1.0f,                      // bias_init
     0.01f,                     // learningRate_symbol_embeddings
-    0.01f,                     // learningRate_resurrent_weights
+    0.01f,                     // learningRate_recurrent_weights
     0.01f                      // learningRate_rms
   )
   , cell_candidate(
     simdType,
     vocabulary_size,           // 256
-    hidden_size,               // Layer 0: 200, Layer 1: 400
+    total_component_inputs,    // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     true,                      // useTanh
     0.0f,                      // bias_init
     0.002f,                    // learningRate_symbol_embeddings
-    0.002f,                    // learningRate_resurrent_weights
+    0.002f,                    // learningRate_recurrent_weights
     0.002f                     // learningRate_rms
   )
   , output_gate(
     simdType,
     vocabulary_size,           // 256
-    hidden_size,               // Layer 0: 200, Layer 1: 400
+    total_component_inputs,    // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
     0.0f,                      // bias_init
     0.013f,                    // learningRate_symbol_embeddings
-    0.013f,                    // learningRate_resurrent_weights
+    0.013f,                    // learningRate_recurrent_weights
     0.013f                     // learningRate_rms
   )
 {
@@ -71,25 +71,25 @@ LstmLayer::LstmLayer(
   float* input_emb = &cell_candidate.symbol_embeddings[0];
   float* output_emb = &output_gate.symbol_embeddings[0];
 
-  float* forget_w = &forget_gate.recurrent_weights[0];
-  float* input_w = &cell_candidate.recurrent_weights[0];
-  float* output_w = &output_gate.recurrent_weights[0];
+  float* forget_w = &forget_gate.weights[0];
+  float* input_w = &cell_candidate.weights[0];
+  float* output_w = &output_gate.weights[0];
 
-  // Initialize embeddings
-  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    for (size_t j = 0; j < vocabulary_size; j++) {   // 256 iterations
+  // Initialize component embeddings
+  for (size_t i = 0; i < num_cells; i++) {            // 200 iterations
+    for (size_t j = 0; j < vocabulary_size; j++) {    // 256 iterations
       forget_emb[i * vocabulary_size + j] = Rand(range);
       input_emb[i * vocabulary_size + j] = Rand(range);
       output_emb[i * vocabulary_size + j] = Rand(range);
     }
   }
 
-  // Initialize hidden state recurrent_weights
-  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    for (size_t j = 0; j < hidden_size; j++) {      // Layer 0: 200, Layer 1: 400
-      forget_w[i * hidden_size + j] = Rand(range);
-      input_w[i * hidden_size + j] = Rand(range);
-      output_w[i * hidden_size + j] = Rand(range);
+  // Initialize component weights
+  for (size_t i = 0; i < num_cells; i++) {                      // 200 iterations
+    for (size_t j = 0; j < total_component_inputs; j++) {       // Layer 0: 200, Layer 1: 400
+      forget_w[i * total_component_inputs + j] = Rand(range);
+      input_w[i * total_component_inputs + j] = Rand(range);
+      output_w[i * total_component_inputs + j] = Rand(range);
     }
   }
 }

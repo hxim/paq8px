@@ -30,20 +30,24 @@ std::unique_ptr<Adam> CreateOptimizer(
 
 LstmComponent::LstmComponent(
   SIMDType simdType,
-  size_t vocabulary_size,  // 256 (vocabulary size)
-  size_t hidden_size,     // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
+  size_t vocabulary_size, // 256 (vocabulary size)
+  size_t total_component_inputs,        // 0, 1
   size_t num_cells,       // 200
   size_t horizon,         // 100
   bool useTanh,
   float bias_init,
   float learningRate_symbol_embeddings,
-  float learningRate_resurrent_weights,
+  float learningRate_recurrent_weights,
   float learningRate_rms)
   : simd(simdType)
+  , vocabulary_size(vocabulary_size)
+  , num_cells(num_cells)
+  , use_tanh(useTanh)
+  , total_component_inputs(total_component_inputs)
   , symbol_embeddings(num_cells * vocabulary_size)   // 200*256
   , symbol_embedding_gradients(num_cells * vocabulary_size) // 200*256
-  , recurrent_weights(num_cells * hidden_size)      // Layer 0: 200*200, Layer 1: 200*400
-  , recurrent_weight_gradients(num_cells * hidden_size) // Layer 0: 200*200, Layer 1: 200*400
+  , weights(num_cells * total_component_inputs)      // Layer 0: 200*200, Layer 1: 200*400
+  , weight_gradients(num_cells * total_component_inputs) // Layer 0: 200*200, Layer 1: 200*400
   , pre_norm_values(horizon * num_cells)            // 100*200
   , activations(horizon * num_cells)                // 100*200
   , inverse_variance(horizon)                       // 100
@@ -54,10 +58,6 @@ LstmComponent::LstmComponent(
   , bias(num_cells)                                 // 200
   , bias_gradients(num_cells)                       // 200
   , gate_gradient_buffer(num_cells)                 // 200
-  , vocabulary_size(vocabulary_size)
-  , hidden_size(hidden_size)
-  , num_cells(num_cells)
-  , use_tanh(useTanh)
 {
 
   VectorFunctions = CreateVectorFunctions(simd);
@@ -77,10 +77,10 @@ LstmComponent::LstmComponent(
   );
   recurrent_weights_optimizer = CreateOptimizer(
     simdType,
-    num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
-    &recurrent_weights[0],
-    &recurrent_weight_gradients[0],
-    learningRate_resurrent_weights
+    num_cells * total_component_inputs,// Layer 0: 200*200, Layer 1: 200*400
+    &weights[0],
+    &weight_gradients[0],
+    learningRate_recurrent_weights
   );
   gamma_optimizer = CreateOptimizer(
     simdType,
@@ -114,15 +114,15 @@ void LstmComponent::ForwardPass(
   float* activations_at_seq_pos = &activations[sequence_position * num_cells];      // sequence_position * 200
 
   const float* embed_ptr = &symbol_embeddings[input_symbol]; // Embedding lookup for this cell
-  const float* weight_ptr = &recurrent_weights[0];
+  const float* weight_ptr = &weights[0];
   const float* bias_ptr = &bias[0];
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     // Compute: embedding_value + bias_value + dot(input, hidden_weights)
-    pre_norm_values_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
+    pre_norm_values_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, total_component_inputs) + (*embed_ptr) + (*bias_ptr);
 
     embed_ptr += vocabulary_size; // + 256
-    weight_ptr += hidden_size;   // + (200 or 400)
+    weight_ptr += total_component_inputs;   // + (200 or 400)
     bias_ptr++;
   }
 
@@ -175,14 +175,14 @@ void LstmComponent::BackwardPass(
     gate_gradient_buffer[i] -= dop * pre_activation_at_seq_pos[i];
 
   // Layer backprop: backpropagate to previous layer's hidden state
-  // The first num_cells recurrent_weights are temporal connections, next num_cells are from previous layer
-  // recurrent_weights[i * hidden_size + j] where j >= num_cells connects to previous layer
+  // The first num_cells weights are temporal connections, next num_cells are from previous layer
+  // weights[i * total_component_inputs + j] where j >= num_cells connects to previous layer
   if (layer_id > 0) {
     VectorFunctions->BackpropagateErrors(
       num_cells,
       num_cells, // base_offset
-      hidden_size,
-      &recurrent_weights[0],
+      total_component_inputs,
+      &weights[0],
       &gate_gradient_buffer[0],
       hidden_gradient);
   }
@@ -190,13 +190,13 @@ void LstmComponent::BackwardPass(
   // Temporal backprop: backpropagate to previous seq_pos's hidden state
   // temporal_hidden_gradient is for the previous seq_pos (size: num_cells)
   // Output from the previous seq_pos feeds back as input to current cell
-  // recurrent_weights[i * hidden_size + j] where j < num_cells for temporal connections
+  // weights[i * total_component_inputs + j] where j < num_cells for temporal connections
   if (sequence_position > 0) {
     VectorFunctions->BackpropagateErrors(
       num_cells,
       0, // base_offset
-      hidden_size,
-      &recurrent_weights[0],
+      total_component_inputs,
+      &weights[0],
       &gate_gradient_buffer[0],
       temporal_hidden_gradient);
   }
@@ -204,11 +204,11 @@ void LstmComponent::BackwardPass(
   VectorFunctions->AccumulateLayerGradients(
     num_cells,
     vocabulary_size,
-    hidden_size,
+    total_component_inputs,
     layer_input_ptr,
     &gate_gradient_buffer[0],
     &symbol_embedding_gradients[input_symbol],
-    &recurrent_weight_gradients[0]
+    &weight_gradients[0]
   );
 }
 
@@ -232,7 +232,7 @@ void LstmComponent::Rescale(float scale) {
 void LstmComponent::SaveWeights(LoadSave& stream) {
   // Save learned parameters
   stream.WriteFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
-  stream.WriteFloatArray(&recurrent_weights[0], recurrent_weights.size());
+  stream.WriteFloatArray(&weights[0], weights.size());
   stream.WriteFloatArray(&bias[0], bias.size());
   stream.WriteFloatArray(&gamma[0], gamma.size());
   stream.WriteFloatArray(&beta[0], beta.size());
@@ -241,7 +241,7 @@ void LstmComponent::SaveWeights(LoadSave& stream) {
 void LstmComponent::LoadWeights(LoadSave& stream) {
   // Load learned parameters
   stream.ReadFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
-  stream.ReadFloatArray(&recurrent_weights[0], recurrent_weights.size());
+  stream.ReadFloatArray(&weights[0], weights.size());
   stream.ReadFloatArray(&bias[0], bias.size());
   stream.ReadFloatArray(&gamma[0], gamma.size());
   stream.ReadFloatArray(&beta[0], beta.size());
