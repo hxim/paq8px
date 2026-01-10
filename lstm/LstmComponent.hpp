@@ -11,7 +11,7 @@
 #include "VectorFunctions_AVX2.hpp"
 #endif
 
-#include "PolynomialDecay.hpp"
+#include "SqrtLearningRateDecay.hpp"
 #include "LoadSave.hpp"
 #include "../SIMDType.hpp"
 #include "../Array.hpp"

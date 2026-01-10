@@ -336,7 +336,7 @@
     <ClCompile Include="lstm\LstmLayer.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\PolynomialDecay.cpp">
+    <ClCompile Include="lstm\SqrtLearningRateDecay.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
     <ClCompile Include="lstm\Lstm.cpp">
@@ -704,7 +704,7 @@
     <ClInclude Include="lstm\LstmLayer.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\PolynomialDecay.hpp">
+    <ClInclude Include="lstm\SqrtLearningRateDecay.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\VectorFunctions.hpp">

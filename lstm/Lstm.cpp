@@ -30,11 +30,9 @@ Lstm::Lstm(
   , sequence_position(0)
   , training_iterations(1)
   , learning_rate_scheduler(
-    1.0f,        // learningRate
-    0.333333333f,// endLearningRate
-    0.0005f,     // decayMultiplier
-    1.0f / 2.0f, // decayExponent
-    0)           // decaySteps
+    1.0f,         // initial_lr
+    0.333333333f, // final_lr
+    0.0005f)      // decay_rate - it reaches the final_lr in ((1.0 / 0.333333)² - 1) / 0.0005 = (9 - 1) / 0.0005 = 16'000 iterations
 {
 
   VectorFunctions = CreateVectorFunctions(simd);
@@ -245,8 +243,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
       beta2 = 1.0f - 1.0f / n; // 0.0f .. 1.0f - 1.0f / 2047.5f 
     }
 
-    float lr_scale = 0.0;
-    learning_rate_scheduler.Apply(lr_scale, training_iterations);
+    float lr_scale = learning_rate_scheduler.GetLearningRate(training_iterations);
 
     for (size_t layer = 0; layer < num_layers; layer++) {
       layers[layer]->Optimize(lr_scale, beta2);
