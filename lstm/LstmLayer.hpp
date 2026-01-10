@@ -1,6 +1,6 @@
 ﻿#pragma once
 
-#include "LstmGate.hpp"
+#include "LstmComponent.hpp"
 #include "../Array.hpp"
 #include "../SIMDType.hpp"
 #include <vector>
@@ -22,9 +22,9 @@ private:
   const size_t hidden_size;
   const size_t num_cells;
 
-  LstmGate forget_gate;
-  LstmGate input_gate;
-  LstmGate output_gate;
+  LstmComponent forget_gate;
+  LstmComponent cell_candidate;
+  LstmComponent output_gate;
 
   static float Rand(float range);
 

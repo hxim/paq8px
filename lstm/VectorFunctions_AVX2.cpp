@@ -47,7 +47,7 @@ float VectorFunctions_AVX2::SumOfSquares(float* array, size_t array_length) {
 void VectorFunctions_AVX2::NormalizeThenActivate_Sigmoid(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -85,14 +85,14 @@ void VectorFunctions_AVX2::NormalizeThenActivate_Sigmoid(
     // sigmoid = 0.5 * (1 + tanh) = 0.5 + 0.5*tanh
     __m256 result = _mm256_add_ps(c_half, _mm256_mul_ps(c_half, tanh_val));
 
-    _mm256_store_ps(state + i, result);
+    _mm256_store_ps(activations_out + i, result);
   }
 }
 
 void VectorFunctions_AVX2::NormalizeThenActivate_Tanh(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -124,7 +124,7 @@ void VectorFunctions_AVX2::NormalizeThenActivate_Tanh(
     __m256 denom = _mm256_add_ps(c_27, _mm256_mul_ps(c_9, x2));
     __m256 result = _mm256_div_ps(numer, denom);
 
-    _mm256_store_ps(state + i, result);
+    _mm256_store_ps(activations_out + i, result);
   }
 }
 
@@ -183,9 +183,9 @@ void VectorFunctions_AVX2::AccumulateLstmLayerGradients(
   float* temporal_hidden_gradient,
   float* hidden_gradient,
   float* tanh_state,
-  float* forget_gate_outputs,
-  float* input_gate_outputs,
-  float* output_gate_outputs,
+  float* forget_gate_activations,
+  float* cell_candidate_activations,
+  float* output_gate_actications,
   float* input_gate_complement,
   float* output_gate_gradients,
   float* cell_state_gradient,
@@ -210,9 +210,9 @@ void VectorFunctions_AVX2::AccumulateLstmLayerGradients(
     // Load states from sequence_position offset
     const size_t idx = sequence_position_offset + i;
     __m256 tanh_v = _mm256_load_ps(&tanh_state[idx]);
-    __m256 forget = _mm256_load_ps(&forget_gate_outputs[idx]);
-    __m256 inputv = _mm256_load_ps(&input_gate_outputs[idx]);
-    __m256 output = _mm256_load_ps(&output_gate_outputs[idx]);
+    __m256 forget = _mm256_load_ps(&forget_gate_activations[idx]);
+    __m256 inputv = _mm256_load_ps(&cell_candidate_activations[idx]);
+    __m256 output = _mm256_load_ps(&output_gate_actications[idx]);
     __m256 input_gate = _mm256_load_ps(&input_gate_complement[idx]);
 
     // output_gate_gradients[i] = tanh_v * temporal_hidden_gradient[i] * output * (1.0f - output)

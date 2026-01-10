@@ -39,7 +39,7 @@ LstmLayer::LstmLayer(
     0.01f,                     // learningRate_resurrent_weights
     0.01f                      // learningRate_rms
   )
-  , input_gate(
+  , cell_candidate(
     simdType,
     vocabulary_size,           // 256
     hidden_size,               // Layer 0: 200, Layer 1: 400
@@ -69,11 +69,11 @@ LstmLayer::LstmLayer(
 
   // Set random weights for each gate
   float* forget_emb = &forget_gate.symbol_embeddings[0];
-  float* input_emb = &input_gate.symbol_embeddings[0];
+  float* input_emb = &cell_candidate.symbol_embeddings[0];
   float* output_emb = &output_gate.symbol_embeddings[0];
 
   float* forget_w = &forget_gate.recurrent_weights[0];
-  float* input_w = &input_gate.recurrent_weights[0];
+  float* input_w = &cell_candidate.recurrent_weights[0];
   float* output_w = &output_gate.recurrent_weights[0];
 
   // Initialize embeddings
@@ -104,9 +104,9 @@ void LstmLayer::ForwardPass(
 {
   const size_t seq_pos_offset = sequence_position * num_cells;            // sequence_position * 200
 
-  float* forget_gate_outputs = &forget_gate.gate_outputs[0];
-  float* input_gate_outputs = &input_gate.gate_outputs[0];
-  float* output_gate_outputs = &output_gate.gate_outputs[0];
+  float* forget_gate_activations = &forget_gate.activations[0];
+  float* cell_candidate_activations = &cell_candidate.activations[0];
+  float* output_activations = &output_gate.activations[0];
 
   // Copy current cell_state to last_cell_state for this sequence_position
   float* src = &cell_state[0];
@@ -114,24 +114,24 @@ void LstmLayer::ForwardPass(
   memcpy(dst, src, num_cells * sizeof(float));
 
   forget_gate.ForwardPass(input, input_symbol, sequence_position);
-  input_gate.ForwardPass(input, input_symbol, sequence_position);
+  cell_candidate.ForwardPass(input, input_symbol, sequence_position);
   output_gate.ForwardPass(input, input_symbol, sequence_position);
 
   for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
     const size_t idx = seq_pos_offset + i;         // sequence_position*200 + i
-    const float forget = forget_gate_outputs[idx];
-    const float inputv = input_gate_outputs[idx];
-    const float output = output_gate_outputs[idx];
+    const float forget_gate_i = forget_gate_activations[idx];
+    const float cell_candidate_i = cell_candidate_activations[idx];
+    const float output_gate_i = output_activations[idx];
 
-    const float input_gate_value = 1.0f - forget;
-    input_gate_complement[idx] = input_gate_value;
+    const float input_gate_i = 1.0f - forget_gate_i;
+    input_gate_complement[idx] = input_gate_i;
 
-    cell_state[i] = cell_state[i] * forget + inputv * input_gate_value;
+    cell_state[i] = cell_state[i] * forget_gate_i + cell_candidate_i * input_gate_i;
 
     const float t = tanh_pade_clipped(cell_state[i]);
     tanh_state[idx] = t;
 
-    hidden[i] = output * t;
+    hidden[i] = output_gate_i * t;
   }
 }
 
@@ -153,13 +153,13 @@ void LstmLayer::BackwardPass(
     &temporal_hidden_gradient[0],
     &hidden_gradient[0],
     &tanh_state[0],
-    &forget_gate.gate_outputs[0],
-    &input_gate.gate_outputs[0],
-    &output_gate.gate_outputs[0],
+    &forget_gate.activations[0],
+    &cell_candidate.activations[0],
+    &output_gate.activations[0],
     &input_gate_complement[0],
     &output_gate.gate_gradient_buffer[0],
     &cell_state_gradient[0], 
-    &input_gate.gate_gradient_buffer[0],
+    &cell_candidate.gate_gradient_buffer[0],
     &forget_gate.gate_gradient_buffer[0],
     &last_cell_state[0]
   );
@@ -171,7 +171,7 @@ void LstmLayer::BackwardPass(
     sequence_position,
     layer_id,
     input_symbol);
-  input_gate.BackwardPass(
+  cell_candidate.BackwardPass(
     layer_input_ptr,
     hidden_gradient,
     &temporal_hidden_gradient[0],
@@ -189,26 +189,26 @@ void LstmLayer::BackwardPass(
 
 void LstmLayer::Optimize(const float lr_scale, const float beta2) {
   forget_gate.Optimize(lr_scale, beta2);
-  input_gate.Optimize(lr_scale, beta2);
+  cell_candidate.Optimize(lr_scale, beta2);
   output_gate.Optimize(lr_scale, beta2);
 }
 
 void LstmLayer::Rescale(float scale) {
   forget_gate.Rescale(scale);
-  input_gate.Rescale(scale);
+  cell_candidate.Rescale(scale);
   output_gate.Rescale(scale);
 }
 
 void LstmLayer::SaveWeights(LoadSave& stream) {
   // Save weights for all three gates
   forget_gate.SaveWeights(stream);
-  input_gate.SaveWeights(stream);
+  cell_candidate.SaveWeights(stream);
   output_gate.SaveWeights(stream);
 }
 
 void LstmLayer::LoadWeights(LoadSave& stream) {
   // Load weights for all three gates
   forget_gate.LoadWeights(stream);
-  input_gate.LoadWeights(stream);
+  cell_candidate.LoadWeights(stream);
   output_gate.LoadWeights(stream);
 }

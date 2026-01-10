@@ -28,18 +28,18 @@ std::unique_ptr<Adam> CreateOptimizer(
   float base_lr
 );
 
-class LstmGate{
+class LstmComponent{
 public:
   SIMDType simd;
 
-  Array<float, 32> symbol_embeddings;             // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
-  Array<float, 32> symbol_embedding_gradients;   // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
+  Array<float, 32> symbol_embeddings;           // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
+  Array<float, 32> symbol_embedding_gradients;  // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
 
-  Array<float, 32> recurrent_weights;               // Flat: [num_cells * hidden_size] - hidden state recurrent_weights only
-  Array<float, 32> recurrent_weight_gradients;      // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> recurrent_weights;           // Flat: [num_cells * hidden_size] - hidden state recurrent_weights only
+  Array<float, 32> recurrent_weight_gradients;  // Flat: [num_cells * hidden_size] - hidden state gradients
 
-  Array<float, 32> pre_norm_values;        // Flat: [horizon * num_cells]
-  Array<float, 32> gate_outputs;          // Flat: [horizon * num_cells]
+  Array<float, 32> pre_norm_values;             // Flat: [horizon * num_cells]
+  Array<float, 32> activations;                 // Flat: [horizon * num_cells]
 
   Array<float, 32> inverse_variance;
 
@@ -68,7 +68,7 @@ public:
 
   bool use_tanh; // true for Tanh, false for Logistic
 
-  LstmGate(
+  LstmComponent(
     SIMDType simdType,
     size_t vocabulary_size,
     size_t hidden_size,

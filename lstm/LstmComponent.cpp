@@ -1,4 +1,4 @@
-﻿#include "LstmGate.hpp"
+﻿#include "LstmComponent.hpp"
 #include <cstring>
 
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
@@ -25,7 +25,10 @@ std::unique_ptr<Adam> CreateOptimizer(
     return std::make_unique<Adam_Scalar>(length, w, g, base_lr);
 }
 
-LstmGate::LstmGate(
+// LstmComponent: A learnable transformation unit that can function as either
+// a gate (sigmoid) or a value computer (tanh), e.g., forget gate or cell candidate.
+
+LstmComponent::LstmComponent(
   SIMDType simdType,
   size_t vocabulary_size,  // 256 (vocabulary size)
   size_t hidden_size,     // Layer 0: 200 (200*1), Layer 1: 400 (200*2)
@@ -42,7 +45,7 @@ LstmGate::LstmGate(
   , recurrent_weights(num_cells * hidden_size)      // Layer 0: 200*200, Layer 1: 200*400
   , recurrent_weight_gradients(num_cells * hidden_size) // Layer 0: 200*200, Layer 1: 200*400
   , pre_norm_values(horizon * num_cells)            // 100*200
-  , gate_outputs(horizon * num_cells)               // 100*200
+  , activations(horizon * num_cells)                // 100*200
   , inverse_variance(horizon)                       // 100
   , gamma(num_cells)                                // 200 (RMSNorm scale)
   , gamma_gradients(num_cells)                      // 200 (RMSNorm scale update)
@@ -102,13 +105,13 @@ LstmGate::LstmGate(
   );
 }
 
-void LstmGate::ForwardPass(
+void LstmComponent::ForwardPass(
   float* layer_input_ptr,
   uint8_t const input_symbol,
   size_t const sequence_position)
 {
-  float* pre_activation_at_seq_pos = &pre_norm_values[sequence_position * num_cells];   // sequence_position * 200
-  float* gate_outputs_at_seq_pos = &gate_outputs[sequence_position * num_cells];      // sequence_position * 200
+  float* pre_norm_values_at_seq_pos = &pre_norm_values[sequence_position * num_cells];   // sequence_position * 200
+  float* activations_at_seq_pos = &activations[sequence_position * num_cells];      // sequence_position * 200
 
   const float* embed_ptr = &symbol_embeddings[input_symbol]; // Embedding lookup for this cell
   const float* weight_ptr = &recurrent_weights[0];
@@ -116,14 +119,14 @@ void LstmGate::ForwardPass(
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
     // Compute: embedding_value + bias_value + dot(input, hidden_weights)
-    pre_activation_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
+    pre_norm_values_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, hidden_size) + (*embed_ptr) + (*bias_ptr);
 
     embed_ptr += vocabulary_size; // + 256
     weight_ptr += hidden_size;   // + (200 or 400)
     bias_ptr++;
   }
 
-  const float ss = VectorFunctions->SumOfSquares(pre_activation_at_seq_pos, num_cells);
+  const float ss = VectorFunctions->SumOfSquares(pre_norm_values_at_seq_pos, num_cells);
 
   const float inv_var = std::sqrt(num_cells / ss); // 1.f / sqrt(ss / 200)
   inverse_variance[sequence_position] = inv_var;
@@ -131,22 +134,22 @@ void LstmGate::ForwardPass(
   if (use_tanh)
     VectorFunctions->NormalizeThenActivate_Tanh(
       num_cells,
-      pre_activation_at_seq_pos,
-      gate_outputs_at_seq_pos,
+      pre_norm_values_at_seq_pos, // updated, normalized
+      activations_at_seq_pos,     // out
       &gamma[0],
       &beta[0],
       inv_var);
   else
     VectorFunctions->NormalizeThenActivate_Sigmoid(
       num_cells,
-      pre_activation_at_seq_pos,
-      gate_outputs_at_seq_pos,
+      pre_norm_values_at_seq_pos, // updated, normalized
+      activations_at_seq_pos,     // out
       &gamma[0],
       &beta[0],
       inv_var);
 }
 
-void LstmGate::BackwardPass(
+void LstmComponent::BackwardPass(
   float* layer_input_ptr,
   float* hidden_gradient,
   float* temporal_hidden_gradient,
@@ -209,7 +212,7 @@ void LstmGate::BackwardPass(
   );
 }
 
-void LstmGate::Optimize(const float lr_scale, const float beta2) {
+void LstmComponent::Optimize(const float lr_scale, const float beta2) {
   // Optimize all parameters
   symbol_embeddings_optimizer->Optimize(lr_scale, beta2);
   recurrent_weights_optimizer->Optimize(lr_scale, beta2);
@@ -218,7 +221,7 @@ void LstmGate::Optimize(const float lr_scale, const float beta2) {
   bias_optimizer->Optimize(lr_scale, beta2);
 }
 
-void LstmGate::Rescale(float scale) {
+void LstmComponent::Rescale(float scale) {
   symbol_embeddings_optimizer->Rescale(scale);
   recurrent_weights_optimizer->Rescale(scale);
   gamma_optimizer->Rescale(scale);
@@ -226,7 +229,7 @@ void LstmGate::Rescale(float scale) {
   bias_optimizer->Rescale(scale);
 }
 
-void LstmGate::SaveWeights(LoadSave& stream) {
+void LstmComponent::SaveWeights(LoadSave& stream) {
   // Save learned parameters
   stream.WriteFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
   stream.WriteFloatArray(&recurrent_weights[0], recurrent_weights.size());
@@ -235,7 +238,7 @@ void LstmGate::SaveWeights(LoadSave& stream) {
   stream.WriteFloatArray(&beta[0], beta.size());
 }
 
-void LstmGate::LoadWeights(LoadSave& stream) {
+void LstmComponent::LoadWeights(LoadSave& stream) {
   // Load learned parameters
   stream.ReadFloatArray(&symbol_embeddings[0], symbol_embeddings.size());
   stream.ReadFloatArray(&recurrent_weights[0], recurrent_weights.size());

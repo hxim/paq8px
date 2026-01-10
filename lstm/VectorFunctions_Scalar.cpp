@@ -143,7 +143,7 @@ float VectorFunctions_Scalar::SumOfSquares(float* array, size_t array_length)
 void VectorFunctions_Scalar::NormalizeThenActivate_Sigmoid(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -151,14 +151,14 @@ void VectorFunctions_Scalar::NormalizeThenActivate_Sigmoid(
   for (size_t i = 0; i < array_length; i++) {
     float n = pre_norm_values[i] * inverse_variance;
     pre_norm_values[i] = n;
-    state[i] = sigmoid_pade_clipped(n * gamma[i] + beta[i]);
+    activations_out[i] = sigmoid_pade_clipped(n * gamma[i] + beta[i]);
   }
 }
 
 void VectorFunctions_Scalar::NormalizeThenActivate_Tanh(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -166,7 +166,7 @@ void VectorFunctions_Scalar::NormalizeThenActivate_Tanh(
   for (size_t i = 0; i < array_length; i++) {
     float n = pre_norm_values[i] * inverse_variance;
     pre_norm_values[i] = n;
-    state[i] = tanh_pade_clipped(n * gamma[i] + beta[i]);
+    activations_out[i] = tanh_pade_clipped(n * gamma[i] + beta[i]);
   }
 }
 
@@ -195,9 +195,9 @@ void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
   float* temporal_hidden_gradient,
   float* hidden_gradient,
   float* tanh_state,
-  float* forget_gate_outputs,
-  float* input_gate_outputs,
-  float* output_gate_outputs,
+  float* forget_gate_activations,
+  float* cell_candidate_activations,
+  float* output_gate_actications,
   float* input_gate_complement,
   float* output_gate_gradients,
   float* cell_state_gradient,
@@ -211,9 +211,9 @@ void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
 
     const size_t idx = sequence_position_offset + i;         // sequence_position*200 + i
     const float tanh_v = tanh_state[idx];
-    const float forget = forget_gate_outputs[idx];
-    const float inputv = input_gate_outputs[idx];
-    const float output = output_gate_outputs[idx];
+    const float forget = forget_gate_activations[idx];
+    const float inputv = cell_candidate_activations[idx];
+    const float output = output_gate_actications[idx];
     const float input_gate = input_gate_complement[idx];
 
     output_gate_gradients[i] =

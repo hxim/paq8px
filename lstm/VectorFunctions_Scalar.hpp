@@ -18,7 +18,7 @@ class VectorFunctions_Scalar : public VectorFunctions
   virtual void NormalizeThenActivate_Sigmoid(
     size_t array_length,
     float* pre_norm_values,
-    float* state,
+    float* activations_out,
     float* gamma,
     float* beta,
     float inverse_variance
@@ -27,7 +27,7 @@ class VectorFunctions_Scalar : public VectorFunctions
   virtual void NormalizeThenActivate_Tanh(
     size_t array_length,
     float* pre_norm_values,
-    float* state,
+    float* activations_out,
     float* gamma,
     float* beta,
     float inverse_variance
@@ -49,9 +49,9 @@ class VectorFunctions_Scalar : public VectorFunctions
     float* temporal_hidden_gradient,
     float* hidden_gradient,
     float* tanh_state,
-    float* forget_gate_outputs,
-    float* input_gate_outputs,
-    float* output_gate_outputs,
+    float* forget_gate_activations,
+    float* cell_candidate_activations,
+    float* output_gate_actications,
     float* input_gate_complement,
     float* output_gate_gradients,
     float* cell_state_gradient,

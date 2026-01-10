@@ -330,7 +330,7 @@
     <ClCompile Include="lstm\Adam.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
-    <ClCompile Include="lstm\LstmGate.cpp">
+    <ClCompile Include="lstm\LstmComponent.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
     <ClCompile Include="lstm\LstmLayer.cpp">
@@ -695,7 +695,7 @@
     <ClInclude Include="lstm\Adam.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\LstmGate.hpp">
+    <ClInclude Include="lstm\LstmComponent.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\Lstm.hpp">

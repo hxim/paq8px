@@ -57,7 +57,7 @@ float VectorFunctions_SSE2::SumOfSquares(float* array, size_t array_length)
 void VectorFunctions_SSE2::NormalizeThenActivate_Sigmoid(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -95,14 +95,14 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Sigmoid(
     // sigmoid = 0.5 * (1 + tanh) = 0.5 + 0.5*tanh
     __m128 result = _mm_add_ps(c_half, _mm_mul_ps(c_half, tanh_val));
 
-    _mm_store_ps(state + i, result);
+    _mm_store_ps(activations_out + i, result);
   }
 }
 
 void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
   size_t array_length,
   float* pre_norm_values,
-  float* state,
+  float* activations_out,
   float* gamma,
   float* beta,
   float inverse_variance)
@@ -134,7 +134,7 @@ void VectorFunctions_SSE2::NormalizeThenActivate_Tanh(
     __m128 denom = _mm_add_ps(c_27, _mm_mul_ps(c_9, x2));
     __m128 result = _mm_div_ps(numer, denom);
 
-    _mm_store_ps(state + i, result);
+    _mm_store_ps(activations_out + i, result);
   }
 }
 
@@ -185,9 +185,9 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
   float* temporal_hidden_gradient,
   float* hidden_gradient,
   float* tanh_state,
-  float* forget_gate_outputs,
-  float* input_gate_outputs,
-  float* output_gate_outputs,
+  float* forget_gate_activations,
+  float* cell_candidate_activations,
+  float* output_gate_actications,
   float* input_gate_complement,
   float* output_gate_gradients,
   float* cell_state_gradient,
@@ -212,9 +212,9 @@ void VectorFunctions_SSE2::AccumulateLstmLayerGradients(
     // Load states from sequence_position offset
     const size_t idx = sequence_position_offset + i;
     __m128 tanh_v = _mm_load_ps(&tanh_state[idx]);
-    __m128 forget = _mm_load_ps(&forget_gate_outputs[idx]);
-    __m128 inputv = _mm_load_ps(&input_gate_outputs[idx]);
-    __m128 output = _mm_load_ps(&output_gate_outputs[idx]);
+    __m128 forget = _mm_load_ps(&forget_gate_activations[idx]);
+    __m128 inputv = _mm_load_ps(&cell_candidate_activations[idx]);
+    __m128 output = _mm_load_ps(&output_gate_actications[idx]);
     __m128 input_gate = _mm_load_ps(&input_gate_complement[idx]);
 
     // output_gate_gradients[i] = tanh_v * temporal_hidden_gradient[i] * output * (1.0f - output)
