@@ -5,16 +5,13 @@
 
 #pragma GCC target("avx")
 
-void Adam_AVX::Optimize(float lr_scale, uint64_t training_iterations)
+void Adam_AVX::Optimize(float lr_scale, float beta2)
 {
   __m256 const zero_vec = _mm256_setzero_ps();
   __m256 const vec_beta2 = _mm256_set1_ps(beta2);
-  __m256 const vec_eps = _mm256_set1_ps(eps);
+  __m256 const vec_eps = _mm256_set1_ps(1e-6);
   __m256 const vec_beta2_complement = _mm256_set1_ps(1.f - beta2);
 
-  double const t = static_cast<double>(training_iterations);
-  float const bias_v = 1.f - static_cast<float>(std::pow(beta2, t));
-  __m256 const vec_bias_v = _mm256_set1_ps(bias_v);
   __m256 const vec_lr = _mm256_set1_ps(base_lr * lr_scale);
 
   for (size_t i = 0; i < length; i += 8) {
@@ -28,9 +25,8 @@ void Adam_AVX::Optimize(float lr_scale, uint64_t training_iterations)
     vec_vi = _mm256_add_ps(vec_vi, vec_term);
     _mm256_store_ps(&v[i], vec_vi);
 
-    // scaled_gradient = g / (sqrt(v / bias_v) + eps)
-    __m256 vec_v_corrected = _mm256_div_ps(vec_vi, vec_bias_v);
-    __m256 vec_sqrt = _mm256_sqrt_ps(vec_v_corrected);
+    // scaled_gradient = g / (sqrt(v) + eps)
+    __m256 vec_sqrt = _mm256_sqrt_ps(vec_vi);
     __m256 vec_denom = _mm256_add_ps(vec_sqrt, vec_eps);
     __m256 vec_scaled_grad = _mm256_div_ps(vec_gi, vec_denom);
     _mm256_store_ps(&g[i], zero_vec);

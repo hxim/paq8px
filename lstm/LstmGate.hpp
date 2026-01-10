@@ -25,9 +25,7 @@ std::unique_ptr<Adam> CreateOptimizer(
   size_t length,
   float* w,
   float* g,
-  float base_lr,
-  float beta2Value,
-  float epsilon
+  float base_lr
 );
 
 class LstmGate{
@@ -68,8 +66,6 @@ public:
   std::unique_ptr<Adam> gamma_optimizer;
   std::unique_ptr<Adam> beta_optimizer;
 
-  PolynomialDecay learning_rate_scheduler;
-
   bool use_tanh; // true for Tanh, false for Logistic
 
   LstmGate(
@@ -80,15 +76,9 @@ public:
     size_t horizon,
     bool useTanh,
     float bias_init,
-    float beta2,
-    float epsilon,
     float learningRate_symbol_embeddings,
     float learningRate_resurrent_weights,
-    float learningRate_rms,
-    float endLearningRate,
-    float decayMultiplier,
-    float decayExponent,
-    uint64_t decaySteps
+    float learningRate_rms
   );
 
   void ForwardPass(
@@ -106,7 +96,7 @@ public:
     uint8_t const input_symbol
   );
 
-  void Optimize(uint64_t const training_iterations);
+  void Optimize(const float lr_scale, const float beta2);
 
   void Rescale(float scale);
 

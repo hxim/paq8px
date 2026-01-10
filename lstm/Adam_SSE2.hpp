@@ -7,12 +7,12 @@
 class Adam_SSE2 : public Adam
 {
 public:
-  Adam_SSE2(size_t length, float* w, float* g, float base_lr, float beta2Value, float epsilon) :
-    Adam(length, w, g, base_lr, beta2Value, epsilon)
+  Adam_SSE2(size_t length, float* w, float* g, float base_lr) :
+    Adam(length, w, g, base_lr)
   {
   }
 
-  virtual void Optimize(float learning_rate, uint64_t training_iterations) override;
+  virtual void Optimize(float learning_rate, float beta2) override;
 
   virtual void Rescale(float scale) override;
 };

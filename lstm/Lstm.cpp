@@ -44,18 +44,14 @@ Lstm::Lstm(
     shape.vocabulary_size * (shape.num_cells * shape.num_layers), // 256 * 400
     &output_weights[0],
     &output_weight_gradients[0],
-    0.018f,   // base_lr
-    0.9995f,  // beta2
-    1e-6f     // epsilon
+    0.018f   // base_lr
   );
   output_bias_optimizer = CreateOptimizer(
     simdType,
     shape.vocabulary_size,
     &output_bias[0],
     &output_bias_gradients[0],
-    0.018f,
-    0.9995f,
-    1e-6f
+    0.018f
   );
 
 
@@ -240,14 +236,25 @@ void Lstm::Perceive(const uint8_t target_symbol) {
       }
     }
 
-    for (size_t layer = 0; layer < num_layers; layer++) {
-      layers[layer]->Optimize(training_iterations);
-    }
+    constexpr float max_beta2 = 1.0f - 1.0f / 2048.0f;
+    float beta2;
+    if (training_iterations >= 4095)
+      beta2 = max_beta2;
+    else {
+      // Forget the initial high gradients, i.e. adapt to a stable (more typical) second moment
+      float n = ((training_iterations - 1) / 2.0f) + 1; // 1 .. 2047.5
+      beta2 = 1.0f - 1.0f / n; // 1.0f  down to  1.0f - 1.0f / 2047.5f 
+    };
 
     float lr_scale = 0.0;
     learning_rate_scheduler.Apply(lr_scale, training_iterations);
-    output_weights_optimizer->Optimize(lr_scale, training_iterations);
-    output_bias_optimizer->Optimize(lr_scale, training_iterations);
+
+    for (size_t layer = 0; layer < num_layers; layer++) {
+      layers[layer]->Optimize(lr_scale, beta2);
+    }
+
+    output_weights_optimizer->Optimize(lr_scale, beta2);
+    output_bias_optimizer->Optimize(lr_scale, beta2);
 
     training_iterations++;
     sequence_position = 0;

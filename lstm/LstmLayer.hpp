@@ -54,7 +54,7 @@ public:
     uint8_t const input_symbol,
     float* hidden_gradient);
 
-  void Optimize(uint64_t const training_iterations);
+  void Optimize(const float lr_scale, const float beta2);
 
   void Rescale(float scale);
 

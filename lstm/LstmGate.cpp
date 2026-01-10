@@ -15,16 +15,14 @@ std::unique_ptr<Adam> CreateOptimizer(
   size_t length,
   float* w,
   float* g,
-  float base_lr,
-  float beta2Value,
-  float epsilon)
+  float base_lr)
 {
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
-    return std::make_unique<Adam_AVX>(length, w, g, base_lr, beta2Value, epsilon);
+    return std::make_unique<Adam_AVX>(length, w, g, base_lr);
   else if (simd == SIMDType::SIMD_SSE2)
-    return std::make_unique<Adam_SSE2>(length, w, g, base_lr, beta2Value, epsilon);
+    return std::make_unique<Adam_SSE2>(length, w, g, base_lr);
   else
-    return std::make_unique<Adam_Scalar>(length, w, g, base_lr, beta2Value, epsilon);
+    return std::make_unique<Adam_Scalar>(length, w, g, base_lr);
 }
 
 LstmGate::LstmGate(
@@ -35,15 +33,9 @@ LstmGate::LstmGate(
   size_t horizon,         // 100
   bool useTanh,
   float bias_init,
-  float beta2,
-  float epsilon,
   float learningRate_symbol_embeddings,
   float learningRate_resurrent_weights,
-  float learningRate_rms,
-  float endLearningRate,
-  float decayMultiplier,
-  float decayExponent,
-  uint64_t decaySteps)
+  float learningRate_rms)
   : simd(simdType)
   , symbol_embeddings(num_cells * vocabulary_size)   // 200*256
   , symbol_embedding_gradients(num_cells * vocabulary_size) // 200*256
@@ -62,7 +54,6 @@ LstmGate::LstmGate(
   , vocabulary_size(vocabulary_size)
   , hidden_size(hidden_size)
   , num_cells(num_cells)
-  , learning_rate_scheduler(1.0f, endLearningRate, decayMultiplier, decayExponent, decaySteps)
   , use_tanh(useTanh)
 {
 
@@ -79,45 +70,35 @@ LstmGate::LstmGate(
     num_cells * vocabulary_size,       // 200*256 = symbol_embeddings parameters
     &symbol_embeddings[0],
     &symbol_embedding_gradients[0],
-    learningRate_symbol_embeddings,
-    beta2,
-    epsilon
+    learningRate_symbol_embeddings
   );
   recurrent_weights_optimizer = CreateOptimizer(
     simdType,
     num_cells * hidden_size,          // Layer 0: 200*200, Layer 1: 200*400
     &recurrent_weights[0],
     &recurrent_weight_gradients[0],
-    learningRate_resurrent_weights,
-    beta2,
-    epsilon
+    learningRate_resurrent_weights
   );
   gamma_optimizer = CreateOptimizer(
     simdType,
     num_cells,                        // 200 (RMS scale)
     &gamma[0],
     &gamma_gradients[0],
-    learningRate_rms,
-    beta2,
-    epsilon
+    learningRate_rms
   );
   beta_optimizer = CreateOptimizer(
     simdType,
     num_cells,                        // 200 (RMSNorm bias)
     &beta[0],
     &beta_gradients[0],
-    learningRate_rms,
-    beta2,
-    epsilon
+    learningRate_rms
   );
   bias_optimizer = CreateOptimizer(
     simdType,
     num_cells,                        // 200 (bias)
     &bias[0],
     &bias_gradients[0],
-    learningRate_rms,
-    beta2,
-    epsilon
+    learningRate_rms
   );
 }
 
@@ -228,17 +209,13 @@ void LstmGate::BackwardPass(
   );
 }
 
-void LstmGate::Optimize(uint64_t const training_iterations) {
-  // Apply learning rate decay
-  float lr_scale = 0.0f;
-  learning_rate_scheduler.Apply(lr_scale, training_iterations);
-
+void LstmGate::Optimize(const float lr_scale, const float beta2) {
   // Optimize all parameters
-  symbol_embeddings_optimizer->Optimize(lr_scale, training_iterations);
-  recurrent_weights_optimizer->Optimize(lr_scale, training_iterations);
-  gamma_optimizer->Optimize(lr_scale, training_iterations);
-  beta_optimizer->Optimize(lr_scale, training_iterations);
-  bias_optimizer->Optimize(lr_scale, training_iterations);
+  symbol_embeddings_optimizer->Optimize(lr_scale, beta2);
+  recurrent_weights_optimizer->Optimize(lr_scale, beta2);
+  gamma_optimizer->Optimize(lr_scale, beta2);
+  beta_optimizer->Optimize(lr_scale, beta2);
+  bias_optimizer->Optimize(lr_scale, beta2);
 }
 
 void LstmGate::Rescale(float scale) {

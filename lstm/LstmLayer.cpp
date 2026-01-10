@@ -35,49 +35,34 @@ LstmLayer::LstmLayer(
     horizon,                   // 100
     false,                     // useTanh
     1.0f,                      // bias_init
-    0.9995f,                   // beta2
-    1e-6f,                     // epsilon
-    0.01f,                    // learningRate_symbol_embeddings
-    0.01f,                    // learningRate_resurrent_weights
-    0.01f,                    // learningRate_rms
-    1.0f / 7.0f,               // endLearningRate
-    0.0005f,                   // decayMultiplier
-    1.0f / 2.0f,               // decayExponent
-    0)                         // decaySteps
+    0.01f,                     // learningRate_symbol_embeddings
+    0.01f,                     // learningRate_resurrent_weights
+    0.01f                      // learningRate_rms
+  )
   , input_gate(
     simdType,
-    vocabulary_size,            // 256
+    vocabulary_size,           // 256
     hidden_size,               // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     true,                      // useTanh
     0.0f,                      // bias_init
-    0.9995f,                   // beta2
-    1e-6f,                     // epsilon
     0.002f,                    // learningRate_symbol_embeddings
     0.002f,                    // learningRate_resurrent_weights
-    0.002f,                    // learningRate_rms
-    1.0f / 7.0f,               // endLearningRate
-    0.0005f,                   // decayMultiplier
-    1.0f / 2.0f,               // decayExponent
-    0)                         // decaySteps
+    0.002f                     // learningRate_rms
+  )
   , output_gate(
     simdType,
-    vocabulary_size,            // 256
+    vocabulary_size,           // 256
     hidden_size,               // Layer 0: 200, Layer 1: 400
     num_cells,                 // 200
     horizon,                   // 100
     false,                     // useTanh
     0.0f,                      // bias_init
-    0.9995f,                   // beta2
-    1e-6f,                     // epsilon
     0.013f,                    // learningRate_symbol_embeddings
     0.013f,                    // learningRate_resurrent_weights
-    0.013f,                    // learningRate_rms
-    1.0f / 7.0f,               // endLearningRate
-    0.0005f,                   // decayMultiplier
-    1.0f / 2.0f,               // decayExponent
-    0)                         // decaySteps
+    0.013f                     // learningRate_rms
+  )
 {
 
   VectorFunctions = CreateVectorFunctions(simd);
@@ -202,10 +187,10 @@ void LstmLayer::BackwardPass(
     input_symbol);
 }
 
-void LstmLayer::Optimize(uint64_t const training_iterations) {
-  forget_gate.Optimize(training_iterations);
-  input_gate.Optimize(training_iterations);
-  output_gate.Optimize(training_iterations);
+void LstmLayer::Optimize(const float lr_scale, const float beta2) {
+  forget_gate.Optimize(lr_scale, beta2);
+  input_gate.Optimize(lr_scale, beta2);
+  output_gate.Optimize(lr_scale, beta2);
 }
 
 void LstmLayer::Rescale(float scale) {
