@@ -34,6 +34,7 @@ Lstm::Lstm(
     0.333333333f, // final_lr
     0.0005f)      // decay_rate - it reaches the final_lr in ((1.0 / 0.333333)² - 1) / 0.0005 = (9 - 1) / 0.0005 = 16'000 iterations
 {
+  assert((num_cells & 7) == 0); // num_cells must be a power of 8
 
   VectorFunctions = CreateVectorFunctions(simd);
 

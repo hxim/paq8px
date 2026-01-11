@@ -7,9 +7,9 @@
 
 void Adam_AVX::Optimize(float lr_scale, float beta2)
 {
-  __m256 const zero_vec = _mm256_setzero_ps();
+  __m256 const vec_zero = _mm256_setzero_ps();
   __m256 const vec_beta2 = _mm256_set1_ps(beta2);
-  __m256 const vec_eps = _mm256_set1_ps(1e-6);
+  __m256 const vec_eps = _mm256_set1_ps(eps);
   __m256 const vec_beta2_complement = _mm256_set1_ps(1.f - beta2);
 
   __m256 const vec_lr = _mm256_set1_ps(base_lr * lr_scale);
@@ -17,7 +17,7 @@ void Adam_AVX::Optimize(float lr_scale, float beta2)
   for (size_t i = 0; i < length; i += 8) {
     __m256 vec_gi = _mm256_load_ps(&g[i]);
     __m256 vec_vi = _mm256_load_ps(&v[i]);
-    
+
     // v = beta2 * v + (1 - beta2) * g^2
     vec_vi = _mm256_mul_ps(vec_vi, vec_beta2);
     __m256 vec_gi_sq = _mm256_mul_ps(vec_gi, vec_gi);
@@ -29,7 +29,7 @@ void Adam_AVX::Optimize(float lr_scale, float beta2)
     __m256 vec_sqrt = _mm256_sqrt_ps(vec_vi);
     __m256 vec_denom = _mm256_add_ps(vec_sqrt, vec_eps);
     __m256 vec_scaled_grad = _mm256_div_ps(vec_gi, vec_denom);
-    _mm256_store_ps(&g[i], zero_vec);
+    _mm256_store_ps(&g[i], vec_zero);
 
     // w = w - lr * scaled_gradient
     __m256 vec_wi = _mm256_load_ps(&w[i]);

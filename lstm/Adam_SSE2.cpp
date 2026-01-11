@@ -7,9 +7,9 @@
 
 void Adam_SSE2::Optimize(float lr_scale, float beta2)
 {
-  __m128 const zero_vec = _mm_setzero_ps();
+  __m128 const vec_zero = _mm_setzero_ps();
   __m128 const vec_beta2 = _mm_set1_ps(beta2);
-  __m128 const vec_eps = _mm_set1_ps(1e-6);
+  __m128 const vec_eps = _mm_set1_ps(eps);
   __m128 const vec_beta2_complement = _mm_set1_ps(1.f - beta2);
 
   __m128 const vec_lr = _mm_set1_ps(base_lr * lr_scale);
@@ -29,7 +29,7 @@ void Adam_SSE2::Optimize(float lr_scale, float beta2)
     __m128 vec_sqrt = _mm_sqrt_ps(vec_vi);
     __m128 vec_denom = _mm_add_ps(vec_sqrt, vec_eps);
     __m128 vec_scaled_grad = _mm_div_ps(vec_gi, vec_denom);
-    _mm_store_ps(&g[i], zero_vec);
+    _mm_store_ps(&g[i], vec_zero);
 
     // w = w - lr * scaled_gradient
     __m128 vec_wi = _mm_load_ps(&w[i]);

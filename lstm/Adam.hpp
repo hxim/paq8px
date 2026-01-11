@@ -12,6 +12,8 @@ protected:
   Array<float, 32> v;
   float base_lr;
 
+  const float eps = 1e-6f; // ~ 1.0f / 1048576.0f
+
 public:
   Adam(size_t length, float* w, float* g, float base_lr);
   ~Adam() = default;
