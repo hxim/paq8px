@@ -29,7 +29,7 @@ void LstmModelContainer::next() {
     uint8_t const c1 = shared->State.c1;
     probs = const_cast<float*>(lstm.Predict(c1));
     byteModelToBitModel.CalculateByteProbabilities(probs, alphabetSize);
-    expectedByte = byteModelToBitModel.GetExpectedByte(probs, alphabetSize);
+    expectedByte = (uint8_t)byteModelToBitModel.GetExpectedByte(probs, alphabetSize);
   }
 }
 

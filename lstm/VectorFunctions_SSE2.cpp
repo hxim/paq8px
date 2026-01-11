@@ -1,8 +1,10 @@
-﻿#pragma GCC target("sse2")
-
-#include "VectorFunctions_SSE2.hpp"
+﻿#include "VectorFunctions_SSE2.hpp"
 
 #ifdef X64_SIMD_AVAILABLE
+
+#if (defined(__GNUC__) || defined(__clang__))
+#pragma GCC target("sse2")
+#endif
 
 // Static helper functions
 

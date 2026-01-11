@@ -7,8 +7,7 @@ Lstm::Lstm(
   SIMDType simdType,
   LstmShape shape,
   float tuning_param)
-  : simd(simdType)
-  , tuning_param(tuning_param)
+  : tuning_param(tuning_param)
   // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
   , all_layer_inputs(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
   , output_weights(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
@@ -36,7 +35,7 @@ Lstm::Lstm(
 {
   assert((num_cells & 7) == 0); // num_cells must be a power of 8
 
-  VectorFunctions = CreateVectorFunctions(simd);
+  VectorFunctions = CreateVectorFunctions(simdType);
 
   output_weights_optimizer = CreateOptimizer(
     simdType,

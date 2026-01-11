@@ -22,7 +22,6 @@ struct LstmShape {
 
 class Lstm {
 private:
-  SIMDType simd;
   std::unique_ptr<VectorFunctions> VectorFunctions;
 
   std::vector<std::unique_ptr<LstmLayer>> layers;

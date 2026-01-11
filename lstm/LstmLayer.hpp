@@ -8,7 +8,6 @@
 
 class LstmLayer {
 private:
-  const SIMDType simd;
   std::unique_ptr<VectorFunctions> VectorFunctions;
 
   Array<float, 32> cell_state;

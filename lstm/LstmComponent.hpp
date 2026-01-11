@@ -33,8 +33,6 @@ std::unique_ptr<Adam> CreateOptimizer(
 
 class LstmComponent{
 public:
-  SIMDType simd;
-
   Array<float, 32> symbol_embeddings;           // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
   Array<float, 32> symbol_embedding_gradients;  // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
 

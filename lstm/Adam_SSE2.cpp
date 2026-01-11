@@ -3,7 +3,9 @@
 
 #ifdef X64_SIMD_AVAILABLE
 
+#if (defined(__GNUC__) || defined(__clang__))
 #pragma GCC target("sse2")
+#endif
 
 void Adam_SSE2::Optimize(float lr_scale, float beta2)
 {

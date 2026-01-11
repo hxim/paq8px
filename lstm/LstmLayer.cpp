@@ -13,8 +13,7 @@ LstmLayer::LstmLayer(
   size_t const vocabulary_size,  // 256
   size_t const num_cells,        // 200
   size_t const horizon)          // 100
-  : simd(simdType)
-  , cell_state(num_cells)                 // 200
+  : cell_state(num_cells)                 // 200
   , cell_state_gradient(num_cells)        // 200
   , temporal_hidden_gradient(num_cells)   // 200
   , tanh_state(horizon * num_cells)       // 100 * 200 = 20,000
@@ -59,7 +58,7 @@ LstmLayer::LstmLayer(
   )
 {
 
-  VectorFunctions = CreateVectorFunctions(simd);
+  VectorFunctions = CreateVectorFunctions(simdType);
 
   // Initialize embedding matrices with random weights in each component
   // All other weights (recurrent, from previous layer, biases) are left as zeroes
@@ -69,7 +68,7 @@ LstmLayer::LstmLayer(
   float* output_emb = &output_gate.symbol_embeddings[0];
 
   float fan_in = 1.0f;
-  float fan_out = num_cells;  // 200
+  float fan_out = (float)num_cells;  // 200
   float range = 2.0f * std::sqrt(6.0f / (fan_in + fan_out)); // ~ 0.345; for uniform [-0.5, 0.5]
 
   // Initialize component embeddings

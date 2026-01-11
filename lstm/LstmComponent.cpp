@@ -34,37 +34,36 @@ std::unique_ptr<Adam> CreateOptimizer(
 
 LstmComponent::LstmComponent(
   SIMDType simdType,
-  size_t vocabulary_size, // 256 (vocabulary size)
-  size_t total_component_inputs,        // 0, 1
-  size_t num_cells,       // 200
-  size_t horizon,         // 100
+  size_t vocabulary_size,         // 256 (vocabulary size)
+  size_t total_component_inputs,  // 0, 1
+  size_t num_cells,               // 200
+  size_t horizon,                 // 100
   bool useTanh,
   float bias_init,
   float learningRate_symbol_embeddings,
   float learningRate_recurrent_weights,
   float learningRate_rms)
-  : simd(simdType)
-  , vocabulary_size(vocabulary_size)
+  : vocabulary_size(vocabulary_size)
   , num_cells(num_cells)
   , use_tanh(useTanh)
   , total_component_inputs(total_component_inputs)
-  , symbol_embeddings(num_cells * vocabulary_size)   // 200*256
+  , symbol_embeddings(num_cells * vocabulary_size)          // 200*256
   , symbol_embedding_gradients(num_cells * vocabulary_size) // 200*256
-  , weights(num_cells * total_component_inputs)      // Layer 0: 200*200, Layer 1: 200*400
-  , weight_gradients(num_cells * total_component_inputs) // Layer 0: 200*200, Layer 1: 200*400
-  , pre_norm_values(horizon * num_cells)            // 100*200
-  , activations(horizon * num_cells)                // 100*200
-  , inverse_variance(horizon)                       // 100
-  , gamma(num_cells)                                // 200 (RMSNorm scale)
-  , gamma_gradients(num_cells)                      // 200 (RMSNorm scale update)
-  , beta(num_cells)                                 // 200 (RMSNorm bias)
-  , beta_gradients(num_cells)                       // 200 (RMSNorm bias update)
-  , bias(num_cells)                                 // 200
-  , bias_gradients(num_cells)                       // 200
-  , gate_gradient_buffer(num_cells)                 // 200
+  , weights(num_cells * total_component_inputs)             // Layer 0: 200*200, Layer 1: 200*400
+  , weight_gradients(num_cells * total_component_inputs)    // Layer 0: 200*200, Layer 1: 200*400
+  , pre_norm_values(horizon * num_cells)                    // 100*200
+  , activations(horizon * num_cells)                        // 100*200
+  , inverse_variance(horizon)                               // 100
+  , gamma(num_cells)                                        // 200 (RMSNorm scale)
+  , gamma_gradients(num_cells)                              // 200 (RMSNorm scale update)
+  , beta(num_cells)                                         // 200 (RMSNorm bias)
+  , beta_gradients(num_cells)                               // 200 (RMSNorm bias update)
+  , bias(num_cells)                                         // 200
+  , bias_gradients(num_cells)                               // 200
+  , gate_gradient_buffer(num_cells)                         // 200
 {
 
-  VectorFunctions = CreateVectorFunctions(simd);
+  VectorFunctions = CreateVectorFunctions(simdType);
 
   // Initialize RMS gamma and weight bias
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
@@ -114,15 +113,15 @@ void LstmComponent::ForwardPass(
   uint8_t const input_symbol,
   size_t const sequence_position)
 {
-  float* pre_norm_values_at_seq_pos = &pre_norm_values[sequence_position * num_cells];   // sequence_position * 200
-  float* activations_at_seq_pos = &activations[sequence_position * num_cells];      // sequence_position * 200
+  float* pre_norm_values_at_seq_pos = &pre_norm_values[sequence_position * num_cells];    // sequence_position * 200
+  float* activations_at_seq_pos = &activations[sequence_position * num_cells];            // sequence_position * 200
 
   const float* embed_ptr = &symbol_embeddings[input_symbol]; // Embedding lookup for this cell
   const float* weight_ptr = &weights[0];
   const float* bias_ptr = &bias[0];
 
   for (size_t i = 0; i < num_cells; i++) { // 200 iterations
-    // Compute: embedding_value + bias_value + dot(input, hidden_weights)
+    // Compute: embedding_value + bias_value + DotProduct(input, hidden_weights)
     pre_norm_values_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, total_component_inputs) + (*embed_ptr) + (*bias_ptr);
 
     embed_ptr += vocabulary_size; // + 256
@@ -163,9 +162,9 @@ void LstmComponent::BackwardPass(
 {
   float* pre_activation_at_seq_pos = &pre_norm_values[sequence_position * num_cells]; // sequence_position * 200
 
-  for (size_t i = 0; i < num_cells; i++) {       // 200 iterations
+  for (size_t i = 0; i < num_cells; i++) {        // 200 iterations
     bias_gradients[i] += gate_gradient_buffer[i];
-    beta_gradients[i] += gate_gradient_buffer[i];                       // RMSNorm bias gradient
+    beta_gradients[i] += gate_gradient_buffer[i]; // RMSNorm bias gradient
     gamma_gradients[i] += gate_gradient_buffer[i] * pre_activation_at_seq_pos[i];
     gate_gradient_buffer[i] *= gamma[i] * inverse_variance[sequence_position];
   }
@@ -217,7 +216,6 @@ void LstmComponent::BackwardPass(
 }
 
 void LstmComponent::Optimize(const float lr_scale, const float beta2) {
-  // Optimize all parameters
   symbol_embeddings_optimizer->Optimize(lr_scale, beta2);
   recurrent_weights_optimizer->Optimize(lr_scale, beta2);
   gamma_optimizer->Optimize(lr_scale, beta2);
