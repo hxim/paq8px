@@ -67,6 +67,17 @@ Lstm::Lstm(
       )
     );
   }
+
+  // Set random weights for the output layer
+  // Output biases are left as zeroes
+
+  size_t fan_in = shape.num_cells * shape.num_layers;
+  size_t fan_out = vocabulary_size;
+  float xavier_range = 2.0f * std::sqrt(6.0f / (fan_in + fan_out)); // ~ 0.191; for uniform [-0.5, 0.5]
+
+  for (size_t i = 0; i < output_weights.size(); i++) {
+    output_weights[i] = LstmLayer_Rand(xavier_range);
+  }
 }
 
 static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t sequence_position, size_t current_layer_idx) {

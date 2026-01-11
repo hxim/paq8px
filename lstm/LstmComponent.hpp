@@ -18,6 +18,9 @@
 #include <cstdint>
 #include <memory>
 
+
+float LstmLayer_Rand(float const range);
+
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd);
 
 std::unique_ptr<Adam> CreateOptimizer(
@@ -35,8 +38,8 @@ public:
   Array<float, 32> symbol_embeddings;           // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
   Array<float, 32> symbol_embedding_gradients;  // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
 
-  Array<float, 32> weights;           // Flat: [num_cells * hidden_size] - hidden state weights only
-  Array<float, 32> weight_gradients;  // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> weights;                     // Flat: [num_cells * hidden_size] - hidden state weights only
+  Array<float, 32> weight_gradients;            // Flat: [num_cells * hidden_size] - hidden state gradients
 
   Array<float, 32> pre_norm_values;             // Flat: [horizon * num_cells]
   Array<float, 32> activations;                 // Flat: [horizon * num_cells]

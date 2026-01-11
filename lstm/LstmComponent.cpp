@@ -1,6 +1,10 @@
 ﻿#include "LstmComponent.hpp"
 #include <cstring>
 
+float LstmLayer_Rand(float const range) {
+  return ((static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) - 0.5f) * range;
+}
+
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
     return std::make_unique<VectorFunctions_AVX2>();

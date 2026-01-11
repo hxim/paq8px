@@ -6,18 +6,13 @@
 
 #include "LstmLayer.hpp"
 
-float LstmLayer::Rand(float const range) {
-  return ((static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX)) - 0.5f) * range;
-}
-
 LstmLayer::LstmLayer(
   SIMDType simdType,
   float tuning_param,
   size_t const layer_id,         // 0, 1
   size_t const vocabulary_size,  // 256
   size_t const num_cells,        // 200
-  size_t const horizon,          // 100
-  float const range)
+  size_t const horizon)          // 100
   : simd(simdType)
   , cell_state(num_cells)                 // 200
   , cell_state_gradient(num_cells)        // 200
@@ -66,32 +61,24 @@ LstmLayer::LstmLayer(
 
   VectorFunctions = CreateVectorFunctions(simd);
 
-  // Set random weights for each gate
+  // Initialize embedding matrices with random weights in each component
+  // All other weights (recurrent, from previous layer, biases) are left as zeroes
+
   float* forget_emb = &forget_gate.symbol_embeddings[0];
   float* input_emb = &cell_candidate.symbol_embeddings[0];
   float* output_emb = &output_gate.symbol_embeddings[0];
 
-  float* forget_w = &forget_gate.weights[0];
-  float* input_w = &cell_candidate.weights[0];
-  float* output_w = &output_gate.weights[0];
+  float fan_in = 1.0f;
+  float fan_out = num_cells;  // 200
+  float range = 2.0f * std::sqrt(6.0f / (fan_in + fan_out)); // ~ 0.345; for uniform [-0.5, 0.5]
 
   // Initialize component embeddings
-  for (size_t i = 0; i < num_cells; i++) {            // 200 iterations
-    for (size_t j = 0; j < vocabulary_size; j++) {    // 256 iterations
-      forget_emb[i * vocabulary_size + j] = Rand(range);
-      input_emb[i * vocabulary_size + j] = Rand(range);
-      output_emb[i * vocabulary_size + j] = Rand(range);
-    }
+  for (size_t i = 0; i < num_cells * vocabulary_size; i++) {
+    forget_emb[i] = LstmLayer_Rand(range);
+    input_emb[i] = LstmLayer_Rand(range);
+    output_emb[i] = LstmLayer_Rand(range);
   }
 
-  // Initialize component weights
-  for (size_t i = 0; i < num_cells; i++) {                      // 200 iterations
-    for (size_t j = 0; j < total_component_inputs; j++) {       // Layer 0: 200, Layer 1: 400
-      forget_w[i * total_component_inputs + j] = Rand(range);
-      input_w[i * total_component_inputs + j] = Rand(range);
-      output_w[i * total_component_inputs + j] = Rand(range);
-    }
-  }
 }
 
 void LstmLayer::ForwardPass(

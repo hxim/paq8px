@@ -25,8 +25,6 @@ private:
   LstmComponent cell_candidate;
   LstmComponent output_gate;
 
-  static float Rand(float range);
-
 public:
   LstmLayer(
     SIMDType simdType,
@@ -34,8 +32,7 @@ public:
     size_t const layer_id,
     size_t vocabulary_size,
     size_t num_cells,
-    size_t horizon,
-    float range = 0.4f);
+    size_t horizon);
 
   void ForwardPass(
     float* input,
