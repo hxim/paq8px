@@ -88,6 +88,14 @@ static inline float expf_compat(float x) {
 
 // Member implementations
 
+void VectorFunctions_Scalar::Copy(float* dst, const float* src, size_t num_floats) {
+  memcpy(dst, src, num_floats * sizeof(float));
+}
+
+void VectorFunctions_Scalar::Zero(float* dst, size_t num_floats) {
+  memset(dst, 0, num_floats * sizeof(float));
+}
+
 float VectorFunctions_Scalar::DotProduct(
   float const* x1,
   float const* x2,

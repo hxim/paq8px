@@ -17,6 +17,22 @@ static float horizontal_sum(__m128 sum_low, __m128 sum_high)
   return sum;
 }
 
+// Member implementations
+
+void VectorFunctions_SSE2::Copy(float* dst, const float* src, size_t num_floats) {
+  for (size_t i = 0; i < num_floats; i += 4) {
+    __m128 vec = _mm_load_ps(src + i);
+    _mm_store_ps(dst + i, vec);
+  }
+}
+
+void VectorFunctions_SSE2::Zero(float* dst, size_t num_floats) {
+  __m128 zeroes = _mm_setzero_ps();
+  for (size_t i = 0; i < num_floats; i += 4) {
+    _mm_store_ps(dst + i, zeroes);
+  }
+}
+
 float VectorFunctions_SSE2::DotProduct(
   float const* x1,
   float const* x2,

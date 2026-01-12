@@ -105,11 +105,11 @@ float* Lstm::Predict(uint8_t const input_symbol) {
     // Then copy previous layer's output to position num_cells
 
     // Copy own previous hidden state (always)
-    memcpy(layer_input_ptr, hidden_i, num_cells * sizeof(float));
+    VectorFunctions->Copy(layer_input_ptr, hidden_i, num_cells);
     // Copy previous layer's output (when there's a previous layer)
     if (i > 0) {
       // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
-      memcpy(layer_input_ptr + num_cells, &hidden_states_all_layers[(i - 1) * num_cells], num_cells * sizeof(float));
+      VectorFunctions->Copy(layer_input_ptr + num_cells, &hidden_states_all_layers[(i - 1) * num_cells], num_cells);
     }
 
     layers[i]->ForwardPass(

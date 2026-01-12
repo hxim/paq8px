@@ -6,6 +6,17 @@
 
 class VectorFunctions_SSE2 : public VectorFunctions_Scalar
 {
+  virtual void Copy(
+    float* dst,
+    const float* src,
+    size_t num_floats
+  ) override;
+
+  virtual void Zero(
+    float* dst,
+    size_t num_floats
+  ) override;
+
   virtual float DotProduct(
     float const* x1,
     float const* x2,

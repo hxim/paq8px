@@ -96,7 +96,7 @@ void LstmLayer::ForwardPass(
   // Copy current cell_state to last_cell_state for this sequence_position
   float* src = &cell_state[0];
   float* dst = &last_cell_state[seq_pos_offset];
-  memcpy(dst, src, num_cells * sizeof(float));
+  VectorFunctions->Copy(dst, src, num_cells);
 
   forget_gate.ForwardPass(input, input_symbol, sequence_position);
   cell_candidate.ForwardPass(input, input_symbol, sequence_position);
@@ -119,8 +119,8 @@ void LstmLayer::ForwardPass(
 }
 
 void LstmLayer::InitializeBackwardPass() {
-  memset(&temporal_hidden_gradient[0], 0, num_cells * sizeof(float));
-  memset(&cell_state_gradient[0], 0, num_cells * sizeof(float));
+  VectorFunctions->Zero(&temporal_hidden_gradient[0], num_cells);
+  VectorFunctions->Zero(&cell_state_gradient[0], num_cells);
 }
 
 void LstmLayer::BackwardPass(

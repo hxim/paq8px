@@ -11,6 +11,18 @@
 class VectorFunctions
 {
 public:
+
+  virtual void Copy(
+    float* dst,
+    const float* src,
+    size_t num_floats
+  ) = 0;
+
+  virtual void Zero(
+    float* dst,
+    size_t num_floats
+  ) = 0;
+
   virtual float DotProduct(
     float const* x1,
     float const* x2,

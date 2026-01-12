@@ -19,6 +19,23 @@ static float horizontal_sum(__m256 sum_vec)
   return sum;
 }
 
+// Member implementations
+
+void VectorFunctions_AVX2::Copy(float* dst, const float* src, size_t num_floats) {
+  for (size_t i = 0; i < num_floats; i += 8) {
+    __m256 vec = _mm256_load_ps(src + i);
+    _mm256_store_ps(dst + i, vec);
+  }
+}
+
+void VectorFunctions_AVX2::Zero(float* dst, size_t num_floats) {
+  __m256 zeroes = _mm256_setzero_ps();
+  for (size_t i = 0; i < num_floats; i += 8) {
+    _mm256_store_ps(dst + i, zeroes);
+  }
+}
+
+
 float VectorFunctions_AVX2::DotProduct(
   float const* x1,
   float const* x2,
