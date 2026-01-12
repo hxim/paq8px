@@ -34,7 +34,7 @@ public:
 
   explicit LstmModelContainer(
     Shared* const sh,
-    size_t num_cells,
+    size_t hidden_size,
     size_t num_layers,
     size_t horizon);
 

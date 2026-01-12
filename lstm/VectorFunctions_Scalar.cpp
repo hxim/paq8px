@@ -150,110 +150,110 @@ float VectorFunctions_Scalar::SumOfSquares(float* array, size_t array_length)
 
 void VectorFunctions_Scalar::NormalizeThenActivate_Sigmoid(
   size_t array_length,
-  float* pre_norm_values,
+  float* to_be_normalized_values,
   float* activations_out,
   float* gamma,
   float* beta,
-  float inverse_variance)
+  float rms_scale)
 {
   for (size_t i = 0; i < array_length; i++) {
-    float n = pre_norm_values[i] * inverse_variance;
-    pre_norm_values[i] = n;
+    float n = to_be_normalized_values[i] * rms_scale;
+    to_be_normalized_values[i] = n;
     activations_out[i] = sigmoid_pade_clipped(n * gamma[i] + beta[i]);
   }
 }
 
 void VectorFunctions_Scalar::NormalizeThenActivate_Tanh(
   size_t array_length,
-  float* pre_norm_values,
+  float* to_be_normalized_values,
   float* activations_out,
   float* gamma,
   float* beta,
-  float inverse_variance)
+  float rms_scale)
 {
   for (size_t i = 0; i < array_length; i++) {
-    float n = pre_norm_values[i] * inverse_variance;
-    pre_norm_values[i] = n;
+    float n = to_be_normalized_values[i] * rms_scale;
+    to_be_normalized_values[i] = n;
     activations_out[i] = tanh_pade_clipped(n * gamma[i] + beta[i]);
   }
 }
 
 void VectorFunctions_Scalar::AccumulateLstmGradients(
-  size_t num_cells,
   size_t hidden_size,
+  size_t concatenated_hidden_size,
   size_t vocabulary_size,
   size_t layer_id,
   float* error_on_output,
-  float* hidden_gradient,
+  float* hidden_gradient_accumulator,
   float* output_weights)
 {
-  size_t output_layer_offset = layer_id * num_cells; // layer_id * 200
+  size_t output_layer_offset = layer_id * hidden_size; // layer_id * 200
   for (size_t i = 0; i < vocabulary_size; i++) {   // 256 iterations
     float const error = error_on_output[i];
-    for (size_t j = 0; j < num_cells; j++) { // 200 iterations
-      hidden_gradient[j] += output_weights[output_layer_offset + j] * error;
+    for (size_t j = 0; j < hidden_size; j++) { // 200 iterations
+      hidden_gradient_accumulator[j] += output_weights[output_layer_offset + j] * error;
     }
-    output_layer_offset += hidden_size;
+    output_layer_offset += concatenated_hidden_size;
   }
 }
 
 void VectorFunctions_Scalar::AccumulateLstmLayerGradients(
-  size_t num_cells,
-  size_t sequence_position_offset,
-  float* temporal_hidden_gradient,
-  float* hidden_gradient,
+  size_t hidden_size,
+  size_t timestep_offset,
+  float* gradient_from_next_timestep,
+  float* hidden_gradient_accumulator,
   float* tanh_state,
   float* forget_gate_activations,
   float* cell_candidate_activations,
-  float* output_gate_actications,
+  float* output_gate_activations,
   float* output_gate_gradients,
   float* cell_state_gradient,
-  float* input_gate_gradients,
+  float* cell_candidate_gradients,
   float* forget_gate_gradients,
   float* last_cell_state)
 {
-  for (size_t i = 0; i < num_cells; i++) {          // 200 iterations
-    temporal_hidden_gradient[i] += hidden_gradient[i];
-    hidden_gradient[i] = 0.0f;
+  for (size_t i = 0; i < hidden_size; i++) {          // 200 iterations
+    gradient_from_next_timestep[i] += hidden_gradient_accumulator[i];
+    hidden_gradient_accumulator[i] = 0.0f;
 
-    const size_t idx = sequence_position_offset + i;         // sequence_position*200 + i
+    const size_t idx = timestep_offset + i;         // sequence_position*200 + i
     const float tanh_v = tanh_state[idx];
-    const float forge_gate = forget_gate_activations[idx];
+    const float forget_gate = forget_gate_activations[idx];
     const float cell_candidate = cell_candidate_activations[idx];
-    const float output_gate = output_gate_actications[idx];
-    const float input_gate = 1.0f - forge_gate;
+    const float output_gate = output_gate_activations[idx];
+    const float input_gate = 1.0f - forget_gate;
 
     output_gate_gradients[i] =
-      tanh_v * temporal_hidden_gradient[i] *
+      tanh_v * gradient_from_next_timestep[i] *
       output_gate * (1.0f - output_gate); // sigmoid derivative: σ'(x) = σ(x) × (1 - σ(x))
 
     cell_state_gradient[i] +=
-      temporal_hidden_gradient[i] * output_gate *
+      gradient_from_next_timestep[i] * output_gate *
       (1.0f - tanh_v * tanh_v); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
-    input_gate_gradients[i] =
+    cell_candidate_gradients[i] =
       cell_state_gradient[i] * input_gate *
       (1.0f - cell_candidate * cell_candidate); // tanh derivative: tanh'(x) = 1 - tanh²(x)
 
     forget_gate_gradients[i] =
       (last_cell_state[idx] - cell_candidate) *
       cell_state_gradient[i] *
-      forge_gate * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
+      forget_gate * input_gate; // implicit sigmoid derivative: forget * input_gate where input_gate = 1.0f - forget
 
-    if (sequence_position_offset > 0) { // sequence_position > 0
-      cell_state_gradient[i] *= forge_gate;
-      temporal_hidden_gradient[i] = 0.0f;
+    if (timestep_offset > 0) { // sequence_position > 0
+      cell_state_gradient[i] *= forget_gate;
+      gradient_from_next_timestep[i] = 0.0f;
     }
   }
 }
 
 void VectorFunctions_Scalar::BackpropagateErrors(
-  size_t len,         // num_cells (200)
-  size_t base_offset, // 0 for temporal, num_cells for spatial
-  size_t total_component_inputs, // Layer 0: 200, Layer 1: 400
-  float* weights,     // Weight matrix
-  float* gate_gradient_buffer, // Current layer errors
-  float* grad_store)    // Where to accumulate gradients
+  size_t len,                       // hidden_size (200)
+  size_t base_offset,               // 0 for temporal, hidden_size for spatial
+  size_t component_input_dim,    // Layer 0: 200, Layer 1: 400
+  float* weights,                   // Weight matrix
+  float* pre_activation_gradients,  // Current layer errors
+  float* grad_store)                // Where to accumulate gradients
 {
   for (size_t i = 0; i < len; i += 8) { // For each cell in previous layer's hidden state
     // for better precision calculate the sum then add to the existing grads
@@ -268,7 +268,7 @@ void VectorFunctions_Scalar::BackpropagateErrors(
 
     size_t weight_idx = base_offset + i;  // Start at offset for previous layer connections
     for (size_t i = 0; i < len; i++) { // For each current cell
-      float g = gate_gradient_buffer[i];
+      float g = pre_activation_gradients[i];
       sum0 += g * weights[weight_idx + 0];
       sum1 += g * weights[weight_idx + 1];
       sum2 += g * weights[weight_idx + 2];
@@ -277,7 +277,7 @@ void VectorFunctions_Scalar::BackpropagateErrors(
       sum5 += g * weights[weight_idx + 5];
       sum6 += g * weights[weight_idx + 6];
       sum7 += g * weights[weight_idx + 7];
-      weight_idx += total_component_inputs;  // Move to next cell's weights
+      weight_idx += component_input_dim;  // Move to next cell's weights
     }
 
     grad_store[i + 0] += sum0;
@@ -292,26 +292,26 @@ void VectorFunctions_Scalar::BackpropagateErrors(
 }
 
 void VectorFunctions_Scalar::AccumulateLayerGradients(
-  const size_t num_cells,
+  const size_t hidden_size,
   const size_t vocabulary_size,
-  const size_t total_component_inputs,
+  const size_t component_input_dim,
   const float* input,
-  const float* gate_gradient_buffer,
+  const float* pre_activation_gradients,
   float* embedding_ptr,
   float* weight_gradients)
 {
-  for (size_t i = 0; i < num_cells; i++) {
-    const float ei = gate_gradient_buffer[i];
+  for (size_t i = 0; i < hidden_size; i++) {
+    const float g = pre_activation_gradients[i];
 
     // Update symbol_embeddings gradient
-    *embedding_ptr += ei;
+    *embedding_ptr += g;
     embedding_ptr += vocabulary_size;
 
     // Update hidden state weight gradients
-    for (size_t j = 0; j < total_component_inputs; j++)
-      weight_gradients[j] += ei * input[j];
+    for (size_t j = 0; j < component_input_dim; j++)
+      weight_gradients[j] += g * input[j];
 
-    weight_gradients += total_component_inputs;
+    weight_gradients += component_input_dim;
   }
 }
 
@@ -322,7 +322,7 @@ void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
   float* output_bias_gradients,
   const float* hidden_ptr,
   const size_t vocabulary_size,
-  const size_t hidden_size,
+  const size_t concatenated_hidden_size,
   const size_t input_symbol)
 {
 
@@ -330,11 +330,11 @@ void VectorFunctions_Scalar::AccumulateOutputLayerGradients(
     float error = error_on_output[i];
     output_bias_gradients[i] += error;
 
-    for (size_t j = 0; j < hidden_size; j++) {
+    for (size_t j = 0; j < concatenated_hidden_size; j++) {
       output_weight_gradients[j] += error * hidden_ptr[j];
     }
 
-    output_weight_gradients += hidden_size;
+    output_weight_gradients += concatenated_hidden_size;
   }
 }
 
@@ -357,7 +357,7 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   float* output_weights,
   float* output,
   float* output_bias,
-  size_t const concatenated_layer_outputs_size, // 200*2 = 400
+  size_t const concatenated_hidden_size, // 200*2 = 400
   size_t const vocabulary_size, // 256
   size_t const output_offset
 )
@@ -366,8 +366,8 @@ void VectorFunctions_Scalar::MatvecThenSoftmax(
   for (size_t i = 0; i < vocabulary_size; i++) {   // 256 iterations
     logits[output_offset + i] = DotProduct( // logits[sequence_position * 256 + i]
       &hidden[0],
-      &output_weights[i * concatenated_layer_outputs_size],
-      concatenated_layer_outputs_size // 400
+      &output_weights[i * concatenated_hidden_size],
+      concatenated_hidden_size // 400
     ) + output_bias[i];
   }
 

@@ -4,12 +4,12 @@
 
 LstmModelContainer::LstmModelContainer(
   Shared* const sh,
-  size_t const num_cells,
+  size_t const hidden_size,
   size_t const num_layers,
   size_t const horizon)
   : shared(sh)
   , simd(sh->chosenSimd)
-  , shape{ alphabetSize, num_cells, num_layers, horizon }
+  , shape{ alphabetSize, hidden_size, num_layers, horizon }
   , lstm(sh->chosenSimd, shape, sh->tuning_param)
   , probs(nullptr)
   , byteModelToBitModel()

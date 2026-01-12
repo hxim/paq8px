@@ -8,24 +8,34 @@ Lstm::Lstm(
   LstmShape shape,
   float tuning_param)
   : tuning_param(tuning_param)
-  // For the first layer we need num_cells, for every subsequent layer we need num_cells*2 hidden inputs
-  , all_layer_inputs(shape.horizon * (shape.num_cells + (shape.num_layers - 1) * shape.num_cells * 2)) // 100 * (200 + 1*400)
-  , output_weights(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output_weight_gradients(shape.vocabulary_size* (shape.num_cells * shape.num_layers)) // 256 * 400
-  , output_probabilities(shape.horizon * shape.vocabulary_size)     // 100 * 256
-  , logits(shape.horizon * shape.vocabulary_size)                   // 100 * 256
-  , hidden_states_all_layers(shape.num_cells * shape.num_layers)    // 200 * 2
-  , hidden_gradient(shape.num_cells)                  // 200
+    // all_layer_inputs:
+    // This buffer stores the concatenated inputs that will be fed into each layer (own previous hidden + previous layer's output).
+    // So, for the first layer we need hidden_size, for every subsequent layer we need hidden_size*2 hidden inputs
+  , all_layer_inputs(shape.horizon * (shape.hidden_size + (shape.num_layers - 1) * shape.hidden_size * 2)) // 100 * (200 + 1*400)
+  , output_weights(shape.vocabulary_size* (shape.hidden_size * shape.num_layers))          // 256 * 400
+  , output_weight_gradients(shape.vocabulary_size* (shape.hidden_size * shape.num_layers)) // 256 * 400
+    // output_probabilities:
+    // This array serves dual purposes fo efficiency: first, it's the calculated probabilities by SoftMax.
+    // Then, we calculate the error signal, which is just a change of a single value.
+    // Thus, we keep everything in here, we just repurpose this as 'error_on_output'
+  , output_probabilities(shape.horizon * shape.vocabulary_size)       // 100 * 256
+  , logits(shape.horizon * shape.vocabulary_size)                     // 100 * 256
+  , concatenated_hidden_states(shape.hidden_size * shape.num_layers)  // 200 * 2
+  , hidden_gradient_accumulator(shape.hidden_size)                    // 200
   , output_bias(shape.vocabulary_size)                // 256
   , output_bias_gradients(shape.vocabulary_size)      // 256
-  , input_symbol_history(shape.horizon + 1)           // 101: at position i it's both the input symbol for sequence_position i and also the target symbol for sequence_position i-1
-  , num_cells(shape.num_cells)
+  // input_symbol_history[i] serves dual purpose:
+  // - Input symbol for forward pass at sequence position i
+  // - Target symbol for backward pass at sequence position i-1
+  // Size is horizon+1 to accommodate the target for the last position
+  , input_symbol_history(shape.horizon + 1)           // 101:
+  , hidden_size(shape.hidden_size)
   , horizon(shape.horizon)
   , vocabulary_size(shape.vocabulary_size)
   , num_layers(shape.num_layers)
-  , sequence_length(4)        // 4..horizon-1
+  , current_sequence_length(4)        // 4..horizon-1
   , sequence_step_target(12)
-  , sequence_step_cntr(0)     // 0..sequence_step_target-1
+  , sequence_step_counter(0)     // 0..sequence_step_target-1
   , sequence_position(0)
   , training_iterations(1)
   , learning_rate_scheduler(
@@ -33,13 +43,13 @@ Lstm::Lstm(
     0.333333333f, // final_lr
     0.0005f)      // decay_rate - it reaches the final_lr in ((1.0 / 0.333333)² - 1) / 0.0005 = (9 - 1) / 0.0005 = 16'000 iterations
 {
-  assert((num_cells & 7) == 0); // num_cells must be a power of 8
+  assert((hidden_size & 7) == 0); // hidden_size must be a power of 8
 
   VectorFunctions = CreateVectorFunctions(simdType);
 
   output_weights_optimizer = CreateOptimizer(
     simdType,
-    shape.vocabulary_size * (shape.num_cells * shape.num_layers), // 256 * 400
+    shape.vocabulary_size * (shape.hidden_size * shape.num_layers), // 256 * 400
     &output_weights[0],
     &output_weight_gradients[0],
     0.018f   // base_lr
@@ -61,7 +71,7 @@ Lstm::Lstm(
         tuning_param,
         i,                        // layer_id
         vocabulary_size,          // 256
-        num_cells,                // 200
+        hidden_size,              // 200
         horizon                   // 100
       )
     );
@@ -70,7 +80,7 @@ Lstm::Lstm(
   // Set random weights for the output layer
   // Output biases are left as zeroes
 
-  size_t fan_in = shape.num_cells * shape.num_layers;
+  size_t fan_in = shape.hidden_size * shape.num_layers;
   size_t fan_out = vocabulary_size;
   float xavier_range = 2.0f * std::sqrt(6.0f / (fan_in + fan_out)); // ~ 0.191; for uniform [-0.5, 0.5]
 
@@ -79,14 +89,14 @@ Lstm::Lstm(
   }
 }
 
-static size_t GetLayerInputOffset(size_t num_cells, size_t num_layers, size_t sequence_position, size_t current_layer_idx) {
+static size_t GetLayerInputOffset(size_t hidden_size, size_t num_layers, size_t sequence_position, size_t current_layer_idx) {
   // Calculate offset for sequence_position and layer
-  size_t layer_input_stride = num_cells + (num_layers - 1) * num_cells * 2;
+  size_t layer_input_stride = hidden_size + (num_layers - 1) * hidden_size * 2;
   size_t offset = sequence_position * layer_input_stride;   // Start of sequence_position
 
   // Add offset for layers before layer i
   for (size_t j = 0; j < current_layer_idx; j++) {
-    offset += num_cells * (j > 0 ? 2 : 1);
+    offset += hidden_size * (j > 0 ? 2 : 1);
   }
   return offset;
 }
@@ -96,54 +106,54 @@ float* Lstm::Predict(uint8_t const input_symbol) {
   input_symbol_history[sequence_position] = input_symbol;
 
   for (size_t i = 0; i < num_layers; i++) {
-    float* hidden_i = &hidden_states_all_layers[i * num_cells];
+    float* hidden_state_ptr = &concatenated_hidden_states[i * hidden_size];
 
-    size_t base_idx = GetLayerInputOffset(num_cells, num_layers, sequence_position, i);
+    size_t base_idx = GetLayerInputOffset(hidden_size, num_layers, sequence_position, i);
     float* layer_input_ptr = &all_layer_inputs[base_idx];
 
     // First copy own previous hidden to position 0
-    // Then copy previous layer's output to position num_cells
+    // Then copy previous layer's output to position hidden_size
 
     // Copy own previous hidden state (always)
-    VectorFunctions->Copy(layer_input_ptr, hidden_i, num_cells);
+    VectorFunctions->Copy(layer_input_ptr, hidden_state_ptr, hidden_size);
     // Copy previous layer's output (when there's a previous layer)
     if (i > 0) {
       // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
-      VectorFunctions->Copy(layer_input_ptr + num_cells, &hidden_states_all_layers[(i - 1) * num_cells], num_cells);
+      VectorFunctions->Copy(layer_input_ptr + hidden_size, &concatenated_hidden_states[(i - 1) * hidden_size], hidden_size);
     }
 
     layers[i]->ForwardPass(
       layer_input_ptr,
       input_symbol,
-      hidden_i,
+      hidden_state_ptr, // out
       sequence_position,
-      sequence_length);
+      current_sequence_length);
   }
 
-  size_t const concatenated_layer_outputs_size = num_cells * num_layers; // 200 * 2 = 400, same as hidden.size()
+  size_t const concatenated_hidden_size = hidden_size * num_layers; // 200 * 2 = 400, same as hidden.size()
   size_t const output_offset = sequence_position * vocabulary_size; // sequence_position * 256
 
   VectorFunctions->MatvecThenSoftmax(
-    &hidden_states_all_layers[0],
+    &concatenated_hidden_states[0],
     &logits[0],
     &output_weights[0],
     &output_probabilities[0],
     &output_bias[0],
-    concatenated_layer_outputs_size,
+    concatenated_hidden_size,
     vocabulary_size,
     output_offset
   );
 
   // Return pointer to the output slice for sequence_position in the persistent output array
-  return &output_probabilities[sequence_position * vocabulary_size];              // &output_probabilities[sequence_position * 256]
+  return &output_probabilities[sequence_position * vocabulary_size]; // &output_probabilities[sequence_position * 256]
 }
 
 void Lstm::Perceive(const uint8_t target_symbol) {
   input_symbol_history[sequence_position + 1] = target_symbol;
 
-  bool is_last_seq_pos = sequence_position == sequence_length - 1;
+  bool is_last_seq_pos = sequence_position == current_sequence_length - 1;
 
-  size_t const hidden_size = num_cells * num_layers; // 200 * 2 = 400
+  size_t const concatenated_hidden_size = hidden_size * num_layers; // 200 * 2 = 400
 
   // Calculate error_on_output
   size_t output_offset = sequence_position * vocabulary_size;
@@ -156,14 +166,14 @@ void Lstm::Perceive(const uint8_t target_symbol) {
     }
 
     // Backward pass through all sequence_positions in reverse order
-    for (int seq_pos = static_cast<int>(sequence_length) - 1; seq_pos >= 0; seq_pos--) {
+    for (int seq_pos = static_cast<int>(current_sequence_length) - 1; seq_pos >= 0; seq_pos--) {
 
       size_t output_offset_at_seq_pos = seq_pos * vocabulary_size;
 
 
       // Backward pass through all layers in reverse order
       for (int layer_id = static_cast<int>(num_layers) - 1; layer_id >= 0; layer_id--) {
-        // The hidden_gradient buffer is reused to accumulate gradients from multiple sources,
+        // The hidden_gradient_accumulatorbuffer is reused to accumulate gradients from multiple sources,
         // we must not clear them here - it would break the gradient flow between layers.
         //
         //   Output Layer
@@ -180,12 +190,12 @@ void Lstm::Perceive(const uint8_t target_symbol) {
         float* error_on_output = &output_probabilities[output_offset_at_seq_pos];
 
         VectorFunctions->AccumulateLstmGradients(
-          num_cells,
           hidden_size,
+          concatenated_hidden_size,
           vocabulary_size,
           layer_id,
           error_on_output,
-          &hidden_gradient[0],
+          &hidden_gradient_accumulator[0],
           &output_weights[0]
         );
 
@@ -193,7 +203,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
         uint8_t const input_symbol = input_symbol_history[seq_pos];
 
         // Get pointer to this layer's input
-        size_t layer_input_offset = GetLayerInputOffset(num_cells, num_layers, seq_pos, layer_id);
+        size_t layer_input_offset = GetLayerInputOffset(hidden_size, num_layers, seq_pos, layer_id);
         float* layer_input_ptr = &all_layer_inputs[layer_input_offset];
 
         layers[layer_id]->BackwardPass(
@@ -201,7 +211,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
           seq_pos,
           layer_id,
           input_symbol,
-          &hidden_gradient[0]);
+          &hidden_gradient_accumulator[0]);
       }
     }
   }
@@ -215,26 +225,26 @@ void Lstm::Perceive(const uint8_t target_symbol) {
     error_on_output, 
     &output_weight_gradients[0],
     &output_bias_gradients[0],
-    &hidden_states_all_layers[0],
+    &concatenated_hidden_states[0],
     vocabulary_size,
-    hidden_size,
+    concatenated_hidden_size,
     target_symbol);
 
   // After full backward pass, optimize
   if (is_last_seq_pos) {
 
     // Increase sequence size
-    sequence_step_cntr++;
-    if (sequence_step_cntr >= sequence_step_target) { //target sequence size has been reached
-      sequence_step_cntr = 0;
-      if (sequence_length < horizon) {
-        float prev_sequence_length = (float)sequence_length;
-        sequence_length++;
-        float scale = (float)sequence_length / prev_sequence_length;
+    sequence_step_counter++;
+    if (sequence_step_counter >= sequence_step_target) { //target sequence size has been reached
+      sequence_step_counter = 0;
+      if (current_sequence_length < horizon) {
+        float prev_sequence_length = (float)current_sequence_length;
+        current_sequence_length++;
+        float scale = (float)current_sequence_length / prev_sequence_length;
 
         //debug:
-        //printf("sequence_length: %d\n", (int)sequence_length);
-        sequence_step_target = 12 + 1 * (sequence_length - 1);
+        //printf("current_sequence_length: %d\n", (int)current_sequence_length);
+        sequence_step_target = 12 + 1 * (current_sequence_length - 1);
 
         for (size_t layer = 0; layer < num_layers; layer++) {
           layers[layer]->Rescale(scale);
@@ -280,7 +290,7 @@ void Lstm::SaveModelParameters(LoadSave& stream) {
   snprintf(buffer, sizeof(buffer), "%zu", vocabulary_size);
   stream.WriteTextLine(buffer);
 
-  snprintf(buffer, sizeof(buffer), "%zu", num_cells);
+  snprintf(buffer, sizeof(buffer), "%zu", hidden_size);
   stream.WriteTextLine(buffer);
 
   snprintf(buffer, sizeof(buffer), "%zu", num_layers);
@@ -321,7 +331,7 @@ void Lstm::LoadModelParameters(LoadSave& stream) {
   size_t saved_vocabulary_size = strtoull(buffer, nullptr, 10);
 
   if (!stream.ReadTextLine(buffer, sizeof(buffer))) {
-    fprintf(stderr, "Error: Failed to read num_cells\n");
+    fprintf(stderr, "Error: Failed to read hidden_size\n");
     exit(1);
   }
   size_t saved_num_cells = strtoull(buffer, nullptr, 10);
@@ -347,13 +357,13 @@ void Lstm::LoadModelParameters(LoadSave& stream) {
 
   // Verify shape matches
   if (saved_vocabulary_size != vocabulary_size ||
-    saved_num_cells != num_cells ||
+    saved_num_cells != hidden_size ||
     saved_num_layers != num_layers ||
     saved_horizon != horizon) {
     fprintf(stderr, "Error: Model shape mismatch\n");
-    fprintf(stderr, "Expected: vocabulary_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
-      vocabulary_size, num_cells, num_layers, horizon);
-    fprintf(stderr, "Got:      vocabulary_size=%zu, num_cells=%zu, num_layers=%zu, horizon=%zu\n",
+    fprintf(stderr, "Expected: vocabulary_size=%zu, hidden_size=%zu, num_layers=%zu, horizon=%zu\n",
+      vocabulary_size, hidden_size, num_layers, horizon);
+    fprintf(stderr, "Got:      vocabulary_size=%zu, hidden_size=%zu, num_layers=%zu, horizon=%zu\n",
       saved_vocabulary_size, saved_num_cells, saved_num_layers, saved_horizon);
     exit(1);
   }

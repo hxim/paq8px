@@ -30,63 +30,63 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
 
   virtual void NormalizeThenActivate_Sigmoid(
     size_t array_length,
-    float* pre_norm_values,
+    float* to_be_normalized_values,
     float* activations_out,
     float* gamma,
     float* beta,
-    float inverse_variance
+    float rms_scale
   ) override;
 
   virtual void NormalizeThenActivate_Tanh(
     size_t array_length,
-    float* pre_norm_values,
+    float* to_be_normalized_values,
     float* activations_out,
     float* gamma,
     float* beta,
-    float inverse_variance
+    float rms_scale
   ) override;
 
   virtual void AccumulateLstmGradients(
-    size_t num_cells,
     size_t hidden_size,
+    size_t concatenated_hidden_size,
     size_t vocabulary_size,
     size_t layer_id,
     float* error_on_output,
-    float* hidden_gradient,
+    float* hidden_gradient_accumulator,
     float* output_weights
   ) override;
 
   virtual void AccumulateLstmLayerGradients(
-    size_t num_cells,
-    size_t sequence_position_offset,
-    float* temporal_hidden_gradient,
-    float* hidden_gradient,
+    size_t hidden_size,
+    size_t timestep_offset,
+    float* gradient_from_next_timestep,
+    float* hidden_gradient_accumulator,
     float* tanh_state,
     float* forget_gate_activations,
     float* cell_candidate_activations,
-    float* output_gate_actications,
+    float* output_gate_activations,
     float* output_gate_gradients,
     float* cell_state_gradient,
-    float* input_gate_gradients,
+    float* cell_candidate_gradients,
     float* forget_gate_gradients,
     float* last_cell_state
   ) override;
 
   void virtual BackpropagateErrors(
-    size_t len,         // num_cells (200)
-    size_t base_offset, // 0 for temporal, num_cells for spatial
-    size_t total_component_inputs, // Layer 0: 200, Layer 1: 400
-    float* weights,     // Weight matrix
-    float* gate_gradient_buffer, // Current layer errors
-    float* grad_store     // Where to accumulate gradients
+    size_t len,                       // hidden_size (200)
+    size_t base_offset,               // 0 for temporal, hidden_size for spatial
+    size_t component_input_dim,    // Layer 0: 200, Layer 1: 400
+    float* weights,                   // Weight matrix
+    float* pre_activation_gradients,  // Current layer errors
+    float* grad_store                 // Where to accumulate gradients
   ) override;
 
   virtual void AccumulateLayerGradients(
-    const size_t num_cells,
+    const size_t hidden_size,
     const size_t vocabulary_size,
-    const size_t total_component_inputs,
+    const size_t component_input_dim,
     const float* input,
-    const float* gate_gradient_buffer,
+    const float* pre_activation_gradients,
     float* embedding_ptr,
     float* weight_gradients
   ) override;
@@ -98,7 +98,7 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
     float* output_bias_gradients,
     const float* hidden_ptr,
     const size_t vocabulary_size,
-    const size_t hidden_size,
+    const size_t concatenated_hidden_size,
     const size_t input_symbol
   ) override;
 
@@ -113,7 +113,7 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
     float* output_weights,
     float* output,
     float* output_bias,
-    size_t const concatenated_layer_outputs_size,
+    size_t const concatenated_hidden_size,
     size_t const vocabulary_size,
     size_t const output_offset
   ) override;

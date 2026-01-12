@@ -33,16 +33,16 @@ std::unique_ptr<Adam> CreateOptimizer(
 
 class LstmComponent{
 public:
-  Array<float, 32> symbol_embeddings;           // Flat: [num_cells * vocabulary_size] - symbol_embeddings matrix
-  Array<float, 32> symbol_embedding_gradients;  // Flat: [num_cells * vocabulary_size] - symbol_embeddings gradients
+  Array<float, 32> symbol_embeddings;
+  Array<float, 32> symbol_embedding_gradients;
 
-  Array<float, 32> weights;                     // Flat: [num_cells * hidden_size] - hidden state weights only
-  Array<float, 32> weight_gradients;            // Flat: [num_cells * hidden_size] - hidden state gradients
+  Array<float, 32> weights;
+  Array<float, 32> weight_gradients;
 
-  Array<float, 32> pre_norm_values;             // Flat: [horizon * num_cells]
-  Array<float, 32> activations;                 // Flat: [horizon * num_cells]
+  Array<float, 32> normalized_values;
+  Array<float, 32> activations;
 
-  Array<float, 32> inverse_variance;
+  Array<float, 32> rms_scale;
 
   Array<float, 32> gamma;
   Array<float, 32> gamma_gradients;
@@ -50,16 +50,16 @@ public:
   Array<float, 32> beta;
   Array<float, 32> beta_gradients;
 
-  Array<float, 32> gate_gradient_buffer;
+  Array<float, 32> pre_activation_gradients;
 
   // Biases
-  Array<float, 32> bias;                  // [num_cells] - gate bias
-  Array<float, 32> bias_gradients;        // [num_cells] - gate bias gradients
+  Array<float, 32> bias;
+  Array<float, 32> bias_gradients;
   std::unique_ptr<Adam> bias_optimizer;
 
-  size_t vocabulary_size;                 // Vocabulary size / symbol_embeddings dimension
-  size_t total_component_inputs;          // Layer 0: 200, Layer 1: 400
-  size_t num_cells;
+  size_t vocabulary_size;
+  size_t component_input_dim;
+  size_t hidden_size;
 
   std::unique_ptr<VectorFunctions> VectorFunctions;
   std::unique_ptr<Adam> symbol_embeddings_optimizer;
@@ -72,14 +72,14 @@ public:
   LstmComponent(
     SIMDType simdType,
     size_t vocabulary_size,
-    size_t total_component_inputs,
-    size_t num_cells,
+    size_t component_input_dim,
+    size_t hidden_size,
     size_t horizon,
-    bool useTanh,
+    bool use_tanh,
     float bias_init,
-    float learningRate_symbol_embeddings,
-    float learningRate_recurrent_weights,
-    float learningRate_rms
+    float learning_rate_symbol_embeddings,
+    float learning_rate_recurrent_weights,
+    float learning_rate_rms
   );
 
   void ForwardPass(
@@ -90,8 +90,8 @@ public:
 
   void BackwardPass(
     float* layer_input_ptr,
-    float* hidden_gradient,
-    float* temporal_hidden_gradient,
+    float* hidden_gradient_accumulator,
+    float* gradient_from_next_timestep,
     size_t const sequence_position,
     size_t const layer_id,
     uint8_t const input_symbol

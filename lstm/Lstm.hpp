@@ -15,7 +15,7 @@
 
 struct LstmShape {
   size_t vocabulary_size;
-  size_t num_cells;
+  size_t hidden_size;
   size_t num_layers;
   size_t horizon;
 };
@@ -25,17 +25,17 @@ private:
   std::unique_ptr<VectorFunctions> VectorFunctions;
 
   std::vector<std::unique_ptr<LstmLayer>> layers;
-  Array<float, 32> all_layer_inputs;             // [horizon * num_layers * max_layer_input_size]
+  Array<float, 32> all_layer_inputs;
 
-  Array<float, 32> output_weights;          // [vocabulary_size * hidden_size] = 256 * 400
-  Array<float, 32> output_weight_gradients; // [vocabulary_size * hidden_size] = 256 * 400 - gradients
+  Array<float, 32> output_weights;
+  Array<float, 32> output_weight_gradients;
 
-  Array<float, 32> output_probabilities;    // [horizon * vocabulary_size] - used both as raw output probs, then when the target_symbol is revealed, it's the error_on_output
-  Array<float, 32> logits;                  // [horizon * vocabulary_size]
-  Array<float, 32> hidden_states_all_layers;
-  Array<float, 32> hidden_gradient;
-  Array<float, 32> output_bias;             // [vocabulary_size] = 256
-  Array<float, 32> output_bias_gradients;   // [vocabulary_size] = 256
+  Array<float, 32> output_probabilities;
+  Array<float, 32> logits;
+  Array<float, 32> concatenated_hidden_states;
+  Array<float, 32> hidden_gradient_accumulator;
+  Array<float, 32> output_bias;
+  Array<float, 32> output_bias_gradients;
 
   std::vector<uint8_t> input_symbol_history;
 
@@ -43,19 +43,19 @@ private:
   std::unique_ptr<Adam> output_bias_optimizer;
   SqrtLearningRateDecay learning_rate_scheduler;
 
-  size_t num_cells;
+  size_t hidden_size;
   size_t horizon;
   size_t vocabulary_size;
   size_t num_layers;
 
-  size_t sequence_length;
+  size_t current_sequence_length;
   size_t sequence_step_target;
-  size_t sequence_step_cntr;
+  size_t sequence_step_counter;
 
   float tuning_param;
 
 public:
-  size_t sequence_position; // 0..sequence_length-1
+  size_t sequence_position; // 0..current_sequence_length-1
   size_t training_iterations; // 1..n
 
   Lstm(
