@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Predictor.hpp"
 #include "ArithmeticEncoder.hpp"
@@ -22,14 +22,13 @@ private:
   File *alt; /**< decompressByte() source in COMPRESS mode */
   float p1 {}, p2 {}; /**< percentages for progress indicator: 0.0 .. 1.0 */
   bool doEncoding; /**<  false when compression level is 0 */
-  Shared sharedBlock;
 
   void updateModels(Predictor* predictor, uint32_t p, int y);
 
 public:
 
-  PredictorMain predictorMain;
-  PredictorBlock predictorBlock;
+  Predictor *predictorMain;
+  Predictor *predictorBlock;
 
   /**
     * Encoder(COMPRESS, f) creates encoder for compression to archive @ref f, which
@@ -39,7 +38,7 @@ public:
     * @param m the mode to operate in
     * @param f the file to read from or write to
     */
-  Encoder(Shared* const sh, bool doEncoding, Mode m, File *f);
+  Encoder(Predictor* predictorBlock, Predictor* predictorMain, bool doEncoding, Mode m, File *f);
   Mode getMode() const;
 
   /**
@@ -71,6 +70,10 @@ public:
     * @return the decompressed byte
     */
   uint8_t decompressByte(Predictor *predictor);
+
+  void initContextForBlockModel(BlockType blockType, int blockInfo);
+  void setContextForBlockModel(uint8_t context);
+  void appendToBlockTypeHistoryForBlockModel(BlockType blockType);
 
   void setStatusRange(float perc1, float perc2);
   void printStatus(uint64_t n, uint64_t size) const;

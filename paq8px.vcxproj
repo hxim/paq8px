@@ -332,6 +332,7 @@
     <ClCompile Include="Predictor.cpp" />
     <ClCompile Include="PredictorBlock.cpp" />
     <ClCompile Include="PredictorMain.cpp" />
+    <ClCompile Include="PredictorMainLstmOnly.cpp" />
     <ClCompile Include="ProgramChecker.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Shared.cpp" />
@@ -479,6 +480,7 @@
     <ClInclude Include="Predictor.hpp" />
     <ClInclude Include="PredictorBlock.hpp" />
     <ClInclude Include="PredictorMain.hpp" />
+    <ClInclude Include="PredictorMainLstmOnly.hpp" />
     <ClInclude Include="ProgramChecker.hpp" />
     <ClInclude Include="Random.hpp" />
     <ClInclude Include="RingBuffer.hpp" />

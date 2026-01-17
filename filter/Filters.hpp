@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../Array.hpp"
 #include "../BlockType.hpp"
@@ -1984,7 +1984,7 @@ static void directEncodeBlock(BlockType type, File *in, uint64_t len, Encoder &e
     if((j & 0xfff) == 0 ) {
       en.printStatus(j, len);
     }
-    en.compressByte(&en.predictorMain, in->getchar());
+    en.compressByte(en.predictorMain, in->getchar());
   }
   fprintf(stderr, "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b");
 }
@@ -2406,12 +2406,12 @@ static uint64_t decompressRecursive(File *out, uint64_t blockSize, Encoder &en, 
   while( i < blockSize ) {
 
     uint64_t len = Block::DecodeBlockHeader(&en);
-    BlockType type = en.predictorMain.shared->State.blockType;
-    int info = en.predictorMain.shared->State.blockInfo;
+    BlockType type = en.predictorMain->shared->State.blockType;
+    int info = en.predictorMain->shared->State.blockInfo;
     if (type == BlockType::MRB) {
       FileTmp tmp;
       for (uint64_t j = 0; j < len; ++j)
-          tmp.putChar(en.decompressByte(&en.predictorMain));
+          tmp.putChar(en.decompressByte(en.predictorMain));
       if (mode != FMode::FDISCARD) {
         tmp.setpos(0);
         len = decodeFunc(type, en, &tmp, len, info, out, mode, diffFound, transformOptions);
@@ -2435,14 +2435,14 @@ static uint64_t decompressRecursive(File *out, uint64_t blockSize, Encoder &en, 
           en.printStatus();
         }
         if( mode == FMode::FDECOMPRESS ) {
-          out->putChar(en.decompressByte(&en.predictorMain));
+          out->putChar(en.decompressByte(en.predictorMain));
         } else if( mode == FMode::FCOMPARE ) {
-          if( en.decompressByte(&en.predictorMain) != out->getchar() && (diffFound == 0)) {
+          if( en.decompressByte(en.predictorMain) != out->getchar() && (diffFound == 0)) {
             mode = FMode::FDISCARD;
             diffFound = i + j + 1;
           }
         } else {
-          en.decompressByte(&en.predictorMain);
+          en.decompressByte(en.predictorMain);
         }
       }
     }

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../file/File.hpp"
 #include "../Encoder.hpp"
@@ -33,7 +33,7 @@ public:
     uint8_t b = 0;
     uint64_t count = 0;
     for( uint64_t i = 0; i < size; i++, count++ ) {
-      if((b = encoder->decompressByte(&encoder->predictorMain)) == NEW_LINE ) {
+      if((b = encoder->decompressByte(encoder->predictorMain)) == NEW_LINE ) {
         if( fMode == FMode::FDECOMPRESS ) {
           out->putChar(CARRIAGE_RETURN);
         } else if( fMode == FMode::FCOMPARE ) {

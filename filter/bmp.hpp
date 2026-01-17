@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Filter.hpp"
 #include "../file/File.hpp"
@@ -77,11 +77,11 @@ public:
     for( int i = 0; i < static_cast<int>(size / width); i++ ) {
       p = i * width;
       for( int j = 0; j < width / stride; j++ ) {
-        g = encoder->decompressByte(&encoder->predictorMain);
-        r = encoder->decompressByte(&encoder->predictorMain);
-        b = encoder->decompressByte(&encoder->predictorMain);
+        g = encoder->decompressByte(encoder->predictorMain);
+        r = encoder->decompressByte(encoder->predictorMain);
+        b = encoder->decompressByte(encoder->predictorMain);
         if (stride == 4) {
-          a = encoder->decompressByte(&encoder->predictorMain);
+          a = encoder->decompressByte(encoder->predictorMain);
         }
         if( !skipRgb ) {
           r = g - r, b = g - b;
@@ -127,9 +127,9 @@ public:
       }
       for( int j = 0; j < width % stride; j++ ) {
         if( fMode == FMode::FDECOMPRESS ) {
-          out->putChar(encoder->decompressByte(&encoder->predictorMain));
+          out->putChar(encoder->decompressByte(encoder->predictorMain));
         } else if( fMode == FMode::FCOMPARE ) {
-          if( encoder->decompressByte(&encoder->predictorMain) != out->getchar() && (diffFound == 0)) {
+          if( encoder->decompressByte(encoder->predictorMain) != out->getchar() && (diffFound == 0)) {
             diffFound = p + j + 1;
           }
         }
@@ -137,9 +137,9 @@ public:
     }
     for( int i = size % width; i > 0; i-- ) {
       if( fMode == FMode::FDECOMPRESS ) {
-        out->putChar(encoder->decompressByte(&encoder->predictorMain));
+        out->putChar(encoder->decompressByte(encoder->predictorMain));
       } else if( fMode == FMode::FCOMPARE ) {
-        if( encoder->decompressByte(&encoder->predictorMain) != out->getchar() && (diffFound == 0)) {
+        if( encoder->decompressByte(encoder->predictorMain) != out->getchar() && (diffFound == 0)) {
           diffFound = size - i;
           break;
         }

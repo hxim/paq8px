@@ -1,17 +1,14 @@
-#include "Encoder.hpp"
+﻿#include "Encoder.hpp"
 
-Encoder::Encoder(Shared* const sharedMain, bool doEncoding, Mode m, File *f) : 
+Encoder::Encoder(Predictor* predictorBlock, Predictor* predictorMain, bool doEncoding, Mode m, File *f) :
   doEncoding(doEncoding), 
   ari(f), 
   mode(m), 
   archive(f), 
-  alt(nullptr), 
-  sharedBlock(),
-  predictorMain(sharedMain),
-  predictorBlock(&sharedBlock)
+  alt(nullptr),
+  predictorBlock(predictorBlock),
+  predictorMain(predictorMain)
 {
-  sharedBlock.init(sharedMain->level, 16);
-  sharedBlock.chosenSimd = sharedMain->chosenSimd;
   if( mode == DECOMPRESS ) {
     uint64_t start = size();
     archive->setEnd();
@@ -68,6 +65,27 @@ uint8_t Encoder::decompressByte(Predictor *predictor) {
       updateModels(predictor, p, y);
     }
     return predictor->shared->State.c1;
+  }
+}
+
+void Encoder::initContextForBlockModel(BlockType blockType, int blockInfo) {
+  if (doEncoding) {
+    Shared* shared = predictorMain->shared;
+    shared->State.blockType = blockType;
+    shared->State.blockInfo = blockInfo;
+    shared->State.blockPos = UINT32_MAX;
+  }
+}
+
+void Encoder::setContextForBlockModel(uint8_t context) {
+  if (doEncoding)
+    predictorBlock->shared->State.blockStateID = context;
+}
+
+void Encoder::appendToBlockTypeHistoryForBlockModel(BlockType blockType) {
+  if (doEncoding) {
+    predictorBlock->shared->State.blockTypeHistory <<= 8;
+    predictorBlock->shared->State.blockTypeHistory |= (uint8_t)blockType;
   }
 }
 

@@ -1,4 +1,4 @@
-#include "Block.hpp"
+﻿#include "Block.hpp"
 
 namespace Block {
 
@@ -7,11 +7,7 @@ namespace Block {
     EncodeBlockSize(encoder, blockSize);
     if (hasInfo(blockType))
       EncodeInfo(encoder, blockInfo);
-
-    Shared* shared = encoder->predictorMain.shared;
-    shared->State.blockType = blockType;
-    shared->State.blockInfo = blockInfo;
-    shared->State.blockPos = UINT32_MAX;
+    encoder->initContextForBlockModel(blockType, blockInfo);
   }
 
   uint64_t DecodeBlockHeader(Encoder* const encoder) { //returns blockSize
@@ -21,7 +17,7 @@ namespace Block {
     if (hasInfo(blockType))
       blockInfo = DecodeInfo(encoder);
 
-    Shared* shared = encoder->predictorMain.shared;
+    Shared* shared = encoder->predictorMain->shared;
     shared->State.blockType = blockType;
     shared->State.blockInfo = blockInfo;
     shared->State.blockPos = UINT32_MAX;
@@ -29,74 +25,72 @@ namespace Block {
   }
 
   void EncodeBlockType(Encoder* const encoder, BlockType blocktype) {
-    encoder->predictorBlock.shared->State.blockStateID = 0x10;
-    encoder->compressByte(&encoder->predictorBlock, uint8_t(blocktype));
-    encoder->predictorBlock.shared->State.blockTypeHistory <<= 8;
-    encoder->predictorBlock.shared->State.blockTypeHistory |= uint32_t(blocktype);
+    encoder->setContextForBlockModel(0x10);
+    encoder->compressByte(encoder->predictorBlock, uint8_t(blocktype));
+    encoder->appendToBlockTypeHistoryForBlockModel(blocktype);
   }
 
   BlockType DecodeBlockType(Encoder* const encoder) {
-    encoder->predictorBlock.shared->State.blockStateID = 0x10;
-    uint8_t b = encoder->decompressByte(&encoder->predictorBlock);
-    encoder->predictorBlock.shared->State.blockTypeHistory <<= 8;
-    encoder->predictorBlock.shared->State.blockTypeHistory |= b;
-    return (BlockType)b;
+    encoder->setContextForBlockModel(0x10);
+    BlockType blockType = (BlockType)encoder->decompressByte(encoder->predictorBlock);
+    encoder->appendToBlockTypeHistoryForBlockModel(blockType);
+    return blockType;
   }
 
   void EncodeBlockSize(Encoder* const encoder, uint64_t blockSize) {
-    encoder->predictorBlock.shared->State.blockStateID = 0x20;
-    encoder->compressByte(&encoder->predictorBlock, (blockSize >> 24) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x21;
-    encoder->compressByte(&encoder->predictorBlock, (blockSize >> 16) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x22;
-    encoder->compressByte(&encoder->predictorBlock, (blockSize >> 8) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x23;
-    encoder->compressByte(&encoder->predictorBlock, (blockSize) & 0xFF);
+    encoder->setContextForBlockModel(0x20);
+    encoder->compressByte(encoder->predictorBlock, (blockSize >> 24) & 0xFF);
+    encoder->setContextForBlockModel(0x21);
+    encoder->compressByte(encoder->predictorBlock, (blockSize >> 16) & 0xFF);
+    encoder->setContextForBlockModel(0x22);
+    encoder->compressByte(encoder->predictorBlock, (blockSize >> 8) & 0xFF);
+    encoder->setContextForBlockModel(0x23);
+    encoder->compressByte(encoder->predictorBlock, (blockSize) & 0xFF);
   }
 
   uint64_t DecodeBlockSize(Encoder* const encoder) {
     uint64_t blockSize = 0;
     uint8_t b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x20;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x20);
+    b = encoder->decompressByte(encoder->predictorBlock);
     blockSize = blockSize << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x21;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x21);
+    b = encoder->decompressByte(encoder->predictorBlock);
     blockSize = blockSize << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x22;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x22);
+    b = encoder->decompressByte(encoder->predictorBlock);
     blockSize = blockSize << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x23;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x23);
+    b = encoder->decompressByte(encoder->predictorBlock);
     blockSize = blockSize << 8 | b;
     return blockSize;
   }
 
   void EncodeInfo(Encoder* const encoder, int info) {
-    encoder->predictorBlock.shared->State.blockStateID = 0x30;
-    encoder->compressByte(&encoder->predictorBlock, (info >> 24) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x31;
-    encoder->compressByte(&encoder->predictorBlock, (info >> 16) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x32;
-    encoder->compressByte(&encoder->predictorBlock, (info >> 8) & 0xFF);
-    encoder->predictorBlock.shared->State.blockStateID = 0x33;
-    encoder->compressByte(&encoder->predictorBlock, (info) & 0xFF);
+    encoder->setContextForBlockModel(0x30);
+    encoder->compressByte(encoder->predictorBlock, (info >> 24) & 0xFF);
+    encoder->setContextForBlockModel(0x31);
+    encoder->compressByte(encoder->predictorBlock, (info >> 16) & 0xFF);
+    encoder->setContextForBlockModel(0x32);
+    encoder->compressByte(encoder->predictorBlock, (info >> 8) & 0xFF);
+    encoder->setContextForBlockModel(0x33);
+    encoder->compressByte(encoder->predictorBlock, (info) & 0xFF);
   }
 
   int DecodeInfo(Encoder* const encoder) {
     uint32_t info = 0;
     uint8_t b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x30;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x30);
+    b = encoder->decompressByte(encoder->predictorBlock);
     info = info << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x31;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x31);
+    b = encoder->decompressByte(encoder->predictorBlock);
     info = info << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x32;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x32);
+    b = encoder->decompressByte(encoder->predictorBlock);
     info = info << 8 | b;
-    encoder->predictorBlock.shared->State.blockStateID = 0x33;
-    b = encoder->decompressByte(&encoder->predictorBlock);
+    encoder->setContextForBlockModel(0x33);
+    b = encoder->decompressByte(encoder->predictorBlock);
     info = info << 8 | b;
     return info;
   }

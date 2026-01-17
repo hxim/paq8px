@@ -33,9 +33,8 @@ void LstmModelContainer::next() {
   }
 }
 
-int LstmModelContainer::getp() {
-  int p = static_cast<int32_t>(roundf(byteModelToBitModel.p() * 4096.0f));
-  p = std::clamp(p, 1, 4095);
+float LstmModelContainer::getp() {
+  float p = byteModelToBitModel.p();
   return p;
 }
 
@@ -50,7 +49,9 @@ void LstmModelContainer::mix(Mixer& m) {
   iCtx = (bpos << 8) | expectedByte;
   uint32_t ctx = iCtx();
 
-  int p = getp();
+  int p = static_cast<int32_t>(roundf(byteModelToBitModel.p() * 4096.0f));
+  p = std::clamp(p, 1, 4095);
+
   m.promote(stretch(p) / 2);
   m.add(stretch(p));
   m.add((p - 2048) >> 2);

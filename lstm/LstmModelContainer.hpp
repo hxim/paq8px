@@ -39,7 +39,7 @@ public:
     size_t horizon);
 
   void next();
-  int getp();
+  float getp();
   void mix(Mixer& m);
   void update() override;
 
