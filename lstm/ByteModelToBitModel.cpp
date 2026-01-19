@@ -1,5 +1,5 @@
 ﻿#include "ByteModelToBitModel.hpp"
-#include <cmath>
+#include "Utils.hpp"
 
 static void MakeSum(const float* const byteProbabilities, float* sum0, float* sum1, size_t length)
 {
@@ -43,6 +43,7 @@ float ByteModelToBitModel::p() const
         return 0.5f;
     }
     float p = pSum1 / (pSum0 + pSum1);
+    CheckValue(p, "LSTM: ByteModelToBitModel::p()\n");
     return p;
 }
 

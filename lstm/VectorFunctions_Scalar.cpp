@@ -1,4 +1,5 @@
 ﻿#include "VectorFunctions_Scalar.hpp"
+#include "Utils.hpp" // bitcast_u32_to_f32
 
 // Static helper functions
 
@@ -18,13 +19,6 @@ static float horizontal_sum(float x0, float x1, float x2, float x3, float x4, fl
   sum0 = sum0 + sum1;
 
   return sum0;
-}
-
-// Helper for bitcasting
-static inline float bitcast_u32_to_f32(uint32_t x) {
-  float result;
-  memcpy(&result, &x, sizeof(float));
-  return result;
 }
 
 // expf

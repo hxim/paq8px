@@ -280,6 +280,7 @@
     <ClCompile Include="lstm\LstmLayer.cpp" />
     <ClCompile Include="lstm\LstmModelContainer.cpp" />
     <ClCompile Include="lstm\SqrtLearningRateDecay.cpp" />
+    <ClCompile Include="lstm\Utils.cpp" />
     <ClCompile Include="lstm\VectorFunctions.cpp" />
     <ClCompile Include="lstm\VectorFunctions_AVX2.cpp" />
     <ClCompile Include="lstm\VectorFunctions_Scalar.cpp" />
@@ -430,6 +431,7 @@
     <ClInclude Include="lstm\LstmLayer.hpp" />
     <ClInclude Include="lstm\LstmModelContainer.hpp" />
     <ClInclude Include="lstm\SqrtLearningRateDecay.hpp" />
+    <ClInclude Include="lstm\Utils.hpp" />
     <ClInclude Include="lstm\VectorFunctions.hpp" />
     <ClInclude Include="lstm\VectorFunctions_AVX2.hpp" />
     <ClInclude Include="lstm\VectorFunctions_Scalar.hpp" />

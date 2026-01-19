@@ -372,6 +372,9 @@
     <ClCompile Include="PredictorMainLstmOnly.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="lstm\Utils.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -850,6 +853,9 @@
     </ClInclude>
     <ClInclude Include="PredictorMainLstmOnly.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Utils.hpp">
+      <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
