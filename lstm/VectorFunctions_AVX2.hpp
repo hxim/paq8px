@@ -4,7 +4,7 @@
 
 #ifdef X64_SIMD_AVAILABLE
 
-class VectorFunctions_AVX2: public VectorFunctions_SSE2
+class VectorFunctions_AVX2: public VectorFunctions_Scalar
 {
   virtual void Copy(
     float* dst,
@@ -118,7 +118,13 @@ class VectorFunctions_AVX2: public VectorFunctions_SSE2
     size_t const output_offset
   ) override;
 
-  // Softmax: using the SSE2 version
+  void virtual Softmax(
+    float* logits,
+    float* probs,
+    size_t len,
+    float max_logit
+  ) override;
+
 };
 
 #endif

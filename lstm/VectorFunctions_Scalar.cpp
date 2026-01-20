@@ -337,8 +337,7 @@ float VectorFunctions_Scalar::ComputeMaxLogit(
   size_t result_length)
 {
   float maxlogit = negative_infinity;
-  for (size_t i = 0; i < result_length; i++)
-  {
+  for (size_t i = 0; i < result_length; i++) {
     if (result[i] > maxlogit)
       maxlogit = result[i];
   }
@@ -383,8 +382,7 @@ void VectorFunctions_Scalar::Softmax(
   float max_logit)
 {
   float expsum[8]{ 0.0f };
-  for (size_t i = 0; i < len; i += 8)
-  {
+  for (size_t i = 0; i < len; i += 8) {
     for (size_t j = 0; j < 8; j++) {
       float x = expf_compat(logits[i + j] - max_logit);
       probs[i + j] = x;
@@ -392,8 +390,7 @@ void VectorFunctions_Scalar::Softmax(
     }
   }
   float expsum_reciprocal = 1.0f / horizontal_sum(expsum[0], expsum[1], expsum[2], expsum[3], expsum[4], expsum[5], expsum[6], expsum[7]);
-  for (size_t i = 0; i < len; i++)
-  {
+  for (size_t i = 0; i < len; i++) {
     probs[i] *= expsum_reciprocal;
   }
 }

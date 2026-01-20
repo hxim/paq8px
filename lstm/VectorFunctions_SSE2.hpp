@@ -118,7 +118,6 @@ class VectorFunctions_SSE2 : public VectorFunctions_Scalar
     size_t const output_offset
   ) override;
 
-protected: // used by AVX2 code
   void virtual Softmax(
     float* logits,
     float* probs,

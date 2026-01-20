@@ -422,8 +422,7 @@ float VectorFunctions_AVX2::ComputeMaxLogit(
 {
   __m256 max_logit_vec = _mm256_set1_ps(negative_infinity);
 
-  for (size_t i = 0; i < result_length; i += 16)
-  {
+  for (size_t i = 0; i < result_length; i += 16) {
     __m256 v0 = _mm256_load_ps(result + i);
     __m256 v1 = _mm256_load_ps(result + i + 8);
 
@@ -469,6 +468,75 @@ void VectorFunctions_AVX2::MatvecThenSoftmax(
     &output[output_offset],
     vocabulary_size,  // 256
     max_logit);
+}
+
+void VectorFunctions_AVX2::Softmax(
+  float* logits,
+  float* probs,
+  size_t len,
+  float max_logit)
+{
+  // Constants for exponential
+  const __m256 INV_LN2 = _mm256_set1_ps(0x1.715476p+0f);
+  const __m256 LN2_HI = _mm256_set1_ps(0x1.62e400p-1f);
+  const __m256 LN2_LO = _mm256_set1_ps(0x1.7f7d1cp-20f);
+  const __m256 c2 = _mm256_set1_ps(0x1.fffe24p-2f);
+  const __m256 c3 = _mm256_set1_ps(0x1.5554acp-3f);
+  const __m256 c4 = _mm256_set1_ps(0x1.5713a4p-5f);
+  const __m256 c5 = _mm256_set1_ps(0x1.12266ap-7f);
+  const __m256 one_vec = _mm256_set1_ps(1.0f);
+  const __m256i MAGIC_BIAS = _mm256_set1_epi32(12582912);
+  const __m256 MAGIC_BIAS_FLOAT = _mm256_set1_ps(12582912.0f);
+  const __m256i c127 = _mm256_set1_epi32(127);
+  const __m256 cplus87 = _mm256_set1_ps(87.0f);
+  const __m256 cminus87 = _mm256_set1_ps(-87.0f);
+  const __m256 maxlogit_vec = _mm256_set1_ps(max_logit);
+
+  __m256 expsum_vec = _mm256_setzero_ps();
+
+  for (size_t i = 0; i < len; i += 8) {
+    //prepare
+    __m256 logits_vec = _mm256_load_ps(&logits[i]);
+    logits_vec = _mm256_sub_ps(logits_vec, maxlogit_vec);
+
+    //exp
+    logits_vec = _mm256_min_ps(logits_vec, cplus87);
+    logits_vec = _mm256_max_ps(logits_vec, cminus87);
+
+    __m256 z = _mm256_mul_ps(logits_vec, INV_LN2);
+
+    __m256 t = _mm256_add_ps(z, MAGIC_BIAS_FLOAT);
+    __m256i n = _mm256_sub_epi32(_mm256_cvttps_epi32(t), MAGIC_BIAS);
+    t = _mm256_sub_ps(t, MAGIC_BIAS_FLOAT);
+
+    __m256 r = _mm256_sub_ps(logits_vec, _mm256_mul_ps(t, LN2_HI));
+    r = _mm256_sub_ps(r, _mm256_mul_ps(t, LN2_LO));
+
+    __m256 r2 = _mm256_mul_ps(r, r);
+    __m256 q2 = _mm256_add_ps(c2, _mm256_mul_ps(c3, r));
+    __m256 q4 = _mm256_add_ps(c4, _mm256_mul_ps(c5, r));
+    __m256 p = _mm256_add_ps(_mm256_mul_ps(_mm256_add_ps(_mm256_mul_ps(q4, r2), q2), r2), _mm256_add_ps(r, one_vec));
+
+    __m256i expbits = _mm256_add_epi32(n, c127);
+    __m256i bits = _mm256_slli_epi32(expbits, 23);
+    __m256 two_n = _mm256_castsi256_ps(bits);
+
+    __m256 result_vec = _mm256_mul_ps(p, two_n);
+
+    //finalize, store
+    _mm256_store_ps(&probs[i], result_vec);
+    expsum_vec = _mm256_add_ps(expsum_vec, result_vec);
+  }
+
+  float expsum = horizontal_sum(expsum_vec);
+  float expsum_reciprocal = 1.0f / expsum;
+  __m256 expsum_reciprocal_vec = _mm256_set1_ps(expsum_reciprocal);
+
+  for (size_t i = 0; i < len; i += 8) {
+    __m256 softmax_probs_vec = _mm256_load_ps(&probs[i]);
+    __m256 result_vec = _mm256_mul_ps(softmax_probs_vec, expsum_reciprocal_vec);
+    _mm256_store_ps(&probs[i], result_vec);
+  }
 }
 
 #endif

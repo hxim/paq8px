@@ -431,8 +431,7 @@ float VectorFunctions_SSE2::ComputeMaxLogit(
 {
   __m128 max_logit_vec = _mm_set1_ps(negative_infinity);
 
-  for (size_t i = 0; i < result_length; i += 16)
-  {
+  for (size_t i = 0; i < result_length; i += 16) {
     __m128 v0 = _mm_load_ps(result + i + 0);
     __m128 v1 = _mm_load_ps(result + i + 4);
     __m128 v2 = _mm_load_ps(result + i + 8);
@@ -503,6 +502,7 @@ void VectorFunctions_SSE2::Softmax(
   const __m128 c5 = _mm_set1_ps(0x1.12266ap-7f);
   const __m128 one_vec = _mm_set1_ps(1.0f);
   const __m128i MAGIC_BIAS = _mm_set1_epi32(12582912);
+  const __m128 MAGIC_BIAS_FLOAT = _mm_set1_ps(12582912.0f);
   const __m128i c127 = _mm_set1_epi32(127);
   const __m128 cplus87 = _mm_set1_ps(87.0f);
   const __m128 cminus87 = _mm_set1_ps(-87.0f);
@@ -524,10 +524,9 @@ void VectorFunctions_SSE2::Softmax(
 
       __m128 z = _mm_mul_ps(logits_vec, INV_LN2);
 
-      const __m128 m = _mm_cvtepi32_ps(MAGIC_BIAS); //due to register pressure
-      __m128 t = _mm_add_ps(z, m);
+      __m128 t = _mm_add_ps(z, MAGIC_BIAS_FLOAT);
       __m128i n = _mm_sub_epi32(_mm_cvttps_epi32(t), MAGIC_BIAS);
-      t = _mm_sub_ps(t, m);
+      t = _mm_sub_ps(t, MAGIC_BIAS_FLOAT);
 
       __m128 r = _mm_sub_ps(logits_vec, _mm_mul_ps(t, LN2_HI));
       r = _mm_sub_ps(r, _mm_mul_ps(t, LN2_LO));
@@ -562,10 +561,9 @@ void VectorFunctions_SSE2::Softmax(
 
       __m128 z = _mm_mul_ps(logits_vec, INV_LN2);
 
-      const __m128 m = _mm_cvtepi32_ps(MAGIC_BIAS); //due to register pressure
-      __m128 t = _mm_add_ps(z, m);
+      __m128 t = _mm_add_ps(z, MAGIC_BIAS_FLOAT);
       __m128i n = _mm_sub_epi32(_mm_cvttps_epi32(t), MAGIC_BIAS);
-      t = _mm_sub_ps(t, m);
+      t = _mm_sub_ps(t, MAGIC_BIAS_FLOAT);
 
       __m128 r = _mm_sub_ps(logits_vec, _mm_mul_ps(t, LN2_HI));
       r = _mm_sub_ps(r, _mm_mul_ps(t, LN2_LO));
@@ -593,8 +591,7 @@ void VectorFunctions_SSE2::Softmax(
   float expsum_reciprocal = 1.0f / expsum;
   __m128 expsum_reciprocal_vec = _mm_set1_ps(expsum_reciprocal);
 
-  for (size_t i = 0; i < len; i += 4)
-  {
+  for (size_t i = 0; i < len; i += 4) {
     __m128 softmax_probs_vec = _mm_load_ps(&probs[i]);
     __m128 result_vec = _mm_mul_ps(softmax_probs_vec, expsum_reciprocal_vec);
     _mm_store_ps(&probs[i], result_vec);
