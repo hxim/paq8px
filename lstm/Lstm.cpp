@@ -28,20 +28,20 @@ Lstm::Lstm(
   // - Input symbol for forward pass at sequence position i
   // - Target symbol for backward pass at sequence position i-1
   // Size is horizon+1 to accommodate the target for the last position
-  , input_symbol_history(shape.horizon + 1)           // 101:
+  , input_symbol_history(shape.horizon + 1)           // 101
   , hidden_size(shape.hidden_size)
   , horizon(shape.horizon)
   , vocabulary_size(shape.vocabulary_size)
   , num_layers(shape.num_layers)
-  , current_sequence_length(4)        // 4..horizon-1
+  , current_sequence_length(4)        // 4..horizon
   , sequence_step_target(12)
-  , sequence_step_counter(0)     // 0..sequence_step_target-1
+  , sequence_step_counter(0)          // 0..sequence_step_target-1
   , sequence_position(0)
   , training_iterations(1)
   , learning_rate_scheduler(
     1.0f,         // initial_lr
-    0.333333333f, // final_lr
-    0.0005f)      // decay_rate - it reaches the final_lr in ((1.0 / 0.333333)² - 1) / 0.0005 = (9 - 1) / 0.0005 = 16'000 iterations
+    0.30f,        // final_lr
+    0.00040f)     // decay_rate - it reaches the final_lr in ((1.0 / 0.333333)² - 1) / 0.0005 = (9 - 1) / 0.0005 = 16'000 iterations
 {
   assert((hidden_size & 7) == 0); // hidden_size must be a power of 8
 

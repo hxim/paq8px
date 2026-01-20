@@ -78,8 +78,10 @@ public:
     bool use_tanh,
     float bias_init,
     float learning_rate_symbol_embeddings,
+    float learning_rate_bias,
     float learning_rate_recurrent_weights,
-    float learning_rate_rms
+    float learning_rate_rms_gamma,
+    float learning_rate_rms_beta
   );
 
   void ForwardPass(

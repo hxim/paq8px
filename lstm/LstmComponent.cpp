@@ -41,8 +41,10 @@ LstmComponent::LstmComponent(
   bool use_tanh,
   float bias_init,
   float learning_rate_symbol_embeddings,
+  float learning_rate_bias,
   float learning_rate_recurrent_weights,
-  float learning_rate_rms)
+  float learning_rate_rms_gamma,
+  float learning_rate_rms_beta)
   : vocabulary_size(vocabulary_size)
   , hidden_size(hidden_size)
   , use_tanh(use_tanh)
@@ -87,6 +89,13 @@ LstmComponent::LstmComponent(
     &symbol_embedding_gradients[0],
     learning_rate_symbol_embeddings
   );
+  bias_optimizer = CreateOptimizer(
+    simdType,
+    hidden_size,                          // 200 (bias)
+    &bias[0],
+    &bias_gradients[0],
+    learning_rate_bias
+  );
   recurrent_weights_optimizer = CreateOptimizer(
     simdType,
     hidden_size * component_input_dim,    // Layer 0: 200*200, Layer 1: 200*400
@@ -99,21 +108,14 @@ LstmComponent::LstmComponent(
     hidden_size,                          // 200 (RMS scale)
     &gamma[0],
     &gamma_gradients[0],
-    learning_rate_rms
+    learning_rate_rms_gamma
   );
   beta_optimizer = CreateOptimizer(
     simdType,
     hidden_size,                          // 200 (RMSNorm bias)
     &beta[0],
     &beta_gradients[0],
-    learning_rate_rms
-  );
-  bias_optimizer = CreateOptimizer(
-    simdType,
-    hidden_size,                          // 200 (bias)
-    &bias[0],
-    &bias_gradients[0],
-    learning_rate_rms
+    learning_rate_rms_beta
   );
 }
 

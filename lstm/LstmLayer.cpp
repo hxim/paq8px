@@ -22,40 +22,46 @@ LstmLayer::LstmLayer(
   , component_input_dim(layer_id > 0 ? 2 * hidden_size : hidden_size) // recurrent inputs only or recurrent inputs + hidden state from the previous layer
   , forget_gate(
     simdType,
-    vocabulary_size,           // 256
-    component_input_dim,    // Layer 0: 200, Layer 1: 400
-    hidden_size,                 // 200
-    horizon,                   // 100
-    false,                     // use_tanh
-    1.0f,                      // bias_init
-    0.01f,                     // learning_rate_symbol_embeddings
-    0.01f,                     // learning_rate_recurrent_weights
-    0.01f                      // learning_rate_rms
+    vocabulary_size,                      // 256
+    component_input_dim,                  // Layer 0: 200, Layer 1: 400
+    hidden_size,                          // 200
+    horizon,                              // 100
+    false,                                // use_tanh
+    1.0f,                                 // bias_init
+    layer_id == 0 ? 0.0175f : 0.0175f,    // learning_rate_symbol_embeddings
+    layer_id == 0 ? 0.005f : 0.007f,      // learning_rate_bias
+    layer_id == 0 ? 0.050f : 0.014f,      // learning_rate_recurrent_weights
+    layer_id == 0 ? 0.001f : 0.012f,      // learning_rate_rms_gamma
+    layer_id == 0 ? 0.011f : 0.011f       // learning_rate_rms_beta
   )
   , cell_candidate(
     simdType,
-    vocabulary_size,           // 256
-    component_input_dim,    // Layer 0: 200, Layer 1: 400
-    hidden_size,                 // 200
-    horizon,                   // 100
-    true,                      // use_tanh
-    0.0f,                      // bias_init
-    0.002f,                    // learning_rate_symbol_embeddings
-    0.002f,                    // learning_rate_recurrent_weights
-    0.002f                     // learning_rate_rms
+    vocabulary_size,                      // 256
+    component_input_dim,                  // Layer 0: 200, Layer 1: 400
+    hidden_size,                          // 200
+    horizon,                              // 100
+    true,                                 // use_tanh
+    0.0f,                                 // bias_init
+    layer_id == 0 ? 0.003f : 0.007f,      // learning_rate_symbol_embeddings
+    layer_id == 0 ? 0.002f : 0.002f,      // learning_rate_bias
+    layer_id == 0 ? 0.00175f : 0.00175f,  // learning_rate_recurrent_weights
+    layer_id == 0 ? 0.002f : 0.002f,      // learning_rate_rms_gamma
+    layer_id == 0 ? 0.002f : 0.002f       // learning_rate_rms_beta
   )
   , output_gate(
     simdType,
-    vocabulary_size,           // 256
-    component_input_dim,    // Layer 0: 200, Layer 1: 400
-    hidden_size,                 // 200
-    horizon,                   // 100
-    false,                     // use_tanh
-    0.0f,                      // bias_init
-    0.013f,                    // learning_rate_symbol_embeddings
-    0.013f,                    // learning_rate_recurrent_weights
-    0.013f                     // learning_rate_rms
-  )
+    vocabulary_size,                      // 256
+    component_input_dim,                  // Layer 0: 200, Layer 1: 400
+    hidden_size,                          // 200
+    horizon,                              // 100
+    false,                                // use_tanh
+    0.0f,                                 // bias_init
+    layer_id == 0 ? 0.0225f : 0.0125f,    // learning_rate_symbol_embeddings
+    layer_id == 0 ? 0.0130f : 0.0130f,    // learning_rate_bias
+    layer_id == 0 ? 0.0125f : 0.0070f,    // learning_rate_recurrent_weights
+    layer_id == 0 ? 0.0120f : 0.0130f,    // learning_rate_rms_gamma
+    layer_id == 0 ? 0.0120f : 0.0130f     // learning_rate_rms_beta
+    )
 {
 
   VectorFunctions = CreateVectorFunctions(simdType);
