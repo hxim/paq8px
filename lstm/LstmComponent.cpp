@@ -6,11 +6,13 @@ float LstmLayer_Rand(float const range) {
 }
 
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
+#ifdef X64_SIMD_AVAILABLE
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
     return std::make_unique<VectorFunctions_AVX2>();
   else if (simd == SIMDType::SIMD_SSE2)
     return std::make_unique<VectorFunctions_SSE2>();
   else
+#endif
     return std::make_unique<VectorFunctions_Scalar>();
 }
 
@@ -21,11 +23,13 @@ std::unique_ptr<Adam> CreateOptimizer(
   float* g,
   float base_lr)
 {
+#ifdef X64_SIMD_AVAILABLE
   if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
     return std::make_unique<Adam_AVX>(length, w, g, base_lr);
   else if (simd == SIMDType::SIMD_SSE2)
     return std::make_unique<Adam_SSE2>(length, w, g, base_lr);
   else
+#endif
     return std::make_unique<Adam_Scalar>(length, w, g, base_lr);
 }
 
@@ -74,7 +78,7 @@ LstmComponent::LstmComponent(
   , pre_activation_gradients(hidden_size)                     // 200
 {
 
-  VectorFunctions = CreateVectorFunctions(simdType);
+  vectorFunctions = CreateVectorFunctions(simdType);
 
   // Initialize RMS gamma and weight bias
   for (size_t i = 0; i < hidden_size; i++) { // 200 iterations
@@ -133,20 +137,20 @@ void LstmComponent::ForwardPass(
 
   for (size_t i = 0; i < hidden_size; i++) { // 200 iterations
     // Compute: embedding_value + bias_value + DotProduct(input, hidden_weights)
-    normalized_values_at_seq_pos[i] = VectorFunctions->DotProduct(layer_input_ptr, weight_ptr, component_input_dim) + (*embed_ptr) + (*bias_ptr);
+    normalized_values_at_seq_pos[i] = vectorFunctions->DotProduct(layer_input_ptr, weight_ptr, component_input_dim) + (*embed_ptr) + (*bias_ptr);
 
     embed_ptr += vocabulary_size; // + 256
     weight_ptr += component_input_dim;   // + (200 or 400)
     bias_ptr++;
   }
 
-  const float sum_of_squares = VectorFunctions->SumOfSquares(normalized_values_at_seq_pos, hidden_size);
+  const float sum_of_squares = vectorFunctions->SumOfSquares(normalized_values_at_seq_pos, hidden_size);
 
   const float inverse_rms = std::sqrt(hidden_size / sum_of_squares); // 1.f / sqrt(sum_of_squares / 200)
   rms_scale[sequence_position] = inverse_rms;
 
   if (use_tanh)
-    VectorFunctions->NormalizeThenActivate_Tanh(
+    vectorFunctions->NormalizeThenActivate_Tanh(
       hidden_size,
       normalized_values_at_seq_pos, // normalized
       activations_at_seq_pos,       // out
@@ -154,7 +158,7 @@ void LstmComponent::ForwardPass(
       &beta[0],
       inverse_rms);
   else
-    VectorFunctions->NormalizeThenActivate_Sigmoid(
+    vectorFunctions->NormalizeThenActivate_Sigmoid(
       hidden_size,
       normalized_values_at_seq_pos, // normalized
       activations_at_seq_pos,       // out
@@ -180,7 +184,7 @@ void LstmComponent::BackwardPass(
     pre_activation_gradients[i] *= gamma[i] * rms_scale[sequence_position];
   }
 
-  const float dop = VectorFunctions->DotProduct(
+  const float dop = vectorFunctions->DotProduct(
     &pre_activation_gradients[0],
     pre_activation_at_seq_pos,
     hidden_size) / hidden_size; // DotProduct(..., 200) / 200
@@ -192,7 +196,7 @@ void LstmComponent::BackwardPass(
   // The first hidden_size weights are temporal connections, next hidden_size are from previous layer
   // weights[i * component_input_dim + j] where j >= hidden_size connects to previous layer
   if (layer_id > 0) {
-    VectorFunctions->BackpropagateErrors(
+    vectorFunctions->BackpropagateErrors(
       hidden_size,
       hidden_size, // base_offset
       component_input_dim,
@@ -206,7 +210,7 @@ void LstmComponent::BackwardPass(
   // Output from the previous seq_pos feeds back as input to current cell
   // weights[i * component_input_dim + j] where j < hidden_size for temporal connections
   if (sequence_position > 0) {
-    VectorFunctions->BackpropagateErrors(
+    vectorFunctions->BackpropagateErrors(
       hidden_size,
       0, // base_offset
       component_input_dim,
@@ -215,7 +219,7 @@ void LstmComponent::BackwardPass(
       gradient_from_next_timestep);
   }
 
-  VectorFunctions->AccumulateLayerGradients(
+  vectorFunctions->AccumulateLayerGradients(
     hidden_size,
     vocabulary_size,
     component_input_dim,

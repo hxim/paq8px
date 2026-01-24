@@ -51,7 +51,7 @@ static void printHelp() {
     "  -0L                  | Segment and transform then LSTM-only compression (alternative: -lstmonly)\n"
     "\n"
     "FLAGS:\n"
-    "  L                    | Enable LSTM model (+28 MB per block type)\n"
+    "  L                    | Enable LSTM model (+24 MB per block type)\n"
     "  A                    | Use adaptive learning rate\n"
     "  S                    | Skip RGB color transform (images)\n"
     "  B                    | Brute-force DEFLATE detection\n"
@@ -132,7 +132,7 @@ static void printHelpVerbose() {
     "      At higher levels (-1L .. -12L) the LSTM model is included as a submodel in Context Mixing and its predictions\n"
     "      are mixed with the other models.\n"
     "      When special block types are detected, for each block type an individual LSTM model is created dynamically and\n"
-    "      used within that block type. Each such LSTM model adds approximately 28 MB to the total memory use.\n"
+    "      used within that block type. Each such LSTM model adds approximately 24 MB to the total memory use.\n"
     "\n"
     "  A   Enable adaptive learning rate in the CM mixer.\n"
     "      May improve compression for some files.\n"
@@ -385,8 +385,8 @@ static void printCommand(const WHATTODO &whattodo) {
   printf("\n");
 }
 
-static void printOptions(Shared *shared) {
-  printf(" Level          = %d\n", shared->level);
+static void printOptions(Shared *shared, int level) {
+  printf(" Level          = %d\n", level);
   printf(" Brute      (b) = %s\n", shared->GetOptionBruteforceDeflateDetection() ?
     "On  (Brute-force detection of DEFLATE streams)" : 
     "Off"); //this is a compression-only option, but we put/get it for reproducibility
@@ -483,6 +483,10 @@ int processCommandLine(int argc, char **argv) {
               case 'L':
                 shared.SetOptionUseLSTM();
                 break;
+              case 'R':
+                printf("The -R option is temporarily unavailable in this release. Until it's back, you may try the -savelstm:text and -loadlstm:text options to create your own repository.");
+                quit();
+              break;
               default: {
                 printf("Invalid compression switch: %c", argv[1][j]);
                 quit();
@@ -627,6 +631,10 @@ int processCommandLine(int argc, char **argv) {
 
     if (simdIset > detectedSimdIset) {
       printf("\nOverriding system highest vectorization support. Expect a crash.");
+    }
+
+    if (verbose && shared.GetOptionUseLSTM()) {
+      printf("Numer of trainable parameters in LSTM moel: 773'456\n"); // this is fixed now, the user has no control over it
     }
 
     if( verbose ) {
@@ -834,7 +842,7 @@ int processCommandLine(int argc, char **argv) {
 
     if( verbose ) {
       printCommand(whattodo);
-      printOptions(&shared);
+      printOptions(&shared, level);
     }
     printf("\n");
 

@@ -45,7 +45,7 @@ Lstm::Lstm(
 {
   assert((hidden_size & 7) == 0); // hidden_size must be a power of 8
 
-  VectorFunctions = CreateVectorFunctions(simdType);
+  vectorFunctions = CreateVectorFunctions(simdType);
 
   output_weights_optimizer = CreateOptimizer(
     simdType,
@@ -115,11 +115,11 @@ float* Lstm::Predict(uint8_t const input_symbol) {
     // Then copy previous layer's output to position hidden_size
 
     // Copy own previous hidden state (always)
-    VectorFunctions->Copy(layer_input_ptr, hidden_state_ptr, hidden_size);
+    vectorFunctions->Copy(layer_input_ptr, hidden_state_ptr, hidden_size);
     // Copy previous layer's output (when there's a previous layer)
     if (i > 0) {
       // Layer i: [own_prev_hidden | layer_(i-1)_current_output]
-      VectorFunctions->Copy(layer_input_ptr + hidden_size, &concatenated_hidden_states[(i - 1) * hidden_size], hidden_size);
+      vectorFunctions->Copy(layer_input_ptr + hidden_size, &concatenated_hidden_states[(i - 1) * hidden_size], hidden_size);
     }
 
     layers[i]->ForwardPass(
@@ -133,7 +133,7 @@ float* Lstm::Predict(uint8_t const input_symbol) {
   size_t const concatenated_hidden_size = hidden_size * num_layers; // 200 * 2 = 400, same as hidden.size()
   size_t const output_offset = sequence_position * vocabulary_size; // sequence_position * 256
 
-  VectorFunctions->MatvecThenSoftmax(
+  vectorFunctions->MatvecThenSoftmax(
     &concatenated_hidden_states[0],
     &logits[0],
     &output_weights[0],
@@ -189,7 +189,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
 
         float* error_on_output = &output_probabilities[output_offset_at_seq_pos];
 
-        VectorFunctions->AccumulateLstmGradients(
+        vectorFunctions->AccumulateLstmGradients(
           hidden_size,
           concatenated_hidden_size,
           vocabulary_size,
@@ -220,7 +220,7 @@ void Lstm::Perceive(const uint8_t target_symbol) {
 
   float* error_on_output = &output_probabilities[output_offset];
 
-  VectorFunctions->AccumulateOutputLayerGradients(
+  vectorFunctions->AccumulateOutputLayerGradients(
     output_offset,
     error_on_output, 
     &output_weight_gradients[0],

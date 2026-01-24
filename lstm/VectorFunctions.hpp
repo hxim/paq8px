@@ -2,7 +2,7 @@
 
 #include "../Utils.hpp"
 #include "../Simd.hpp"
-#include "../SimdType.hpp"
+#include "../SIMDType.hpp"
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -11,6 +11,8 @@
 class VectorFunctions
 {
 public:
+
+  virtual ~VectorFunctions() = default;
 
   virtual void Copy(
     float* dst,

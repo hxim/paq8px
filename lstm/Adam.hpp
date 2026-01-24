@@ -16,7 +16,7 @@ protected:
 
 public:
   Adam(size_t length, float* w, float* g, float base_lr);
-  ~Adam() = default;
+  virtual ~Adam() = default;
 
   virtual void Optimize(float learning_rate, float beta2) = 0;
 

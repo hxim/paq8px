@@ -61,7 +61,7 @@ public:
   size_t component_input_dim;
   size_t hidden_size;
 
-  std::unique_ptr<VectorFunctions> VectorFunctions;
+  std::unique_ptr<VectorFunctions> vectorFunctions;
   std::unique_ptr<Adam> symbol_embeddings_optimizer;
   std::unique_ptr<Adam> recurrent_weights_optimizer;
   std::unique_ptr<Adam> gamma_optimizer;

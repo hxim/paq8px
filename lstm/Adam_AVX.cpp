@@ -4,9 +4,12 @@
 #ifdef X64_SIMD_AVAILABLE
 
 #if (defined(__GNUC__) || defined(__clang__))
-#pragma GCC target("avx")
+#define AVX2_TARGET __attribute__((target("avx2")))
+#else
+#define AVX2_TARGET
 #endif
 
+AVX2_TARGET
 void Adam_AVX::Optimize(float lr_scale, float beta2)
 {
   __m256 const vec_zero = _mm256_setzero_ps();
@@ -41,6 +44,7 @@ void Adam_AVX::Optimize(float lr_scale, float beta2)
   }
 }
 
+AVX2_TARGET
 void Adam_AVX::Rescale(float scale)
 {
   __m256 const vec_scale = _mm256_set1_ps(scale);

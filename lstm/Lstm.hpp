@@ -22,7 +22,7 @@ struct LstmShape {
 
 class Lstm {
 private:
-  std::unique_ptr<VectorFunctions> VectorFunctions;
+  std::unique_ptr<VectorFunctions> vectorFunctions;
 
   std::vector<std::unique_ptr<LstmLayer>> layers;
   Array<float, 32> all_layer_inputs;

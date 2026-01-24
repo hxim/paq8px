@@ -64,7 +64,7 @@ LstmLayer::LstmLayer(
     )
 {
 
-  VectorFunctions = CreateVectorFunctions(simdType);
+  vectorFunctions = CreateVectorFunctions(simdType);
 
   // Initialize embedding matrices with random weights in each component
   // All other weights (recurrent, from previous layer, biases) are left as zeroes
@@ -102,7 +102,7 @@ void LstmLayer::ForwardPass(
   // Copy current cell_state to last_cell_state for this sequence_position
   float* src = &cell_state[0];
   float* dst = &last_cell_state[seq_pos_offset];
-  VectorFunctions->Copy(dst, src, hidden_size);
+  vectorFunctions->Copy(dst, src, hidden_size);
 
   forget_gate.ForwardPass(input, input_symbol, sequence_position);
   cell_candidate.ForwardPass(input, input_symbol, sequence_position);
@@ -125,8 +125,8 @@ void LstmLayer::ForwardPass(
 }
 
 void LstmLayer::InitializeBackwardPass() {
-  VectorFunctions->Zero(&gradient_from_next_timestep[0], hidden_size);
-  VectorFunctions->Zero(&cell_state_gradient[0], hidden_size);
+  vectorFunctions->Zero(&gradient_from_next_timestep[0], hidden_size);
+  vectorFunctions->Zero(&cell_state_gradient[0], hidden_size);
 }
 
 void LstmLayer::BackwardPass(
@@ -136,7 +136,7 @@ void LstmLayer::BackwardPass(
   uint8_t const input_symbol,
   float* hidden_gradient_accumulator)
 {
-  VectorFunctions->AccumulateLstmLayerGradients(
+  vectorFunctions->AccumulateLstmLayerGradients(
     hidden_size,
     sequence_position * hidden_size, //timestep_offset
     &gradient_from_next_timestep[0],

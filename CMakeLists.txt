@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.10)
-project(paq8px LANGUAGES CXX)
+project(paq8px LANGUAGES CXX C)
 
 # --------------------------------------
 # Build options
 # --------------------------------------
 option(NATIVECPU "Whether to build for your CPU (vs. general public)" OFF)
-option(DISABLE_ZLIB "Whether to disable zlib" OFF)
+option(DISABLE_ZLIB "Whether to disable zlib (builds bundled zlib if OFF)" OFF)
 option(NDEBUG "Suppress asserts and array bound checks" ON)
+option(ENABLE_WARNINGS "Enable compiler warnings ('diag' mode)" OFF)
 
 # --------------------------------------
 # Compiler settings
@@ -14,6 +15,7 @@ option(NDEBUG "Suppress asserts and array bound checks" ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Base optimization flags
 set(BASE_FLAGS
     -O3
@@ -43,6 +45,11 @@ endif()
 
 add_compile_options(${BASE_FLAGS})
 
+# Warning flags
+if (ENABLE_WARNINGS)
+    add_compile_options(-Wall)
+    message(STATUS "Warnings enabled (diag mode)")
+endif()
 
 # --------------------------------------
 # NDEBUG
@@ -58,7 +65,38 @@ if (DISABLE_ZLIB)
     message(STATUS "Zlib disabled by user")
     add_compile_definitions(DISABLE_ZLIB)
 else()
-    find_package(ZLIB REQUIRED)
+    message(STATUS "Building bundled zlib")
+    
+    # Define zlib source directory
+    set(ZLIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/zlib")
+    
+    # Collect zlib sources (matching build.cmd)
+    set(ZLIB_SOURCES
+        ${ZLIB_DIR}/adler32.c
+        ${ZLIB_DIR}/crc32.c
+        ${ZLIB_DIR}/deflate.c
+        ${ZLIB_DIR}/gzlib.c
+        ${ZLIB_DIR}/inffast.c
+        ${ZLIB_DIR}/inflate.c
+        ${ZLIB_DIR}/inftrees.c
+        ${ZLIB_DIR}/trees.c
+        ${ZLIB_DIR}/zutil.c
+    )
+    
+    # Create static zlib library
+    add_library(zlib_bundled STATIC ${ZLIB_SOURCES})
+    target_compile_options(zlib_bundled PRIVATE -fexceptions)
+
+    # Add unistd.h for Linux (provides lseek declaration)
+    if (UNIX)
+        target_compile_options(zlib_bundled PRIVATE -include unistd.h)
+    endif()
+
+    target_include_directories(zlib_bundled PUBLIC ${ZLIB_DIR})
+    
+    # Set variables for consistency
+    set(ZLIB_LIBRARIES zlib_bundled)
+    set(ZLIB_INCLUDE_DIRS ${ZLIB_DIR})
 endif()
 
 # --------------------------------------
@@ -70,6 +108,7 @@ file(GLOB PAQ_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/filter/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/model/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/text/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lstm/*.cpp"
 )
 
 # --------------------------------------
@@ -77,10 +116,25 @@ file(GLOB PAQ_SOURCES
 # --------------------------------------
 add_executable(paq8px ${PAQ_SOURCES})
 
+# Disable RTTI
+target_compile_options(paq8px PRIVATE -fno-rtti)
+
 # Link Zlib if available
 if (NOT DISABLE_ZLIB)
     target_include_directories(paq8px PRIVATE ${ZLIB_INCLUDE_DIRS})
     target_link_libraries(paq8px PRIVATE ${ZLIB_LIBRARIES})
+endif()
+
+# Static linking on Windows
+if (WIN32)
+    target_link_options(paq8px PRIVATE -static)
+endif()
+
+# Strip symbols in release builds
+if (CMAKE_BUILD_TYPE STREQUAL "Release" OR NDEBUG)
+    if (NOT MSVC)
+        target_link_options(paq8px PRIVATE -s)
+    endif()
 endif()
 
 # --------------------------------------
@@ -94,3 +148,13 @@ if (supported)
 else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
+
+# --------------------------------------
+# Build information
+# --------------------------------------
+message(STATUS "Build configuration:")
+message(STATUS "  NATIVECPU: ${NATIVECPU}")
+message(STATUS "  DISABLE_ZLIB: ${DISABLE_ZLIB}")
+message(STATUS "  NDEBUG: ${NDEBUG}")
+message(STATUS "  ENABLE_WARNINGS: ${ENABLE_WARNINGS}")
+message(STATUS "  Architecture: ${CMAKE_SYSTEM_PROCESSOR}")

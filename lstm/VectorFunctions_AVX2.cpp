@@ -3,11 +3,14 @@
 #ifdef X64_SIMD_AVAILABLE
 
 #if (defined(__GNUC__) || defined(__clang__))
-#pragma GCC target("avx2")
+#define AVX2_TARGET __attribute__((target("avx2")))
+#else
+#define AVX2_TARGET
 #endif
 
 // Static helper functions
 
+AVX2_TARGET
 static float horizontal_sum(__m256 sum_vec)
 {
   __m128 sum_high = _mm256_extractf128_ps(sum_vec, 1);
@@ -21,6 +24,7 @@ static float horizontal_sum(__m256 sum_vec)
 
 // Member implementations
 
+AVX2_TARGET
 void VectorFunctions_AVX2::Copy(float* dst, const float* src, size_t num_floats) {
   for (size_t i = 0; i < num_floats; i += 8) {
     __m256 vec = _mm256_load_ps(src + i);
@@ -28,6 +32,7 @@ void VectorFunctions_AVX2::Copy(float* dst, const float* src, size_t num_floats)
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::Zero(float* dst, size_t num_floats) {
   __m256 zeroes = _mm256_setzero_ps();
   for (size_t i = 0; i < num_floats; i += 8) {
@@ -35,7 +40,7 @@ void VectorFunctions_AVX2::Zero(float* dst, size_t num_floats) {
   }
 }
 
-
+AVX2_TARGET
 float VectorFunctions_AVX2::DotProduct(
   float const* x1,
   float const* x2,
@@ -53,6 +58,7 @@ float VectorFunctions_AVX2::DotProduct(
   return horizontal_sum(sum);
 }
 
+AVX2_TARGET
 float VectorFunctions_AVX2::SumOfSquares(float* array, size_t array_length) {
   __m256 sum_vec = _mm256_setzero_ps();
   
@@ -63,6 +69,7 @@ float VectorFunctions_AVX2::SumOfSquares(float* array, size_t array_length) {
   return horizontal_sum(sum_vec);
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::NormalizeThenActivate_Sigmoid(
   size_t array_length,
   float* to_be_normalized_values,
@@ -108,6 +115,7 @@ void VectorFunctions_AVX2::NormalizeThenActivate_Sigmoid(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::NormalizeThenActivate_Tanh(
   size_t array_length,
   float* to_be_normalized_values,
@@ -147,6 +155,7 @@ void VectorFunctions_AVX2::NormalizeThenActivate_Tanh(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::AccumulateLstmGradients(
   size_t hidden_size,
   size_t concatenated_hidden_size,
@@ -196,6 +205,7 @@ void VectorFunctions_AVX2::AccumulateLstmGradients(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::AccumulateLstmLayerGradients(
   size_t hidden_size,
   size_t timestep_offset,
@@ -272,6 +282,7 @@ void VectorFunctions_AVX2::AccumulateLstmLayerGradients(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::BackpropagateErrors(
   size_t len,                       // hidden_size (200)
   size_t base_offset,               // 0 for temporal, hidden_size for spatial
@@ -300,6 +311,7 @@ void VectorFunctions_AVX2::BackpropagateErrors(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::AccumulateLayerGradients(
   const size_t hidden_size,
   const size_t vocabulary_size,
@@ -361,6 +373,7 @@ void VectorFunctions_AVX2::AccumulateLayerGradients(
   }
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::AccumulateOutputLayerGradients(
   size_t previous_output_offset,
   float* error_on_output,
@@ -415,6 +428,7 @@ void VectorFunctions_AVX2::AccumulateOutputLayerGradients(
   }
 }
 
+AVX2_TARGET
 float VectorFunctions_AVX2::ComputeMaxLogit(
   float* result,
   size_t result_length
@@ -440,6 +454,7 @@ float VectorFunctions_AVX2::ComputeMaxLogit(
   return maxlogit;
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::MatvecThenSoftmax(
   float* hidden,
   float* logits,
@@ -470,6 +485,7 @@ void VectorFunctions_AVX2::MatvecThenSoftmax(
     max_logit);
 }
 
+AVX2_TARGET
 void VectorFunctions_AVX2::Softmax(
   float* logits,
   float* probs,

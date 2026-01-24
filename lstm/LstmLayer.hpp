@@ -8,7 +8,7 @@
 
 class LstmLayer {
 private:
-  std::unique_ptr<VectorFunctions> VectorFunctions;
+  std::unique_ptr<VectorFunctions> vectorFunctions;
 
   Array<float, 32> cell_state;
   Array<float, 32> cell_state_gradient;
