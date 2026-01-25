@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../file/File.hpp"
 #include "../Block.hpp"
@@ -75,13 +75,13 @@ void setBegin(int info) {
     uint8_t c[6];
     uint64_t begin = info;
     for( int i = 4; i >= 0; i-- ) {
-      c[i] = encoder->decompressByte(&encoder->predictorMain); // Fill queue
+      c[i] = encoder->decompressByte(encoder->predictorMain); // Fill queue
     }
 
     while( offset < static_cast<int>(size) + 6 ) {
       memmove(c + 1, c, 5);
       if( offset <= static_cast<int>(size)) {
-        c[0] = encoder->decompressByte(&encoder->predictorMain);
+        c[0] = encoder->decompressByte(encoder->predictorMain);
       }
       // E8E9 transform: E8/E9 xx xx xx 00/FF -> subtract location from x
       if((c[0] == 0x00 || c[0] == 0xFF) && (c[4] == 0xE8 || c[4] == 0xE9 || (c[5] == 0x0F && (c[4] & 0xF0) == 0x80)) &&

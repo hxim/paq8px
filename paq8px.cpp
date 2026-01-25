@@ -1,6 +1,6 @@
-/*
+﻿/*
   PAQ8PX file compressor/archiver
-  see README for information
+  see README.md for information
   see DOC for technical details
   see CHANGELOG for version history
 */
@@ -8,13 +8,14 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "209fix1"  //update version here before publishing your changes
-#define PROGYEAR     "2025"
+#define PROGVERSION  "210"  //update version here before publishing your changes
+#define PROGYEAR     "2026"
 
 
 #include "Utils.hpp"
 
 #include <stdexcept>  //std::exception
+#include <string> //std::stof, std::to_string
 
 #include "Encoder.hpp"
 #include "ProgramChecker.hpp"
@@ -24,143 +25,309 @@
 #include "file/ListOfFiles.hpp"
 #include "file/fileUtils2.hpp"
 #include "filter/Filters.hpp"
+#include "Models.hpp"
 #include "Simd.hpp"
+#include "PredictorBlock.hpp"
+#include "PredictorMain.hpp"
+#include "PredictorMainLstmOnly.hpp"
+
 
 typedef enum { DoNone, DoCompress, DoExtract, DoCompare, DoList } WHATTODO;
 
 static void printHelp() {
+  printf(
+    "Free under GPL, http://www.gnu.org/licenses/gpl.txt\n\n"
+    "Usage:\n"
+    "  to compress       ->   " PROGNAME " -LEVEL[FLAGS] [OPTIONS] INPUT [OUTPUT]\n"
+    "  to decompress     ->   " PROGNAME " -d INPUT." PROGNAME PROGVERSION " [OUTPUT]\n"
+    "  to test           ->   " PROGNAME " -t INPUT." PROGNAME PROGVERSION " [OUTPUT]\n"
+    "  to list contents  ->   " PROGNAME " -l INPUT." PROGNAME PROGVERSION "\n"
+    "\n"
+    "LEVEL:\n"
+    "  -1 -2 -3 -4          | Compress using less memory (529, 543, 572, 630 MB)\n"
+    "  -5 -6 -7 -8          | Use more memory (747, 980, 1446, 2377 MB)\n"
+    "  -9 -10 -11 -12       | Use even more memory (4241, 7968, 15421, 29305 MB)\n"
+    "  -0                   | Segment and transform only, no compression\n"
+    "  -0L                  | Segment and transform then LSTM-only compression (alternative: -lstmonly)\n"
+    "\n"
+    "FLAGS:\n"
+    "  L                    | Enable LSTM model (+24 MB per block type)\n"
+    "  A                    | Use adaptive learning rate\n"
+    "  S                    | Skip RGB color transform (images)\n"
+    "  B                    | Brute-force DEFLATE detection\n"
+    "  E                    | Pre-train x86/x64 model\n"
+    "  T                    | Pre-train text models (dictionary-based)\n"
+    "\n"
+    "  Example: " PROGNAME " -8LA file.txt   <- Level 8 + LSTM + adaptive learning rate\n"
+    "\n"
+    "Block detection control (compression-only):\n"
+    "  -forcebinary         | Force generic (binary) mode\n"
+    "  -forcetext           | Force text mode\n"
+    "\n"
+    "LSTM snapshots (expert-only):\n"
+    "  -savelstm:text FILE  | Save learned LSTM model weights after compression\n"
+    "  -loadlstm:text FILE  | Load LSTM model weights before compression/decompression\n"
+    "\n"
+    "Misc options:\n"
+    "  -v                   | Verbose output\n"
+    "  -log FILE            | Append compression results to log file\n"
+    "  -simd MODE           | Override SIMD detection - expert only (NONE|SSE2|AVX2|AVX512|NEON)\n"
+    "\n"
+    "Notes:\n"
+    "  INPUT may be FILE, PATH/FILE, or @FILELIST\n"
+    "  OUTPUT is optional: FILE, PATH, PATH/FILE\n"
+    "  The archive is created in the current folder with ." PROGNAME PROGVERSION " extension if OUTPUT omitted\n"
+    "  FLAGS are case-insensitive and only needed for compression; they may appear in any order\n"
+    "  INPUT must precede OUTPUT; all other OPTIONS may appear anywhere\n"
+  );
+}
+
+static void printHelpVerbose() {
   printf("\n"
-         "Free under GPL, http://www.gnu.org/licenses/gpl.txt\n\n"
-         "To compress:\n"
-         "\n"
-         "  " PROGNAME " -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]\n"
-         "\n"
-         "    Examples:\n"
-         "      " PROGNAME " -8 enwik8\n"
-         "      " PROGNAME " -8ba b64sample.xml\n"
-         "      " PROGNAME " -8 @myfolder/myfilelist.txt\n"
-         "      " PROGNAME " -8a benchmark/enwik8 results/enwik8_a_" PROGNAME PROGVERSION "\n"
-         "\n"
-         "\n"
-         "    -LEVEL:\n"
-         "\n"
-         "      Specifies how much memory to use. Approximately the same amount of memory\n"
-         "      will be used for both compression and decompression.\n"
-         "\n"
-         "      -0 = no compression, only transformations when applicable (uses 146 MB)\n"
-         "      -1 -2 -3 = compress using less memory (529, 543, 572 MB)\n"
-         "      -4 -5 -6 -7 -8 -9 = use more memory (630, 747, 980, 1446, 2377, 4241 MB)\n"
-         "      -10  -11  -12     = use even more memory (7968, 15421, 29305 MB)\n"
-         "\n"
-         "      The above listed memory requirements are indicative, actual usage may vary\n"
-         "      depending on several factors including need for temporary files,\n"
-         "      temporary memory needs of some preprocessing (transformations),\n"
-         "      and whether special models (audio, image, jpeg, LSTM) are in use or not.\n" 
-         "      Note: memory use of the LSTM model is not included/reported.\n"
-         "\n"
-         "\n"
-         "    Optional compression SWITCHES:\n"
-         "\n"
-         "      b = Brute-force detection of DEFLATE streams\n"
-         "      e = Pre-train x86/x64 model\n"
-         "      t = Pre-train the Normal+Text+Word models with word and expression list\n"
-         "          (english.dic, english.exp)\n"
-         "      a = Use adaptive learning rate\n"
-         "      s = For 24/32 bit images skip the color transform, just reorder the RGB channels\n"
-         "      l = Use Long Short-Term Memory network as an additional model\n"
-         "      r = Use repository of pre-trained LSTM models (implies option -l)\n"
-         "          (english.rnn, x86_64.rnn)\n"
-         "\n"
-         "\n"
-         "    INPUTSPEC:\n"
-         "\n"
-         "    The input may be a FILE or a PATH/FILE or a [PATH/]@FILELIST.\n"
-         "\n"
-         "    Only file content and the file size is kept in the archive. Filename,\n"
-         "    path, date and any file attributes or permissions are not stored.\n"
-         "    When a @FILELIST is provided the FILELIST file will be considered\n"
-         "    implicitly as the very first input file. It will be compressed and upon\n"
-         "    decompression it will be extracted. The FILELIST is a tab separated text\n"
-         "    file where the first column contains the names and optionally the relative\n"
-         "    paths of the files to be compressed. The paths should be relative to the\n"
-         "    FILELIST file. In the other columns you may store any information you wish\n"
-         "    to keep about the files (timestamp, owner, attributes or your own remarks).\n"
-         "    These extra columns will be ignored by the compressor and the decompressor\n"
-         "    but you may restore full file information using them with a 3rd party\n"
-         "    utility. The FILELIST file must contain a header but will be ignored.\n"
-         "\n"
-         "\n"
-         "    OUTPUTSPEC:\n"
-         "\n"
-         "    When omitted: the archive will be created in the current folder. The\n"
-         "    archive filename will be constructed from the input file name by \n"
-         "    appending ." PROGNAME PROGVERSION " extension to it.\n"
-         "    When OUTPUTSPEC is a filename (with an optional path) it will be\n"
-         "    used as the archive filename.\n"
-         "    When OUTPUTSPEC is a folder the archive file will be generated from\n"
-         "    the input filename and will be created in the specified folder.\n"
-         "    If the archive file already exists it will be overwritten.\n"
-         "\n"
-         "\n"
-         "To extract (decompress contents):\n"
-         "\n"
-         "  " PROGNAME " -d [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]\n"
-         "\n"
-         "    If an output folder is not provided the output file will go to the input\n"
-         "    folder. If an output filename is not provided output filename will be the\n"
-         "    same as ARCHIVEFILE without the last extension (e.g. without ." PROGNAME PROGVERSION")\n"
-         "    When OUTPUTPATH does not exist it will be created.\n"
-         "    When the archive contains multiple files, first the @LISTFILE is extracted\n"
-         "    then the rest of the files. Any required folders will be created.\n"
-         "\n"
-         "\n"
-         "To test:\n"
-         "\n"
-         "  " PROGNAME " -t [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]\n"
-         "\n"
-         "    Tests contents of the archive by decompressing it (to memory) and comparing\n"
-         "    the result to the original file(s). If a file fails the test, the first\n"
-         "    mismatched position will be printed to screen.\n"
-         "\n"
-         "\n"
-         "To list archive contents:\n"
-         "\n"
-         "  " PROGNAME " -l [INPUTFOLDER/]ARCHIVEFILE\n"
-         "\n"
-         "    Extracts @FILELIST from archive (to memory) and prints its content\n"
-         "    to screen. This command is only applicable to multi-file archives.\n"
-         "\n"
-         "\n"
-         "Additional optional switches:\n"
-         "\n"
-         "    -forcebinary\n"
-         "    Skip block detection, use the DEFAULT (binary aka generic) model set only.\n" 
-         "    It helps when block detection would find false positives in a file with purely binary content.\n"
-         "\n"
-         "\n"
-         "    -forcetext\n"
-         "    Skip block detection, use the TEXT model set only.\n" 
-         "    It helps when block detection would detect the file as DEFAULT with text-like content.\n"
-         "\n"        
-         "\n"
-         "    -v\n"
-         "    Print more detailed (verbose) information to screen.\n"
-         "\n"
-         "    -log LOGFILE\n"
-         "    Logs (appends) compression results in the specified tab separated LOGFILE.\n"
-         "    Logging is only applicable for compression.\n"
-         "\n"
-         "    -simd [NONE|SSE2|AVX2|AVX512|NEON]\n"
-         "    Overrides detected SIMD instruction set for neural network operations\n"
-         "\n"
-         "\n"
-         "Remark: the command line arguments may be used in any order except the input\n"
-         "and output: always the input comes first then output (which may be omitted).\n"
-         "\n"
-         "    Example:\n"
-         "      " PROGNAME " -8 enwik8 outputfolder/ -v -log logfile.txt -simd sse2\n"
-         "    is equivalent to:\n"
-         "      " PROGNAME " -v -simd sse2 enwik8 -log logfile.txt outputfolder/ -8\n");
+    "=============\n"
+    "Detailed Help\n"
+    "=============\n"
+    "\n"
+    "---------------\n"
+    " 1. Compression\n"
+    "---------------\n"
+    "\n"
+    "  Compression levels control the amount of memory used during both compression and decompression.\n"
+    "  Higher levels generally improve compression ratio at the cost of higher memory usage and slower speed.\n"
+    "  Specifying the compression level is needed only for compression - no need to specify it for decompression.\n"
+    "  Approximately the same amount of memory will be used during compression and decompression.\n"
+    "\n"
+    "  The listed memory usage for each LEVEL (-1 = 529 MB .. -12 = 29305 MB) is typical/indicative for compressing binary\n"
+    "  files with no preprocessing. Actual memory use is lower for text files and higher when a preprocessing step\n"
+    "  (segmentation and transformations) requires temporary memory. When special file types are detected, special models\n"
+    "  (image, jpg, audio) will be used and thus will require extra RAM.\n"
+    "\n"
+    "------------------\n"
+    " 2. Special Levels\n"
+    "------------------\n"
+    "\n"
+    "  -0   Only block type detection (segmentation) and block transformations are performed.\n"
+    "       The data is copied (verbatim or transformed); no compression happens.\n"
+    "       This mode is similar to a preprocessing-only tool like precomp.\n"
+    "       Uses approximately 3-7 MB total.\n"
+    "\n"
+    "  -0L  Uses only a single LSTM model for prediction which is shared across all block types.\n"
+    "       Uses approximately 20-24 MB total RAM.\n"
+    "       Alternative: -lstmonly\n"
+    "\n"
+    "---------------------\n"
+    " 3. Compression Flags\n"
+    "---------------------\n"
+    "\n"
+    "  Compression flags are single-letter, case-insensitive, and appended directly to the level.\n"
+    "  They are valid only during compression. No need to specify them for decompression.\n"
+    "\n"
+    "  L   Enable the LSTM (Long Short-Term Memory) model.\n"
+    "      Uses a fixed-size model, independent of compression level.\n"
+    "\n"
+    "      At level -0L (also: -lstmonly) a single LSTM model is used for prediction for all detected block types.\n"
+    "      Block detection and segmentation are still performed, but no context mixing or Secondary Symbol\n"
+    "      Estimation (SSE) stage is used.\n"
+    "\n"
+    "      At higher levels (-1L .. -12L) the LSTM model is included as a submodel in Context Mixing and its predictions\n"
+    "      are mixed with the other models.\n"
+    "      When special block types are detected, for each block type an individual LSTM model is created dynamically and\n"
+    "      used within that block type. Each such LSTM model adds approximately 24 MB to the total memory use.\n"
+    "\n"
+    "  A   Enable adaptive learning rate in the CM mixer.\n"
+    "      May improve compression for some files.\n"
+    "\n"
+    "  S   Skip RGB color transform for 24/32-bit images.\n"
+    "      Useful when the transform worsens compression.\n"
+    "      This flag has no effect when no image block types are detected.\n"
+    "\n"
+    "  B   Enable brute-force DEFLATE stream detection.\n"
+    "      Slower but may improve detection of compressed streams.\n"
+    "\n"
+    "  E   Pre-train the x86/x64 executable model.\n"
+    "      This option pre-trains the EXE model using the " PROGNAME ".exe binary itself.\n"
+    "      Archives created with a different " PROGNAME ".exe executable (even when built from the same source and build options)\n"
+    "      will differ. To decompress an archive created with -E, you must use the exact same executable that created it.\n"
+    "\n"
+    "  T   Pre-train text-oriented models using a dictionary and expression list.\n"
+    "      The word list (english.dic) and expression list (english.exp) are used only to pre-train models before\n"
+    "      compression and they are not stored in the archive.\n"
+    "      You must have these same files available to decompress archives created with -T.\n"
+    "\n"
+    "---------------------------\n"
+    " 4. Block Detection Control\n"
+    "---------------------------\n"
+    "\n"
+    "  Block detection and segmentation always happen regardless of the memory level or other options - except when forced:\n"
+    "\n"
+    "  -forcebinary\n"
+    "\n"
+    "      Disable block detection; the whole file is considered as a single binary block and only the generic (binary)\n"
+    "      model set will be used.\n"
+    "      Useful when block detection produces false positives.\n"
+    "\n"
+    "  -forcetext\n"
+    "\n"
+    "      Disable block detection; consider the whole file as a single text block and use the text model set only.\n"
+    "      Useful when text data is misclassified as binary or fragments in a text file are incorrectly detected as some\n"
+    "      other block type.\n"
+    "\n"
+    "---------------------------------------\n"
+    " 5. LSTM Snapshot Options (expert-only)\n"
+    "---------------------------------------\n"
+    "\n"
+    "  -savelstm:text FILE\n"
+    "\n"
+    "      Saves the LSTM model's learned parameters as a lossless snapshot to the specified file when compression finishes.\n"
+    "      Only the model used for text block(s) will be saved.\n"
+    "      It's not possible to save a snapshot from other block types. This is an experimental feature.\n"
+    "\n"
+    "  -loadlstm:text FILE\n"
+    "\n"
+    "      Loads the LSTM model's learned parameters from the specified file (which was saved earlier\n"
+    "      by the -savelstm:text option) before compression starts. The LSTM model will use this loaded\n"
+    "      snapshot to bootstrap its predictions.\n"
+    "      At levels -1L .. -12L only text blocks are affected.\n"
+    "      At level -0L all blocks are affected (because a single LSTM model is used for all block types).\n"
+    "      Critical: The same snapshot file MUST be used during decompression or the original content cannot be recovered.\n"
+    "\n"
+    "----------------------\n"
+    " 6. Archive Operations\n"
+    "----------------------\n"
+    "\n"
+    "  -d  Decompress an archive.\n"
+    "      In single-file mode the content is decompressed, the name of the output is the name of the archive without\n"
+    "      the ." PROGNAME PROGVERSION " extension.\n"
+    "      In multi-file mode first the @LISTFILE is extracted then the rest of the files. Any required folders will\n"
+    "      be created recursively, all files will be extracted with their original names.\n"
+    "      If the output file or files already exist they will be overwritten.\n"
+    "\n"
+    "      Example: to decompress file.txt to the current folder:\n"
+    "      " PROGNAME " -d file.txt." PROGNAME PROGVERSION "\n"
+    "\n"
+    "  -t  Test archive contents by decompressing to memory and comparing with the original data on-the-fly.\n"
+    "      If a file fails the test, the first mismatched position will be printed to screen.\n"
+    "\n"
+    "      Example: to test archive contents:\n"
+    "      " PROGNAME " -t file.txt." PROGNAME PROGVERSION "\n"
+    "\n"
+    "  -l  List archive contents.\n"
+    "      Extracts the embedded @FILELIST (if present) and prints it.\n"
+    "      Applicable only to multi-file archives.\n"
+    "\n"
+    "      Example: to list the file list (when the archive was created using @files):\n"
+    "      " PROGNAME " -l files." PROGNAME PROGVERSION "\n"
+    "\n"
+    "----------------------------------\n"
+    " 7. INPUT and OUTPUT Specification\n"
+    "----------------------------------\n"
+    "\n"
+    "  INPUT may be:\n"
+    "\n"
+    "  * A single file\n"
+    "  * A path/file\n"
+    "  * A [path/]@FILELIST\n"
+    "\n"
+    "  In multi-file mode (i.e. when @FILELIST is provided) only file names, file contents and file sizes are stored\n"
+    "  in the archive. Timestamps, permissions, attributes or any other metadata are not preserved unless stored\n"
+    "  separately and manually by the user in the FILELIST.\n"
+    "\n"
+    "  OUTPUT is optional:\n"
+    "\n"
+    "    For compression:\n"
+    "\n"
+    "    * If omitted, the archive is created in the current directory.\n"
+    "      The name of the archive: INPUT + " PROGNAME PROGVERSION " extension appended.\n"
+    "    * If a filename is given, it is used as the archive name.\n"
+    "    * If a directory is given, the archive is created inside it.\n"
+    "    * If the archive file already exists, it will be overwritten.\n"
+    "\n"
+    "    For decompression:\n"
+    "\n"
+    "    * If an output filename is not provided, the output will be named the same as the archive without\n"
+    "      the " PROGNAME PROGVERSION " extension.\n"
+    "    * If a filename is given, it is used as the output name.\n"
+    "    * If a directory is given, the restored file will be created inside it (the directory must exist).\n"
+    "    * If the output file(s) already exist, they will be overwritten.\n"
+    "\n"
+    "  Examples:\n"
+    "\n"
+    "  To create data.txt." PROGNAME PROGVERSION " in current directory:\n"
+    "  " PROGNAME " -8 data.txt\n"
+    "\n"
+    "  To create archive." PROGNAME PROGVERSION " in current directory:\n"
+    "  " PROGNAME " -8 data.txt archive." PROGNAME PROGVERSION "\n"
+    "\n"
+    "  To create data.txt." PROGNAME PROGVERSION " in results/ directory:\n"
+    "  " PROGNAME " -8 data.txt results/\n"
+    "\n"
+    "---------------------------------\n"
+    " 8. @FILELIST Format and Behavior\n"
+    "---------------------------------\n"
+    "\n"
+    "  When a @FILELIST is provided, the FILELIST file itself is compressed as the first file in the archive and\n"
+    "  automatically extracted during decompression.\n"
+    "\n"
+    "  The FILELIST is a tab-separated text file with this structure:\n"
+    "\n"
+    "    Column 1:  Filenames and optional relative paths (required, used by compressor)\n"
+    "    Column 2+: Arbitrary metadata - timestamps, ownership, etc. (optional, preserved but ignored)\n"
+    "\n"
+    "    First line: Header (preserved but ignored during processing the file list)\n"
+    "\n"
+    "  Only the first column is used by the compressor and decompressor.\n"
+    "  All other columns are preserved but ignored.\n"
+    "  Paths must be relative to the FILELIST location.\n"
+    "\n"
+    "  Using this mechanism allows full restoration of file metadata with third-party tools after decompression.\n"
+    "  \n"
+    "\n"
+    "-------------------------\n"
+    " 9. Miscellaneous Options\n"
+    "-------------------------\n"
+    "\n"
+    "  -v\n"
+    "\n"
+    "    Enable verbose output.\n"
+    "\n"
+    "  -log FILE\n"
+    "\n"
+    "    Append compression results to a tab-separated log file.\n"
+    "    Logging applies only to compression.\n"
+    "\n"
+    "  -simd MODE\n"
+    "\n"
+    "    Normally, the highest usable SIMD instruction set is detected and used automatically for the CM mixer and\n"
+    "    neural network operations (LSTM model).\n"
+    "    This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.\n"
+    "    Supported values (case-insensitive):\n"
+    "       NONE\n"
+    "       SSE2, AVX2, AVX512 (on x64)\n"
+    "       NEON (on ARM)\n"
+    "\n"
+    "----------------------\n"
+    " 10. Argument Ordering\n"
+    "----------------------\n"
+    "\n"
+    "  Command-line arguments may appear in any order with the following exception:\n"
+    "  INPUT must always precede OUTPUT.\n"
+    "\n"
+    "  Example: the following two are equivalent:\n"
+    "\n"
+    "    " PROGNAME " -v -simd sse2 enwik8 -log results.txt output/ -8\n"
+    "    " PROGNAME " -8 enwik8 -log results.txt output/ -v -simd sse2\n"
+    "\n"
+    "  Further examples:\n"
+    "\n"
+    "    " PROGNAME " -8 file.txt         | Compress using ~2.3 GB RAM\n"
+    "    " PROGNAME " -12L enwik8         | Compress 'enwik8' with maximum compression (~29 GB RAM), use the LSTM model as well\n"
+    "    " PROGNAME " -4 image.jpg        | Compress the 'image.jpg' file - using less memory, even faster\n"
+    "    " PROGNAME " -8ba b64sample.xml  | Compress 'b64sample.xml' faster and using less memory\n"
+    "                                 Put more effort into finding and transforming DEFLATE blocks\n"
+    "                                 Use adaptive learning rate.\n"
+    "    " PROGNAME " -8s rafale.bmp      | Compress the 'rafale.bmp' image file\n"
+    "                                 Skip color transform - this file compresses better without it\n"
+  );
 }
 
 static void printModules() {
@@ -218,8 +385,8 @@ static void printCommand(const WHATTODO &whattodo) {
   printf("\n");
 }
 
-static void printOptions(Shared *shared) {
-  printf(" Level          = %d\n", shared->level);
+static void printOptions(Shared *shared, int level) {
+  printf(" Level          = %d\n", level);
   printf(" Brute      (b) = %s\n", shared->GetOptionBruteforceDeflateDetection() ?
     "On  (Brute-force detection of DEFLATE streams)" : 
     "Off"); //this is a compression-only option, but we put/get it for reproducibility
@@ -227,8 +394,7 @@ static void printOptions(Shared *shared) {
   printf(" Train txt  (t) = %s\n", shared->GetOptionTrainTxt() ? "On  (Pre-train main model with word and expression list)" : "Off");
   printf(" Adaptive   (a) = %s\n", shared->GetOptionAdaptiveLearningRate() ? "On  (Adaptive learning rate)" : "Off");
   printf(" Skip RGB   (s) = %s\n", shared->GetOptionSkipRGB() ? "On  (Skip the color transform, just reorder the RGB channels)" : "Off");
-  printf(" Use LSTM   (l) = %s\n", shared->GetOptionUseLSTM() ? "On  (Use Long Short-Term Memory network)" : "Off");
-  printf(" LSTM repo  (r) = %s\n", shared->GetOptionTrainLSTM() ? "On  (Use repository of pre-trained LSTM models)" : "Off");
+  printf(" Use LSTM   (l) = %s\n", shared->GetOptionUseLSTM() ? "On  (Use LSTM (Long Short-Term Memory) model)" : "Off");
   printf(" File mode      = %s\n", shared->GetOptionMultipleFileMode() ? "Multiple" : "Single");
 }
 
@@ -245,21 +411,36 @@ int processCommandLine(int argc, char **argv) {
     // Print help message
     if( argc < 2 ) {
       printHelp();
+      printf(
+        "\n"
+        "For detailed help with examples and more explanation, use:\n"
+        "  " PROGNAME " -help\n"
+      );
       quit();
     }
+
+    if ( strcasecmp(argv[1], "-help") == 0 ) {
+      printHelp();
+      printHelpVerbose();
+      quit();
+    }
+
 
     // Parse command line arguments
     WHATTODO whattodo = DoNone;
     bool verbose = false;
-    int c = 0;
     int simdIset = -1; //simd instruction set to use
-
+    bool lstmOnly = false;
+    int level = 0;
+    
     FileName input;
     FileName output;
     FileName inputPath;
     FileName outputPath;
     FileName archiveName;
     FileName logfile;
+    FileName lstmLoadFilename;
+    FileName lstmSaveFilename;
 
     for( int i = 1; i < argc; i++ ) {
       int argLen = static_cast<int>(strlen(argv[i]));
@@ -271,7 +452,7 @@ int processCommandLine(int argc, char **argv) {
           if( whattodo != DoNone ) {
             quit("Only one command may be specified.");
           }
-          int level = argv[i][1] - '0';
+          level = argv[i][1] - '0';
           int j = 2;
           if (argLen >= 3 && argv[i][2] >= '0' && argv[i][2] <= '9') { // second digit of level
             level = level*10 + argv[i][2] - '0';
@@ -280,7 +461,6 @@ int processCommandLine(int argc, char **argv) {
           if (level > 12) {
             quit("Compression level must be between 0 and 12.");
           }
-          shared.init(level);
           whattodo = DoCompress;
           //process optional compression switches
           for( ; j < argLen; j++ ) {
@@ -304,9 +484,9 @@ int processCommandLine(int argc, char **argv) {
                 shared.SetOptionUseLSTM();
                 break;
               case 'R':
-                shared.SetOptionUseLSTM();
-                shared.SetOptionTrainLSTM();
-                break;
+                printf("The -R option is temporarily unavailable in this release. Until it's back, you may try the -savelstm:text and -loadlstm:text options to create your own repository.");
+                quit();
+              break;
               default: {
                 printf("Invalid compression switch: %c", argv[1][j]);
                 quit();
@@ -338,10 +518,41 @@ int processCommandLine(int argc, char **argv) {
             quit("The -log switch requires a filename.");
           }
           logfile += argv[i];
-        } else if( strcasecmp(argv[i], "-forcebinary") == 0 ) {
+        } else if (strcasecmp(argv[i], "-loadlstm:text") == 0) {
+          if (lstmLoadFilename.strsize() != 0) {
+            quit("Only one LSTM load file may be specified.");
+          }
+          if (++i == argc) {
+            quit("The -loadlstm:text switch requires a filename.");
+          }
+          lstmLoadFilename += argv[i];
+        } else if (strcasecmp(argv[i], "-lstmonly") == 0) {
+          lstmOnly = true;
+          shared.SetOptionUseLSTM();
+        } else if (strcasecmp(argv[i], "-savelstm:text") == 0) {
+          if (lstmSaveFilename.strsize() != 0) {
+            quit("Only one LSTM save file may be specified.");
+          }
+          if (++i == argc) {
+            quit("The -savelstm:text switch requires a filename.");
+          }
+          lstmSaveFilename += argv[i];
+        }
+        else if( strcasecmp(argv[i], "-forcebinary") == 0 ) {
           shared.SetOptionDetectBlockAsBinary();
         } else if( strcasecmp(argv[i], "-forcetext") == 0 ) {
           shared.SetOptionDetectBlockAsText();
+        }
+        else if ( strncmp(argv[i], "-param=", 7) == 0 )
+        {
+          try
+          {
+            shared.tuning_param = std::stof(argv[i] + 7);
+          }
+          catch (...)
+          {
+            quit("Could not parse tuning param.");
+          }
         }
         else if( strcasecmp(argv[i], "-simd") == 0 ) {
           if( ++i == argc ) {
@@ -422,6 +633,10 @@ int processCommandLine(int argc, char **argv) {
       printf("\nOverriding system highest vectorization support. Expect a crash.");
     }
 
+    if (verbose && shared.GetOptionUseLSTM()) {
+      printf("Numer of trainable parameters in LSTM moel: 773'456\n"); // this is fixed now, the user has no control over it
+    }
+
     if( verbose ) {
       printf("\n");
       printf(" Command line   =");
@@ -433,6 +648,11 @@ int processCommandLine(int argc, char **argv) {
 
     // Successfully parsed command line arguments
     // Let's check their validity
+
+    if (lstmOnly && whattodo == DoNone) {
+      whattodo = DoCompress;
+    }
+
     if( whattodo == DoNone ) {
       quit("A command switch is required: -0..-12 to compress, -d to decompress, -t to test, -l to list.");
     }
@@ -473,6 +693,14 @@ int processCommandLine(int argc, char **argv) {
         printf("\nThere is a problem with the log file: %s", logfile.c_str());
         quit();
       }
+    }
+
+    // Validate LSTM parameters
+    if (lstmLoadFilename.strsize() != 0 && !shared.GetOptionUseLSTM()) {
+      quit("The -loadlstm:text switch requires the -L option to be set.");
+    }
+    if (lstmSaveFilename.strsize() != 0 && !shared.GetOptionUseLSTM()) {
+      quit("The -savelstm:text switch requires the -L option to be set.");
     }
 
     // Separate paths from input filename/directory name
@@ -537,6 +765,8 @@ int processCommandLine(int argc, char **argv) {
       printf(" Output folder  = %s\n", outputPath.strsize() == 0 ? "." : outputPath.c_str());
     }
 
+    int c = 0;
+
     Mode mode = whattodo == DoCompress ? COMPRESS : DECOMPRESS;
 
     ListOfFiles listoffiles;
@@ -584,11 +814,10 @@ int processCommandLine(int argc, char **argv) {
       }
       
       c = archive.getchar();
-      uint8_t level = static_cast<uint8_t>(c);
+      level = static_cast<uint8_t>(c);
       if (level > 12) {
         quit("Unexpected compression level setting in archive");
       }
-      shared.init(level);
       c = archive.getchar();
       if( c == EOF) {
         printf("Unexpected end of archive file.\n");
@@ -596,9 +825,24 @@ int processCommandLine(int argc, char **argv) {
       shared.options = static_cast<uint8_t>(c);
     }
 
+    // Load LSTM model if requested
+    if (lstmLoadFilename.strsize() != 0) {
+      printf("Loading LSTM model from %s", lstmLoadFilename.c_str());
+      FILE* lstmFile = fopen(lstmLoadFilename.c_str(), "rb");
+      if (!lstmFile) {
+        printf("\nError: Cannot open LSTM model file: %s\n", lstmLoadFilename.c_str());
+        quit();
+      }
+      Models models = Models(&shared, nullptr);
+      LstmModelContainer& lstmModel = models.lstmModelText();
+      lstmModel.LoadModelParameters(lstmFile);
+      fclose(lstmFile);
+      printf(" ... Done.\n");
+    }
+
     if( verbose ) {
       printCommand(whattodo);
-      printOptions(&shared);
+      printOptions(&shared, level);
     }
     printf("\n");
 
@@ -615,7 +859,7 @@ int processCommandLine(int argc, char **argv) {
       }
       archive.create(archiveName.c_str());
       archive.append(PROGNAME);
-      archive.putChar(shared.level);
+      archive.putChar(level);
       archive.putChar(shared.options);
     }
 
@@ -633,8 +877,33 @@ int processCommandLine(int argc, char **argv) {
       }
     }
 
-    bool doEncoding = shared.level != 0;
-    Encoder en(&shared, doEncoding, mode, &archive);
+    if (lstmOnly && level > 0) {
+      quit("The -lstmonly option is not compatible with specifying a compression level.");
+    }
+
+    shared.init(level);
+
+    bool useCm = level != 0;
+    bool useLstm = shared.GetOptionUseLSTM();
+    bool doEncoding = useCm || useLstm;
+
+    Shared sharedForBlockPredictor;
+    std::unique_ptr<Predictor> predictorBlock = nullptr;
+    std::unique_ptr<Predictor> predictorMain = nullptr;
+
+    if (doEncoding) {
+      sharedForBlockPredictor.init(level, 16);
+      sharedForBlockPredictor.chosenSimd = shared.chosenSimd;
+      predictorBlock = std::make_unique<PredictorBlock>(&sharedForBlockPredictor);
+      if (level == 0 && useLstm) {
+        predictorMain = std::make_unique<PredictorMainLstmOnly>(&shared);
+      }
+      else {
+        predictorMain = std::make_unique<PredictorMain>(&shared);
+      }
+    }
+
+    Encoder en(predictorBlock.get(), predictorMain.get(), doEncoding, mode, &archive);
     uint64_t contentSize = 0;
     uint64_t totalSize = 0;
 
@@ -653,10 +922,10 @@ int processCommandLine(int argc, char **argv) {
         Block::EncodeBlockHeader(&en, BlockType::TEXT, len1 + len2, 0);
 
         for( uint64_t i = 0; i < len1; i++ ) {
-          en.compressByte(&en.predictorMain, input[i]); //ASCIIZ filename of listfile
+          en.compressByte(predictorMain.get(), input[i]); //ASCIIZ filename of listfile
         }
         for( uint64_t i = 0; i < len2; i++ ) {
-          en.compressByte(&en.predictorMain, (*s)[i]); //ASCIIZ filenames of files to compress
+          en.compressByte(predictorMain.get(), (*s)[i]); //ASCIIZ filenames of files to compress
         }
 
         printf("1/2 - Filename of listfile : %" PRIu64 " bytes\n", len1);
@@ -678,13 +947,13 @@ int processCommandLine(int argc, char **argv) {
       if(shared.State.blockType != BlockType::TEXT ) {
         quit(errmsgInvalidChar);
       }
-      while((c = en.decompressByte(&en.predictorMain)) != 0 ) {
+      while((c = en.decompressByte(predictorMain.get())) != 0 ) {
         if( c == 255 ) {
           quit(errmsgInvalidChar);
         }
         listFilename += static_cast<char>(c);
       }
-      while((c = en.decompressByte(&en.predictorMain)) != 0 ) {
+      while((c = en.decompressByte(predictorMain.get())) != 0 ) {
         if( c == 255 ) {
           quit(errmsgInvalidChar);
         }
@@ -774,7 +1043,7 @@ int processCommandLine(int argc, char **argv) {
         //Write header if needed
         if( pathType == 3 /*does not exist*/ ||
             (pathType == 1 && getFileSize(logfile.c_str()) == 0)/*exists but does not contain a header*/) {
-          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\tINPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
+          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\tPARAM\tINPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
         }
         //Write results to logfile
         results += PROGNAME "\t" PROGVERSION "\t";
@@ -786,6 +1055,8 @@ int processCommandLine(int argc, char **argv) {
         }
         results += "\t";
         results += uint64_t(shared.level);
+        results += "\t";
+        results += (shared.tuning_param == 0.0f ? "" : std::to_string(shared.tuning_param).c_str());
         results += "\t";
         results += input.c_str();
         results += "\t";
@@ -819,6 +1090,22 @@ int processCommandLine(int argc, char **argv) {
     }
 
     archive.close();
+
+    // Save LSTM model if requested
+    if (lstmSaveFilename.strsize() != 0) {
+      printf("\nSaving LSTM model parameters to %s", lstmSaveFilename.c_str());
+      FILE* lstmFile = fopen(lstmSaveFilename.c_str(), "wb");
+      if (!lstmFile) {
+        printf("\nError: Cannot create LSTM model file: %s\n", lstmSaveFilename.c_str());
+        quit();
+      }
+      Models models = Models(&shared, nullptr);
+      LstmModelContainer& lstmModel = models.lstmModelText();
+      lstmModel.SaveModelParameters(lstmFile);
+      fclose(lstmFile);
+      printf(" ... Done.\n");
+    }
+
     if( whattodo != DoList ) {
       programChecker->print();
     }

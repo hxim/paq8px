@@ -1,4 +1,4 @@
-#include "../MixerFactory.hpp"
+﻿#include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
 class ContextModelText : public IContextModel {
@@ -18,21 +18,21 @@ public:
       RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_TEXT + IndirectModel::MIXERINPUTS_TEXT +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
-      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + NormalModel::MIXERCONTEXTS_POST + SparseMatchModel::MIXERCONTEXTS +
       SparseModel::MIXERCONTEXTS_TEXT + SparseBitModel::MIXERCONTEXTS + ChartModel::MIXERCONTEXTS +
       RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
       DmcForest::MIXERCONTEXTS + NestModel::MIXERCONTEXTS + XMLModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + NormalModel::MIXERCONTEXTSETS_POST + SparseMatchModel::MIXERCONTEXTSETS +
       SparseModel::MIXERCONTEXTSETS_TEXT + SparseBitModel::MIXERCONTEXTSETS + ChartModel::MIXERCONTEXTSETS +
       RecordModel::MIXERCONTEXTSETS + CharGroupModel::MIXERCONTEXTSETS +
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
       DmcForest::MIXERCONTEXTSETS + NestModel::MIXERCONTEXTSETS + XMLModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
     );
@@ -53,7 +53,7 @@ public:
 
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel<>& lstmModel = models->lstmModelText();
+      LstmModelContainer& lstmModel = models->lstmModelText();
       lstmModel.mix(*m);
     }
 

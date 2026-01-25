@@ -1,0 +1,21 @@
+root = true
+
+[*.{cpp,hpp}]
+indent_style = space
+indent_size = 2
+tab_width = 2
+charset = utf-8-bom
+end_of_line = crlf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[zlib/**]
+indent_style = unset
+indent_size = unset
+tab_width = unset
+end_of_line = unset
+insert_final_newline = false
+trim_trailing_whitespace = false
+
+[*.md]
+charset = utf-8-bom

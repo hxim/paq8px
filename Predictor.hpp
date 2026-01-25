@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Shared.hpp"
 
@@ -6,6 +6,7 @@ class Predictor {
 public:
   Shared* shared;
   Predictor(Shared* const sh);
+  virtual ~Predictor() = default;
   /**
     * Returns the final probability that the next bit is a 1: P(1).
     * This prediction can be entropy encoded.

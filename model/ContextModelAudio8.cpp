@@ -1,4 +1,4 @@
-#include "../MixerFactory.hpp"
+﻿#include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
 class ContextModelAudio8 : public IContextModel {
@@ -16,17 +16,17 @@ public:
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS +
       Audio8BitModel::MIXERINPUTS+
       RecordModel::MIXERINPUTS + 
-      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       Audio8BitModel::MIXERCONTEXTS +
       RecordModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       Audio8BitModel::MIXERCONTEXTSETS +
       RecordModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
     );
@@ -54,7 +54,7 @@ public:
     //is it useful?
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel<>& lstmModel = models->lstmModelAudio8();
+      LstmModelContainer& lstmModel = models->lstmModelAudio8();
       lstmModel.mix(*m);
     }
 

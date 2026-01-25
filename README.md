@@ -1,10 +1,10 @@
-﻿# PAQ8PX - Experimental Lossless Data Compressor & Entropy Estimator
+﻿# PAQ8PX – Experimental Lossless Data Compressor & Entropy Estimator
 
 ## About
 
 **PAQ** is a family of experimental, high-end lossless data compression programs.
-`paq8px` is one of the longest-running branches of PAQ, started by **Jan Ondrus** in 2009 with major contributions 
-from **Márcio Pais** and **Zoltán Gotthardt** (see [Contribution Timeline](#timeline)).
+`paq8px` is one of the longest-running branches of PAQ, started by Jan Ondrus in 2009 with major contributions 
+from Márcio Pais and Zoltán Gotthardt (see [Contribution Timeline](#timeline)).
 
 `paq8px` consistently achieves state-of-the-art compression ratios on various data compression benchmarks (see [Benchmark Results](#benchmarks)).
 This performance comes at the cost of speed and memory usage, which makes it impractical for production use or long-term storage.
@@ -18,21 +18,21 @@ For detailed history and ongoing development discussions, see the
 `paq8px` is **portable** software – no installation required. 
 
 Get the latest binary for Windows (x64) from the [paq8px thread on encode.su](https://encode.su/threads/342-paq8px),
-or build it from source for your platform - see [below](#compile).
+or build it from source for your platform – see [below](#compile).
 
 ### Command line interface
 
 `paq8px` does not include a graphical user interface (GUI). All operations are performed from the command line.
 
 Open a terminal and run `paq8px` with the desired options to compress your file (such as `paq8px -8 file.txt`).  
-Start with a small file - compression takes time.
+Start with a small file – compression takes time.
 
 Example output (on Windows):
 ```
 c:\>paq8px.exe -8 file.txt
-paq8px archiver v209 (c) 2025, Matt Mahoney et al.
+paq8px archiver v210 (c) 2026, Matt Mahoney et al.
 
-Creating archive file.txt.paq8px209 in single file mode...
+Creating archive file.txt.paq8px210 in single file mode...
 
 Filename: file.txt (111261 bytes)
 Block segmentation:
@@ -45,7 +45,7 @@ Time 19.58 sec, used 2163 MB (2268982538 bytes) of memory
 ```
 
 > [!NOTE]
-> The output archive extension is versioned (e.g., .paq8px209).
+> The output archive extension is versioned (e.g., .paq8px210).
 
 > [!NOTE]
 > You can place the binary anywhere and reference inputs/outputs by path.
@@ -66,146 +66,302 @@ paq8px.exe -12L filename_to_compress
 
 ## Getting help
 
-To view all available options, run `paq8px` without arguments:
+To view available options, run `paq8px` without arguments.
+To view available options + detailed help pages, run `paq8px -help`.
 
 <details>
 <summary>Click to expand: full <code>paq8px</code> help</summary>
 
 ```
-paq8px archiver v209 (c) 2025, Matt Mahoney et al.
-
+paq8px archiver v210 (c) 2026, Matt Mahoney et al.
 Free under GPL, http://www.gnu.org/licenses/gpl.txt
 
-To compress:
+Usage:
+  to compress       ->   paq8px -LEVEL[FLAGS] [OPTIONS] INPUT [OUTPUT]
+  to decompress     ->   paq8px -d INPUT.paq8px210 [OUTPUT]
+  to test           ->   paq8px -t INPUT.paq8px210 [OUTPUT]
+  to list contents  ->   paq8px -l INPUT.paq8px210
 
-  paq8px -LEVEL[SWITCHES] INPUTSPEC [OUTPUTSPEC]
+LEVEL:
+  -1 -2 -3 -4          | Compress using less memory (529, 543, 572, 630 MB)
+  -5 -6 -7 -8          | Use more memory (747, 980, 1446, 2377 MB)
+  -9 -10 -11 -12       | Use even more memory (4241, 7968, 15421, 29305 MB)
+  -0                   | Segment and transform only, no compression
+  -0L                  | Segment and transform then LSTM-only compression (alternative: -lstmonly)
 
-    Examples:
-      paq8px -8 enwik8
-      paq8px -8ba b64sample.xml
-      paq8px -8 @myfolder/myfilelist.txt
-      paq8px -8a benchmark/enwik8 results/enwik8_a_paq8px209
+FLAGS:
+  L                    | Enable LSTM model (+24 MB per block type)
+  A                    | Use adaptive learning rate
+  S                    | Skip RGB color transform (images)
+  B                    | Brute-force DEFLATE detection
+  E                    | Pre-train x86/x64 model
+  T                    | Pre-train text models (dictionary-based)
+
+  Example: paq8px -8LA file.txt   <- Level 8 + LSTM + adaptive learning rate
+
+Block detection control (compression-only):
+  -forcebinary         | Force generic (binary) mode
+  -forcetext           | Force text mode
+
+LSTM snapshots (expert-only):
+  -savelstm:text FILE  | Save learned LSTM model weights after compression
+  -loadlstm:text FILE  | Load LSTM model weights before compression/decompression
+
+Misc options:
+  -v                   | Verbose output
+  -log FILE            | Append compression results to log file
+  -simd MODE           | Override SIMD detection - expert only (NONE|SSE2|AVX2|AVX512|NEON)
+
+Notes:
+  INPUT may be FILE, PATH/FILE, or @FILELIST
+  OUTPUT is optional: FILE, PATH, PATH/FILE
+  The archive is created in the current folder with .paq8px210 extension if OUTPUT omitted
+  FLAGS are case-insensitive and only needed for compression; they may appear in any order
+  INPUT must precede OUTPUT; all other OPTIONS may appear anywhere
+
+=============
+Detailed Help
+=============
+
+---------------
+ 1. Compression
+---------------
+
+  Compression levels control the amount of memory used during both compression and decompression.
+  Higher levels generally improve compression ratio at the cost of higher memory usage and slower speed.
+  Specifying the compression level is needed only for compression - no need to specify it for decompression.
+  Approximately the same amount of memory will be used during compression and decompression.
+
+  The listed memory usage for each LEVEL (-1 = 529 MB .. -12 = 29305 MB) is typical/indicative for compressing binary
+  files with no preprocessing. Actual memory use is lower for text files and higher when a preprocessing step
+  (segmentation and transformations) requires temporary memory. When special file types are detected, special models
+  (image, jpg, audio) will be used and thus will require extra RAM.
+
+------------------
+ 2. Special Levels
+------------------
+
+  -0   Only block type detection (segmentation) and block transformations are performed.
+       The data is copied (verbatim or transformed); no compression happens.
+       This mode is similar to a preprocessing-only tool like precomp.
+       Uses approximately 3-7 MB total.
+
+  -0L  Uses only a single LSTM model for prediction which is shared across all block types.
+       Uses approximately 20-24 MB total RAM.
+       Alternative: -lstmonly
+
+---------------------
+ 3. Compression Flags
+---------------------
+
+  Compression flags are single-letter, case-insensitive, and appended directly to the level.
+  They are valid only during compression. No need to specify them for decompression.
+
+  L   Enable the LSTM (Long Short-Term Memory) model.
+      Uses a fixed-size model, independent of compression level.
+
+      At level -0L (also: -lstmonly) a single LSTM model is used for prediction for all detected block types.
+      Block detection and segmentation are still performed, but no context mixing or Secondary Symbol
+      Estimation (SSE) stage is used.
+
+      At higher levels (-1L .. -12L) the LSTM model is included as a submodel in Context Mixing and its predictions
+      are mixed with the other models.
+      When special block types are detected, for each block type an individual LSTM model is created dynamically and
+      used within that block type. Each such LSTM model adds approximately 24 MB to the total memory use.
+
+  A   Enable adaptive learning rate in the CM mixer.
+      May improve compression for some files.
+
+  S   Skip RGB color transform for 24/32-bit images.
+      Useful when the transform worsens compression.
+      This flag has no effect when no image block types are detected.
+
+  B   Enable brute-force DEFLATE stream detection.
+      Slower but may improve detection of compressed streams.
+
+  E   Pre-train the x86/x64 executable model.
+      This option pre-trains the EXE model using the paq8px.exe binary itself.
+      Archives created with a different paq8px.exe executable (even when built from the same source and build options)
+      will differ. To decompress an archive created with -E, you must use the exact same executable that created it.
+
+  T   Pre-train text-oriented models using a dictionary and expression list.
+      The word list (english.dic) and expression list (english.exp) are used only to pre-train models before
+      compression and they are not stored in the archive.
+      You must have these same files available to decompress archives created with -T.
+
+---------------------------
+ 4. Block Detection Control
+---------------------------
+
+  Block detection and segmentation always happen regardless of the memory level or other options - except when forced:
+
+  -forcebinary
+
+      Disable block detection; the whole file is considered as a single binary block and only the generic (binary)
+      model set will be used.
+      Useful when block detection produces false positives.
+
+  -forcetext
+
+      Disable block detection; consider the whole file as a single text block and use the text model set only.
+      Useful when text data is misclassified as binary or fragments in a text file are incorrectly detected as some
+      other block type.
+
+---------------------------------------
+ 5. LSTM Snapshot Options (expert-only)
+---------------------------------------
+
+  -savelstm:text FILE
+
+      Saves the LSTM model's learned parameters as a lossless snapshot to the specified file when compression finishes.
+      Only the model used for text block(s) will be saved.
+      It's not possible to save a snapshot from other block types. This is an experimental feature.
+
+  -loadlstm:text FILE
+
+      Loads the LSTM model's learned parameters from the specified file (which was saved earlier
+      by the -savelstm:text option) before compression starts. The LSTM model will use this loaded
+      snapshot to bootstrap its predictions.
+      At levels -1L .. -12L only text blocks are affected.
+      At level -0L all blocks are affected (because a single LSTM model is used for all block types).
+      Critical: The same snapshot file MUST be used during decompression or the original content cannot be recovered.
+
+----------------------
+ 6. Archive Operations
+----------------------
+
+  -d  Decompress an archive.
+      In single-file mode the content is decompressed, the name of the output is the name of the archive without
+      the .paq8px210 extension.
+      In multi-file mode first the @LISTFILE is extracted then the rest of the files. Any required folders will
+      be created recursively, all files will be extracted with their original names.
+      If the output file or files already exist they will be overwritten.
+
+      Example: to decompress file.txt to the current folder:
+      paq8px -d file.txt.paq8px210
+
+  -t  Test archive contents by decompressing to memory and comparing with the original data on-the-fly.
+      If a file fails the test, the first mismatched position will be printed to screen.
+
+      Example: to test archive contents:
+      paq8px -t file.txt.paq8px210
+
+  -l  List archive contents.
+      Extracts the embedded @FILELIST (if present) and prints it.
+      Applicable only to multi-file archives.
+
+      Example: to list the file list (when the archive was created using @files):
+      paq8px -l files.paq8px210
+
+----------------------------------
+ 7. INPUT and OUTPUT Specification
+----------------------------------
+
+  INPUT may be:
+
+  * A single file
+  * A path/file
+  * A [path/]@FILELIST
+
+  In multi-file mode (i.e. when @FILELIST is provided) only file names, file contents and file sizes are stored
+  in the archive. Timestamps, permissions, attributes or any other metadata are not preserved unless stored
+  separately and manually by the user in the FILELIST.
+
+  OUTPUT is optional:
+
+    For compression:
+
+    * If omitted, the archive is created in the current directory.
+      The name of the archive: INPUT + paq8px210 extension appended.
+    * If a filename is given, it is used as the archive name.
+    * If a directory is given, the archive is created inside it.
+    * If the archive file already exists, it will be overwritten.
+
+    For decompression:
+
+    * If an output filename is not provided, the output will be named the same as the archive without
+      the paq8px210 extension.
+    * If a filename is given, it is used as the output name.
+    * If a directory is given, the restored file will be created inside it (the directory must exist).
+    * If the output file(s) already exist, they will be overwritten.
+
+  Examples:
+
+  To create data.txt.paq8px210 in current directory:
+  paq8px -8 data.txt
+
+  To create archive.paq8px210 in current directory:
+  paq8px -8 data.txt archive.paq8px210
+
+  To create data.txt.paq8px210 in results/ directory:
+  paq8px -8 data.txt results/
+
+---------------------------------
+ 8. @FILELIST Format and Behavior
+---------------------------------
+
+  When a @FILELIST is provided, the FILELIST file itself is compressed as the first file in the archive and
+  automatically extracted during decompression.
+
+  The FILELIST is a tab-separated text file with this structure:
+
+    Column 1:  Filenames and optional relative paths (required, used by compressor)
+    Column 2+: Arbitrary metadata - timestamps, ownership, etc. (optional, preserved but ignored)
+
+    First line: Header (preserved but ignored during processing the file list)
+
+  Only the first column is used by the compressor and decompressor.
+  All other columns are preserved but ignored.
+  Paths must be relative to the FILELIST location.
+
+  Using this mechanism allows full restoration of file metadata with third-party tools after decompression.
 
 
-    -LEVEL:
+-------------------------
+ 9. Miscellaneous Options
+-------------------------
 
-      Specifies how much memory to use. Approximately the same amount of memory
-      will be used for both compression and decompression.
+  -v
 
-      -0 = no compression, only transformations when applicable (uses 146 MB)
-      -1 -2 -3 = compress using less memory (529, 543, 572 MB)
-      -4 -5 -6 -7 -8 -9 = use more memory (630, 747, 980, 1446, 2377, 4241 MB)
-      -10  -11  -12     = use even more memory (7968, 15421, 29305 MB)
+    Enable verbose output.
 
-      The above listed memory requirements are indicative, actual usage may vary
-      depending on several factors including need for temporary files,
-      temporary memory needs of some preprocessing (transformations),
-      and whether special models (audio, image, jpeg, LSTM) are in use or not.
-      Note: memory use of the LSTM model is not included/reported.
+  -log FILE
 
+    Append compression results to a tab-separated log file.
+    Logging applies only to compression.
 
-    Optional compression SWITCHES:
+  -simd MODE
 
-      b = Brute-force detection of DEFLATE streams
-      e = Pre-train x86/x64 model
-      t = Pre-train the Normal+Text+Word models with word and expression list
-          (english.dic, english.exp)
-      a = Use adaptive learning rate
-      s = For 24/32 bit images skip the color transform, just reorder the RGB channels
-      l = Use Long Short-Term Memory network as an additional model
-      r = Use repository of pre-trained LSTM models (implies option -l)
-          (english.rnn, x86_64.rnn)
+    Normally, the highest usable SIMD instruction set is detected and used automatically for the CM mixer and
+    neural network operations (LSTM model).
+    This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.
+    Supported values (case-insensitive):
+       NONE
+       SSE2, AVX2, AVX512 (on x64)
+       NEON (on ARM)
 
+----------------------
+ 10. Argument Ordering
+----------------------
 
-    INPUTSPEC:
+  Command-line arguments may appear in any order with the following exception:
+  INPUT must always precede OUTPUT.
 
-    The input may be a FILE or a PATH/FILE or a [PATH/]@FILELIST.
+  Example: the following two are equivalent:
 
-    Only file content and the file size is kept in the archive. Filename,
-    path, date and any file attributes or permissions are not stored.
-    When a @FILELIST is provided the FILELIST file will be considered
-    implicitly as the very first input file. It will be compressed and upon
-    decompression it will be extracted. The FILELIST is a tab separated text
-    file where the first column contains the names and optionally the relative
-    paths of the files to be compressed. The paths should be relative to the
-    FILELIST file. In the other columns you may store any information you wish
-    to keep about the files (timestamp, owner, attributes or your own remarks).
-    These extra columns will be ignored by the compressor and the decompressor
-    but you may restore full file information using them with a 3rd party
-    utility. The FILELIST file must contain a header but will be ignored.
+    paq8px -v -simd sse2 enwik8 -log results.txt output/ -8
+    paq8px -8 enwik8 -log results.txt output/ -v -simd sse2
 
+  Further examples:
 
-    OUTPUTSPEC:
-
-    When omitted: the archive will be created in the current folder. The
-    archive filename will be constructed from the input file name by
-    appending .paq8px209 extension to it.
-    When OUTPUTSPEC is a filename (with an optional path) it will be
-    used as the archive filename.
-    When OUTPUTSPEC is a folder the archive file will be generated from
-    the input filename and will be created in the specified folder.
-    If the archive file already exists it will be overwritten.
-
-
-To extract (decompress contents):
-
-  paq8px -d [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]
-
-    If an output folder is not provided the output file will go to the input
-    folder. If an output filename is not provided output filename will be the
-    same as ARCHIVEFILE without the last extension (e.g. without .paq8px209)
-    When OUTPUTPATH does not exist it will be created.
-    When the archive contains multiple files, first the @LISTFILE is extracted
-    then the rest of the files. Any required folders will be created.
-
-
-To test:
-
-  paq8px -t [INPUTPATH/]ARCHIVEFILE [[OUTPUTPATH/]OUTPUTFILE]
-
-    Tests contents of the archive by decompressing it (to memory) and comparing
-    the result to the original file(s). If a file fails the test, the first
-    mismatched position will be printed to screen.
-
-
-To list archive contents:
-
-  paq8px -l [INPUTFOLDER/]ARCHIVEFILE
-
-    Extracts @FILELIST from archive (to memory) and prints its content
-    to screen. This command is only applicable to multi-file archives.
-
-
-Additional optional switches:
-
-    -forcebinary
-    Skip block detection, use the DEFAULT (binary aka generic) model set only.
-    It helps when block detection would find false positives in a file with purely binary content.
-
-
-    -forcetext
-    Skip block detection, use the TEXT model set only.
-    It helps when block detection would detect the file as DEFAULT with text-like content.
-
-
-    -v
-    Print more detailed (verbose) information to screen.
-
-    -log LOGFILE
-    Logs (appends) compression results in the specified tab separated LOGFILE.
-    Logging is only applicable for compression.
-
-    -simd [NONE|SSE2|AVX2|AVX512|NEON]
-    Overrides detected SIMD instruction set for neural network operations
-
-
-Remark: the command line arguments may be used in any order except the input
-and output: always the input comes first then output (which may be omitted).
-
-    Example:
-      paq8px -8 enwik8 outputfolder/ -v -log logfile.txt -simd sse2
-    is equivalent to:
-      paq8px -v -simd sse2 enwik8 -log logfile.txt outputfolder/ -8
+    paq8px -8 file.txt         | Compress using ~2.3 GB RAM
+    paq8px -12L enwik8         | Compress 'enwik8' with maximum compression (~29 GB RAM), use the LSTM model as well
+    paq8px -4 image.jpg        | Compress the 'image.jpg' file - using less memory, even faster
+    paq8px -8ba b64sample.xml  | Compress 'b64sample.xml' faster and using less memory
+                                 Put more effort into finding and transforming DEFLATE blocks
+                                 Use adaptive learning rate.
+    paq8px -8s rafale.bmp      | Compress the 'rafale.bmp' image file
+                                 Skip color transform - this file compresses better without it
 ```
 </details>
 
@@ -224,13 +380,13 @@ A `paq8px` archive stores one or more files in a highly compressed format.
 
 ### How to recognize it
 
-The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px209`).  
+The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px210`).  
 You can also check the header: if the first bytes read "paq8px", it is likely a `paq8px` archive.  
 Exact version information cannot be inferred from the archive content: the archive header does not encode the specific `paq8px` version used. Only the file extension reflects the version.
 
 ### Single file vs multiple file modes
 
-In **single-file mode**, only file contents are stored - no paths, names, timestamps, attributes, permissions, or other metadata.
+In **single-file mode**, only file contents are stored – no paths, names, timestamps, attributes, permissions, or other metadata.
 
 In **multi-file mode**, you may preserve such metadata via the @FILELIST mechanism (see the help screen for details).
 
@@ -250,6 +406,10 @@ You must have these same files available to decompress archives created with `-T
 
 3. **LSTM pre-trained weight repositories (`-R`)**  
 If you use pre-trained LSTM repositories, ensure the same RNN weight files (`english.rnn`, `x86_64.rnn`) are available during decompression.
+
+> [!WARNING]  
+> The LSTM repositories are temporarily unavailable in the latest release due to the refactoring of the model.
+> The latest version supporting this feature was v209.
 
 <a id="compile"></a>
 ## How to compile
@@ -283,6 +443,7 @@ sudo apt install gcc clang gcc-aarch64-linux-gnu g++-aarch64-linux-gnu build-ess
 
 Sample build scripts are provided in the build/ folder:
 - `build/build-linux-with-cmake.sh`
+- `build/build-linux-with-gcc.sh`
 - `build/build-linux-with-clang.sh`
 - `build/build-linux-cross-compile-aarch64.sh`
 
@@ -292,12 +453,12 @@ The following compiler/OS combinations have been tested successfully:
 
 | Version | OS                             | Compiler/IDE                                                  |
 |---------|--------------------------------|---------------------------------------------------------------|
-| v209    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
-| v209    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
-| v209    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
-| v209    | Lubuntu 25.04 Plucky Puffin    | gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0                          |
-| v209    | Lubuntu 25.04 Plucky Puffin    | Ubuntu clang version 20.1.2 (0ubuntu1), Target: x86_64-pc-linux-gnu |
-| v209    | Lubuntu 25.04 Plucky Puffin    | aarch64-linux-gnu-gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0        |
+| v210    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
+| v210    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
+| v210    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
+| v210    | Lubuntu 25.04 Plucky Puffin    | gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0                          |
+| v210    | Lubuntu 25.04 Plucky Puffin    | Ubuntu clang version 20.1.2 (0ubuntu1), Target: x86_64-pc-linux-gnu |
+| v210    | Lubuntu 25.04 Plucky Puffin    | aarch64-linux-gnu-gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0        |
 
 Other modern C++17 compilers may also work but are not routinely tested.
 
@@ -311,9 +472,8 @@ When you make a new release:
 
 - Please update the version number in the "Versioning" section in the `paq8px.cpp` source file.
 - Please append a short description of your modifications to the `CHANGELOG` file.
-- If you publish an executable for Windows, always publish a static build (link the required library files statically).
-- Always publish a build for the general public (e.g. don't use `-march=native`).
-- Before publishing your build, please carry out some basic tests. Run your tests with asserts on (remove the `NDEBUG` preprocessor directive).
+- Please carry out some basic tests. Run your tests with asserts on (remove the `NDEBUG` preprocessor directive).
+- Please verify if paq8px can be propely built on different platforms (i.e. test all the build scripts)
 - Update README.md, especially the Benchmark results.
 
 ### References
@@ -346,14 +506,14 @@ Summary:
 
 | Corpus / Benchmark                               | Version | Rank |
 |:-------------------------------------------------|:--------|-----:|
-| Calgary                                          | v209    | #2   |
-| Canterbury                                       | v209    | #2   |
-| Silesia                                          | v209    | #1   |
+| Calgary                                          | v210    | #2   |
+| Canterbury                                       | v210    | #2   |
+| Silesia                                          | v210    | #1   |
 | Lossless Photo Compression Benchmark (LPCB)      | v206    | #1   |
 | Large Text Compression Benchmark (LTCB)          | v206    | #10  |
 | Darek's corpus (DBA)                             | v207fix1| #1   |
 | Maximumcompression benchmark                     | v207fix1| #1   |
-| fenwik9 benchmark by Sportman                    | v206fix1| #1   |
+| fenwik9 benchmark by Sportman                    | v210    | #1   |
 | World English Bible benchmark by Sportman        | v208fix1| #1   |
 
 For the Calgary, Canterbury, Silesia and MaximumCompression benchmarks, see paq8px evolution up to paq8px_v207fix1, run by Darek in his [post in the paq8px thread](https://encode.su/threads/1925-cmix?p=71001&viewfull=1#post71001)
@@ -362,78 +522,79 @@ For the Calgary, Canterbury, Silesia and MaximumCompression benchmarks, see paq8
 
 The Calgary corpus does not have an official maintained ranking, and most published results do not include modern experimental compressors.
 
-Below are compressed sizes for `paq8px v209` under various options, compared with `cmix v21`.
+Below are compressed sizes for `paq8px v210` under various options, compared with `cmix v21`.
 
-| File   |         -8 |        -12L |       -12LT |       -12RT | cmix v21 (reference)|
+| File   |         -8 |        -12L |       -12LT |(v209) -12RT | cmix v21 (reference)|
 |:-------|-----------:|------------:|------------:|------------:|--------------------:|
-| bib    |      19595 |       19550 |       17505 |       17376 |              17180  |
-| book1  |     183318 |      182175 |      176322 |      163431 |             173709  |
-| book2  |     113979 |      113516 |      109153 |      106668 |             105918  |
-| geo    |      42476 |       42357 |       42367 |       42367 |              42760  |
-| news   |      83023 |       82813 |       78588 |       77166 |              76389  |
-| obj1   |       7063 |        7037 |        6892 |        6892 |               7053  |
-| obj2   |      40934 |       40258 |       39950 |       39950 |              40139  |
-| paper1 |      12360 |       12340 |       11060 |       10749 |              10831  |
-| paper2 |      19538 |       19515 |       17501 |       16589 |              17169  |
-| pic    |      19624 |       19678 |       19677 |       19677 |              21883  |
-| progc  |       8870 |        8851 |        8247 |        8189 |               8193  |
-| progl  |       9512 |        9479 |        8900 |        8864 |               8788  |
-| progp  |       6378 |        6343 |        6105 |        6097 |               6126  |
-| trans  |      10977 |       10956 |       10070 |       10045 |               9990  |
-|**Total compressed size**|   **577'647** |     **574'868** |   **552'337** | **534'060** | **546'128** |
-|**Compression time (approx. sec)**| **310** |  **1187** | **1562** | **1567**| **n/a**|
+| bib    |      19595 |       19520 |       17492 |       17376 |              17180  |
+| book1  |     183318 |      181492 |      175722 |      163431 |             173709  |
+| book2  |     113979 |      113143 |      108844 |      106668 |             105918  |
+| geo    |      42475 |       42255 |       42265 |       42367 |              42760  |
+| news   |      83023 |       82681 |       78490 |       77166 |              76389  |
+| obj1   |       7063 |        6982 |        6841 |        6892 |               7053  |
+| obj2   |      40934 |       40129 |       39820 |       39950 |              40139  |
+| paper1 |      12360 |       12317 |       11041 |       10749 |              10831  |
+| paper2 |      19538 |       19467 |       17478 |       16589 |              17169  |
+| pic    |      19624 |       19666 |       19669 |       19677 |              21883  |
+| progc  |       8870 |        8804 |        8206 |        8189 |               8193  |
+| progl  |       9512 |        9449 |        8876 |        8864 |               8788  |
+| progp  |       6378 |        6296 |        6061 |        6097 |               6126  |
+| trans  |      10977 |       10939 |       10056 |       10045 |               9990  |
+|**Total compressed size**|   **577'646** |     **573'140** |   **550'861** | **534'060** | **546'128** |
+|**Compression time (approx. sec)**| **307** |   **864** | **1231** | **1567**| **n/a**|
 
-With fair options (`-12LT`), `paq8px v209` achieves results close to `cmix v21`.  
+With fair options (`-12LT`), `paq8px v210` achieves results close to `cmix v21`.  
 With unfair options (`-12RT`), results surpass cmix, but these should be excluded (see [Benchmarking Notes](#benchmarking-notes)).
 
-At the time of writing, `paq8px v209` likely ranks #2 on Calgary behind `cmix v21`.
+At the time of writing, `paq8px v210` likely ranks #2 on Calgary behind `cmix v21`.
 
 ### Canterbury corpus
 
 The same general notes apply to the Canterbury corpus as to the Calgary corpus.  
 
-Below are compressed sizes for `paq8px v209` under various options, compared with `cmix v21`.
+Below are compressed sizes for `paq8px v210` under various options, compared with `cmix v21`.
 
-| File          |        -8 |       -12L |      -12LT |      -12RT | cmix v21 (reference)|
-|:--------------|----------:|-----------:|-----------:|-----------:|--------------------:|
-| alice29.txt   |     33065 |      32979 |      31242 |      28317 |               31076 |
-| asyoulik.txt  |     31512 |      31476 |      29630 |      28062 |               29434 |
-| cp.html       |      5405 |       5397 |       4745 |       4720 |                4746 |
-| fields.c      |      2027 |       2026 |       1864 |       1848 |                1909 |
-| grammar.lsp   |       861 |        861 |        749 |        732 |                 771 |
-| kennedy.xls   |      8137 |       7972 |       7972 |       7972 |                7955 |
-| lcet10.txt    |     79119 |      78972 |      74770 |      72594 |               73365 |
-| plrabn12.txt  |    117451 |     116808 |     112625 |     108648 |              112263 |
-| ptt5          |     19624 |      19678 |      19677 |      19677 |               21883 |
-| sum           |      6825 |       6822 |       6681 |       6679 |                6870 |
-| xargs.1       |      1295 |       1298 |       1099 |       1061 |                1123 |
-|**Total compressed size**      |**305'321**|**304'286** |**291'054** |**280'310** |         **291'395** |
-|**Compression time (approx. sec)**| **263** |  **1070** | **1348** | **1352** | **n/a**|
+| File          |        -8 |       -12L |      -12LT | (v209) -12RT | cmix v21 (reference)|
+|:--------------|----------:|-----------:|-----------:|-------------:|--------------------:|
+| alice29.txt   |     33065 |      32851 |      31138 |      28317   |               31076 |
+| asyoulik.txt  |     31512 |      31423 |      29601 |      28062   |               29434 |
+| cp.html       |      5405 |       5389 |       4740 |       4720   |                4746 |
+| fields.c      |      2027 |       2017 |       1856 |       1848   |                1909 |
+| grammar.lsp   |       861 |        862 |        750 |        732   |                 771 |
+| kennedy.xls   |      8137 |       7849 |       7850 |       7972   |                7955 |
+| lcet10.txt    |     79119 |      78807 |      74655 |      72594   |               73365 |
+| plrabn12.txt  |    117451 |     116694 |     112546 |     108648   |              112263 |
+| ptt5          |     19624 |      19666 |      19669 |      19677   |               21883 |
+| sum           |      6825 |       6798 |       6657 |       6679   |                6870 |
+| xargs.1       |      1295 |       1293 |       1097 |       1061   |                1123 |
+|**Total compressed size**      |**305'321**|**303'649** |**290'559** |**280'310**   |         **291'395** |
+|**Compression time (approx. sec)**| **256** |   **707** | **1015** | **1352**   | **n/a**|
 
-At the time of writing, `paq8px v209` likely ranks #2 on Canterbury behind `cmix v21`.
+At the time of writing, `paq8px v210` likely ranks #2 on Canterbury behind `cmix v21`.
 
 ### Silesia corpus
 
-`paq8px v209` **ranked #1** in [The Silesia Open Source Compression Benchmark](https://mattmahoney.net/dc/silesia.html) at the time of writing.
+`paq8px v210` **ranked #1** in [The Silesia Open Source Compression Benchmark](https://mattmahoney.net/dc/silesia.html) at the time of writing.
 
-Detailed results for `paq8px v209` together with `cmix v21` as a reference:
+Results for `paq8px v210` together with `cmix v21` as a reference:
 
-| File      |      -12L | cmix v21 (reference) |
-|:----------|----------:|---------------------:|
-| dickens   |   1865439 |              1802071 |
-| mozilla   |   6165693 |              6634210 |
-| mr        |   1835756 |              1828423 |
-| nci       |    775907 |               781325 |
-| ooffice   |   1221715 |              1221977 |
-| osdb      |   1968064 |              1963597 |
-| reymont   |    699630 |               704817 |
-| samba     |   1593115 |              1588875 |
-| sao       |   3724799 |              3726502 |
-| webster   |   4416122 |              4271915 |
-| xml       |    245899 |               233696 |
-| x-ray     |   3513402 |              3503686 |
-|**Total compressed size**      |**28'025'541**|**28'261'094** |
-|**Compression time (approx. sec)**| **105'424** | **n/a**|
+|           |            | precomp v0.4.7 -cn + |
+| File      |       -12L | cmix v21 (reference) |
+|:----------|-----------:|---------------------:|
+| dickens   |  1'860'023 |            1'802'071 |
+| mozilla   |  6'129'742 |            6'634'210 |
+| mr        |  1'852'494 |            1'828'423 |
+| nci       |    776'723 |              781'325 |
+| ooffice   |  1'218'806 |            1'221'977 |
+| osdb      |  1'968'252 |            1'963'597 |
+| reymont   |    699'456 |              704'817 |
+| samba     |  1'589'315 |            1'588'875 |
+| sao       |  3'723'922 |            3'726'502 |
+| webster   |  4'402'064 |            4'271'915 |
+| xml       |    245'824 |              233'696 |
+| x-ray     |  3'521'286 |            3'503'686 |
+|**Total compressed size**      |**27'987'907**|**28'261'094** |
+|**Compression time (approx. sec)**| **68'837** | **n/a**|
 
 Here `paq8px` outperformed `cmix v21` overall, though performance varies per file.
 
@@ -453,7 +614,7 @@ The benchmark has not been rerun for later versions.
 ### Darek's corpus (DBA)
 
 Darek's benchmark is no longer actively maintained.  
-This is not an exhaustive benchmark - it targets only high-end compressors.
+This is not an exhaustive benchmark – it targets only high-end compressors.
 
 See the last results targeting only high-end compressors in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=75549&viewfull=1#post75549) from 2022 including results for v207fix1.
 
@@ -466,28 +627,28 @@ The official site was last updated in 2011. At that time paq8px was **ranked #1*
 
 See `paq8px` evolution on the MaximumCompression benchmark up until paq8px v207fix1 in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=75636&viewfull=1#post75636) from 2022.
 
-Compressed sizes for v209 with compression option `-12L` (`-12Ls` for rafale.bmp).
+Compressed sizes for v210 with compression option `-12L` (`-12Ls` for rafale.bmp).
 
 | File          |      -12L |
 |:--------------|----------:|
-|A10.jpg        |    624039 |
-|acrord32.exe   |    788727 |
-|english_mc.dic |    331499 |
-|FlashMX.pdf    |   1289611 |
-|fp.log         |    200031 |
-|mso97.dll      |   1125345 |
-|ohs.doc        |    452266 |
-|rafale.bmp     |    463612 |
-|vcfiu.hlp      |    246167 |
-|world95.txt    |    309748 |
-|**Total compressed size**  | **6'455'101** |
-|**Compression time (sec)**| **30'074** |
+|A10.jpg        |    624023 |
+|acrord32.exe   |    786553 |
+|english_mc.dic |    333089 |
+|FlashMX.pdf    |   1289571 |
+|fp.log         |    199933 |
+|mso97.dll      |   1121228 |
+|ohs.doc        |    452209 |
+|rafale.bmp     |    463390 |
+|vcfiu.hlp      |    245448 |
+|world95.txt    |    309236 |
+|**Total compressed size**  | **5'824'680** |
+|**Compression time (sec)**| **19'384** |
 
-To the best of our knowledge, `paq8px`'s latest version, `v209`, would still **rank #1** at the time of writing.
+To the best of our knowledge, `paq8px`'s latest version, `v210`, would still **rank #1** at the time of writing.
 
 ### fenwik9 benchmark
 
-`paq8px v206fix1` **ranked #1** in the [fenwik9 benchmark](https://encode.su/threads/3873-fenwik9-benchmark-results).  
+`paq8px v210` **ranks #1** in the [fenwik9 benchmark](https://encode.su/threads/3873-fenwik9-benchmark-results).  
 This is a non-standard but exhaustive single-file benchmark maintained by Sportman.
 
 ### World English Bible benchmark (WEB)
@@ -500,7 +661,7 @@ This is a non-standard but exhaustive single-file benchmark maintained by Sportm
 
 > [!WARNING]
 > 1) Using `-R` to load pre-trained LSTM weight repositories is unfair if the target file to be compressed was part of the training data.  
-> 2) Benchmarks and leaderboards change over time - rankings may shift.
+> 2) Benchmarks and leaderboards change over time – rankings may shift.
 > 3) Hardware does not affect compression ratio and memory use, but it does affect runtime; reported times are approximate and for context only.
 
 <a id="timeline"></a>
@@ -528,6 +689,7 @@ The table below highlights milestones, contributors, and notable changes over th
 | **2022**     | v207       | **Zoltán Gotthardt**: PNG filtering moved to transform layer; DEC-Alpha detection via object signature; TAR detection/transform; base85 filter (from paq8pxd); structured-text WordModel (linemodel) enhancements; separate LSTM per main context. |
 | **2023**     | v208       | **Zoltán Gotthardt**: TAR detection fixes; new -forcetext option; enhanced 1-bit image model; shifted contexts (fewer in IndirectModel, added to WordModel for TEXT); refactors; Pavel Rosický: AVX512 detection |
 | **2025**     | v209       | **Zoltán Gotthardt**: Model tweaks (initialized mixer weights; corrected matchmodel context); TEXT detection fixes; build/toolchain updates |
+| **2026**     | v210       | **Zoltán Gotthardt**: LSTM model enhancements |
 
 This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
@@ -535,20 +697,20 @@ This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
 `paq8px` incorporates ideas and code from a range of sources, often adapted and extended to fit the project’s design:
 
-- **UTF-8 detection** - based on Bjoern Hoehrmann's [UTF decoder DFA](http://bjoern.hoehrmann.de/utf-8/decoder/dfa/); integrated by Zoltán Gotthardt
-- **Base64 transform** - from paq8pxd by Kaido Orav; integrated by Jan Ondrus
-- **Base85 transform** - from paq8pxd by Kaido Orav; integrated by Zoltán Gotthardt
-- **MRB detection** - from paq8pxd by Kaido Orav; integrated with enhancements by Zoltán Gotthardt
-- **zlib recompression** - from AntiZ; integrated by Jan Ondrus
-- **Text modeling with stemming** - based on the Porter/Porter2 stemmers; integrated by Márcio Pais
-- **Audio modeling ideas** - based on 'An asymptotically Optimal Predictor for Stereo Lossless Audio Compression' by Florin Ghido; integrated with enhancements by Márcio Pais
-- **Image modeling ideas** - from Emma by Márcio Pais
-- **EXE model** - incorporates ideas from [DisFilter](http://www.farbrausch.de/~fg/code/disfilter/) by Fabian Giesen; integrated with enhancements by Márcio Pais
-- **ChartModel** - from paq8kx7; integrated with enhancements by Zoltán Gotthardt
-- **MatchModel** - ideas from Emma; integrated by Márcio Pais
-- **MatchModel** - improvements from paq8gen; integrated by Zoltán Gotthardt
-- **LSTM model** - adapted from cmix by Byron Knoll; integrated with enhancements by Márcio Pais
-- **OLS predictor** - by Sebastian Lehmann; integrated by Márcio Pais
+- **UTF-8 detection** – based on Bjoern Hoehrmann's [UTF decoder DFA](http://bjoern.hoehrmann.de/utf-8/decoder/dfa/); integrated by Zoltán Gotthardt
+- **Base64 transform** – from paq8pxd by Kaido Orav; integrated by Jan Ondrus
+- **Base85 transform** – from paq8pxd by Kaido Orav; integrated by Zoltán Gotthardt
+- **MRB detection** – from paq8pxd by Kaido Orav; integrated with enhancements by Zoltán Gotthardt
+- **zlib recompression** – from AntiZ; integrated by Jan Ondrus
+- **Text modeling with stemming** – based on the Porter/Porter2 stemmers; integrated by Márcio Pais
+- **Audio modeling ideas** – based on 'An asymptotically Optimal Predictor for Stereo Lossless Audio Compression' by Florin Ghido; integrated with enhancements by Márcio Pais
+- **Image modeling ideas** – from Emma by Márcio Pais
+- **EXE model** – incorporates ideas from [DisFilter](http://www.farbrausch.de/~fg/code/disfilter/) by Fabian Giesen; integrated with enhancements by Márcio Pais
+- **ChartModel** – from paq8kx7; integrated with enhancements by Zoltán Gotthardt
+- **MatchModel** – ideas from Emma; integrated by Márcio Pais
+- **MatchModel** – improvements from paq8gen; integrated by Zoltán Gotthardt
+- **LSTM model** – adapted from cmix by Byron Knoll; integrated with enhancements by Márcio Pais, further enhancements based on ligru-compress by Zoltán Gotthardt
+- **OLS predictor** – by Sebastian Lehmann; integrated by Márcio Pais
 
 ## Similar compressors
 
@@ -557,7 +719,7 @@ This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
 ## Copyright
 
-Copyright (C) 2009-2025 Matt Mahoney, Serge Osnach, Alexander Ratushnyak, Bill Pettis, Przemyslaw Skibinski, Matthew Fite, wowtiger, Andrew Paterson, 
+Copyright (C) 2009-2026 Matt Mahoney, Serge Osnach, Alexander Ratushnyak, Bill Pettis, Przemyslaw Skibinski, Matthew Fite, wowtiger, Andrew Paterson, 
 Jan Ondrus, Andreas Morphis, Pavel L. Holoborodko, Kaido Orav, Simon Berger, Neill Corlett, Márcio Pais, Andrew Epstein, Mauro Vezzosi, Zoltán Gotthardt, Moisés Cardona and others.
 
 We would like to express our gratitude for the endless support of many contributors who encouraged `paq8px` development with ideas, testing, compiling, debugging: 

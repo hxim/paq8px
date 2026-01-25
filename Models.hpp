@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "text/TextModel.hpp"
 #include "model/Audio16BitModel.hpp"
@@ -24,8 +24,7 @@
 #include "model/WordModel.hpp"
 #include "model/XMLModel.hpp"
 #include "model/DecAlphaModel.hpp"
-#include "lstm/LstmModel.hpp"
-#include "lstm/LstmFactory.hpp"
+#include "lstm/LstmModelContainer.hpp"
 #include "model/IContextModel.hpp"
 #include "MixerFactory.hpp"
 
@@ -35,47 +34,46 @@
  */
 class Models {
 private:
-  Shared * const shared;
+  Shared* const shared;
   const MixerFactory* const mixerFactory;
   void trainText(const char* const dictionary, int iterations);
   void trainExe();
 public:
   explicit Models(Shared* const sh, MixerFactory* mf);
   void trainModelsWhenNeeded();
-  auto normalModel() -> NormalModel &;
-  auto dmcForest() -> DmcForest &;
-  auto charGroupModel() -> CharGroupModel &;
-  auto chartModel()->ChartModel&;
-  auto recordModel() -> RecordModel &;
-  auto sparseBitModel()->SparseBitModel&;
-  auto sparseModel() -> SparseModel &;
-  auto matchModel() -> MatchModel &;
-  auto sparseMatchModel() -> SparseMatchModel &;
-  auto indirectModel() -> IndirectModel &;
-  auto textModel() -> TextModel &;
-  auto wordModel() -> WordModel &;
-  auto nestModel() -> NestModel &;
-  auto xmlModel() -> XMLModel &;
-  auto exeModel() -> ExeModel &;
-  auto linearPredictionModel() -> LinearPredictionModel &;
-  auto jpegModel() -> JpegModel &;
-  auto image24BitModel() -> Image24BitModel &;
-  auto image8BitModel() -> Image8BitModel &;
-  auto image4BitModel() -> Image4BitModel &;
-  auto image1BitModel() -> Image1BitModel &;
-  auto audio8BitModel() -> Audio8BitModel &;
-  auto audio16BitModel() -> Audio16BitModel &;
-  auto decAlphaModel() -> DECAlphaModel &;
+  auto normalModel() -> NormalModel&;
+  auto dmcForest() -> DmcForest&;
+  auto charGroupModel() -> CharGroupModel&;
+  auto chartModel() -> ChartModel&;
+  auto recordModel() -> RecordModel&;
+  auto sparseBitModel() -> SparseBitModel&;
+  auto sparseModel() -> SparseModel&;
+  auto matchModel() -> MatchModel&;
+  auto sparseMatchModel() -> SparseMatchModel&;
+  auto indirectModel() -> IndirectModel&;
+  auto textModel() -> TextModel&;
+  auto wordModel() -> WordModel&;
+  auto nestModel() -> NestModel&;
+  auto xmlModel() -> XMLModel&;
+  auto exeModel() -> ExeModel&;
+  auto linearPredictionModel() -> LinearPredictionModel&;
+  auto jpegModel() -> JpegModel&;
+  auto image24BitModel() -> Image24BitModel&;
+  auto image8BitModel() -> Image8BitModel&;
+  auto image4BitModel() -> Image4BitModel&;
+  auto image1BitModel() -> Image1BitModel&;
+  auto audio8BitModel() -> Audio8BitModel&;
+  auto audio16BitModel() -> Audio16BitModel&;
+  auto decAlphaModel() -> DECAlphaModel&;
 
-  auto lstmModelText()->LstmModel<>&;
-  auto lstmModelGeneric()->LstmModel<>&;
-  auto lstmModelExe()->LstmModel<>&;
-  auto lstmModelDec()->LstmModel<>&;
-  auto lstmModelAudio8()->LstmModel<>&;
-  auto lstmModelAudio16()->LstmModel<>&;
-  auto lstmModelImage1()->LstmModel<>&;
-  auto lstmModelImage4()->LstmModel<>&;
-  auto lstmModelImage8()->LstmModel<>&;
-  auto lstmModelImage24()->LstmModel<>&;
-  auto lstmModelJpeg()->LstmModel<>&;
+  auto lstmModelText() -> LstmModelContainer&;
+  auto lstmModelGeneric() -> LstmModelContainer&;
+  auto lstmModelDec() -> LstmModelContainer&;
+  auto lstmModelAudio8() -> LstmModelContainer&;
+  auto lstmModelAudio16() -> LstmModelContainer&;
+  auto lstmModelImage1() -> LstmModelContainer&;
+  auto lstmModelImage4() -> LstmModelContainer&;
+  auto lstmModelImage8() -> LstmModelContainer&;
+  auto lstmModelImage24() -> LstmModelContainer&;
+  auto lstmModelJpeg() -> LstmModelContainer&;
 };

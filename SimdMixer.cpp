@@ -1,4 +1,4 @@
-#include "SimdMixer.hpp"
+﻿#include "SimdMixer.hpp"
 
 #include "BitCount.hpp"
 #include "Squash.hpp"
@@ -41,7 +41,7 @@ static int processDotProduct(Mixer* mp, int dp, int scaleFactor) {
 }
 
 [[gnu::cold]] [[gnu::noinline]]
-static int updateLearningRate_Adaptive(ErrorInfo& info, int rate, const int err) {
+static int updatelearning_rate_Adaptive(ErrorInfo& info, int rate, const int err) {
   const uint32_t logErr = min(0xF, ilog2(abs(err)));
   info.sum -= square(info.data[1] >> 28);
   info.data[1] <<= 4;
@@ -68,7 +68,7 @@ static int updateLearningRate_Adaptive(ErrorInfo& info, int rate, const int err)
 ALWAYS_INLINE
 static int updateLearningRate(const bool isAdaptiveLearningRate, ErrorInfo& info, int rate, const int err, const int lowerLimitOfLearningRate) {
   if (isAdaptiveLearningRate)
-    rate = updateLearningRate_Adaptive(info, rate, err);
+    rate = updatelearning_rate_Adaptive(info, rate, err);
   //linear learning rate decay
   if (rate > lowerLimitOfLearningRate)
     rate--;

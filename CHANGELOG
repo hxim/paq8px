@@ -2039,3 +2039,20 @@ paq8px_v209 by Zoltán Gotthardt
 paq8px_v209fix1 by Zoltán Gotthardt
 2025.09.22
 - Fixed MatchModel context allocation.
+
+
+paq8px_v210 by Zoltán Gotthardt
+2026.01.24
+- Refactored the LSTM model: almost 2x speed, less memory use, generally better compresson.
+  - Now the memory allocated by the LSTM model is included in the reported total memory use.
+  - Now the number of trainable parameters is displayed for the -v (verbose) option.
+  - Temporarily removed the -R option (LSTM repository) and pre-trained files: the old pre-trained files are incompatible with the new format.
+  - New command line options: -savelstm:text and -loadlstm:text to save and load trainable parameters.
+  - New command line option: -lstmonly (or -0L) to compress only with the LSTM model. This is to test the LSTM model in isolation against similar compressors.
+  - Earlier only Scalar+AVX2 code paths were used (producing different results), now Scalar+SSE2+AVX2 code paths are producing identical results.
+- Rewritten help screen
+  - New command line option: -help for detailed help.
+- Build and other fixes
+  - VS: Added .editorconfig.
+  - VS: Fixed zlib path in debug mode.
+  - Fixed MinGW-w64 script issue with LTO.

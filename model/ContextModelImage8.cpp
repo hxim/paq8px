@@ -1,4 +1,4 @@
-#include "../MixerFactory.hpp"
+﻿#include "../MixerFactory.hpp"
 #include "../Models.hpp"
 
 class ContextModelImage8 : public IContextModel {
@@ -15,15 +15,15 @@ public:
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + 
       Image8BitModel::MIXERINPUTS +
-      (useLSTM ? LstmModel<>::MIXERINPUTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE +
       Image8BitModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       Image8BitModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModel<>::MIXERCONTEXTSETS : 0)
+      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
     );
@@ -51,7 +51,7 @@ public:
     //is it useful?
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
-      LstmModel<>& lstmModel = models->lstmModelImage8();
+      LstmModelContainer& lstmModel = models->lstmModelImage8();
       lstmModel.mix(*m);
     }
 

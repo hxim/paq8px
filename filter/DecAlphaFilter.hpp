@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "DecAlpha.hpp"
 #include "../file/File.hpp"
@@ -55,10 +55,10 @@ public:
     for (uint64_t offset = 0; offset < size; offset += block) {
       uint64_t length = std::min<uint64_t>(size - offset, block);
       for (size_t i = 0; i < static_cast<size_t>(length) - 3; i += 4) {
-        blk[i]     = encoder->decompressByte(&encoder->predictorMain);
-        blk[i + 1] = encoder->decompressByte(&encoder->predictorMain);
-        blk[i + 2] = encoder->decompressByte(&encoder->predictorMain);
-        blk[i + 3] = encoder->decompressByte(&encoder->predictorMain);
+        blk[i]     = encoder->decompressByte(encoder->predictorMain);
+        blk[i + 1] = encoder->decompressByte(encoder->predictorMain);
+        blk[i + 2] = encoder->decompressByte(encoder->predictorMain);
+        blk[i + 3] = encoder->decompressByte(encoder->predictorMain);
         uint32_t instruction = (blk[i] | (blk[i + 1] << 8) | (blk[i + 2] << 16) | (blk[i + 3] << 24));
         DECAlpha::Unshuffle(instruction);
         if ((instruction >> 21) == (0x34 << 5) + 26) { // bsr r26, offset
@@ -74,7 +74,7 @@ public:
       }
       size_t const l = static_cast<size_t>(length - (length & 3));
       for (size_t i = 0; i < static_cast<size_t>(length & 3); i++)
-        blk[l + i] = encoder->decompressByte(&encoder->predictorMain);
+        blk[l + i] = encoder->decompressByte(encoder->predictorMain);
 
       if (fMode == FMode::FDECOMPRESS) {
         out->blockWrite(&blk[0], length);

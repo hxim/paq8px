@@ -147,7 +147,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)x64\Release\zlib.lib</AdditionalDependencies>
+      <AdditionalDependencies>$(CoreLibraryDependencies);%(AdditionalDependencies);$(SolutionDir)x64\Debug\zlib.lib</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -269,6 +269,22 @@
     <ClCompile Include="Ilog.cpp" />
     <ClCompile Include="IndirectMap.cpp" />
     <ClCompile Include="LargeStationaryMap.cpp" />
+    <ClCompile Include="lstm\Adam.cpp" />
+    <ClCompile Include="lstm\Adam_AVX.cpp" />
+    <ClCompile Include="lstm\Adam_Scalar.cpp" />
+    <ClCompile Include="lstm\Adam_SSE2.cpp" />
+    <ClCompile Include="lstm\ByteModelToBitModel.cpp" />
+    <ClCompile Include="lstm\LstmComponent.cpp" />
+    <ClCompile Include="lstm\LoadSave.cpp" />
+    <ClCompile Include="lstm\Lstm.cpp" />
+    <ClCompile Include="lstm\LstmLayer.cpp" />
+    <ClCompile Include="lstm\LstmModelContainer.cpp" />
+    <ClCompile Include="lstm\SqrtLearningRateDecay.cpp" />
+    <ClCompile Include="lstm\Utils.cpp" />
+    <ClCompile Include="lstm\VectorFunctions.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_AVX2.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_Scalar.cpp" />
+    <ClCompile Include="lstm\VectorFunctions_SSE2.cpp" />
     <ClCompile Include="Mixer.cpp" />
     <ClCompile Include="MixerFactory.cpp" />
     <ClCompile Include="Models.cpp" />
@@ -317,6 +333,7 @@
     <ClCompile Include="Predictor.cpp" />
     <ClCompile Include="PredictorBlock.cpp" />
     <ClCompile Include="PredictorMain.cpp" />
+    <ClCompile Include="PredictorMainLstmOnly.cpp" />
     <ClCompile Include="ProgramChecker.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Shared.cpp" />
@@ -360,7 +377,6 @@
     <ClInclude Include="DivisionTable.hpp" />
     <ClInclude Include="DummyMixer.hpp" />
     <ClInclude Include="Encoder.hpp" />
-    <ClInclude Include="file\BitFileDisk.hpp" />
     <ClInclude Include="file\File.hpp" />
     <ClInclude Include="file\FileDisk.hpp" />
     <ClInclude Include="file\FileName.hpp" />
@@ -403,20 +419,23 @@
     <ClInclude Include="LargeIndirectContext.hpp" />
     <ClInclude Include="LargeStationaryMap.hpp" />
     <ClInclude Include="LMS.hpp" />
-    <ClInclude Include="lstm\Activations.hpp" />
+    <ClInclude Include="LstmModelContainer.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />
-    <ClInclude Include="lstm\CosineDecay.hpp" />
-    <ClInclude Include="lstm\IActivation.hpp" />
-    <ClInclude Include="lstm\IDecay.hpp" />
-    <ClInclude Include="lstm\IOptimizer.hpp" />
-    <ClInclude Include="lstm\Layer.hpp" />
+    <ClInclude Include="lstm\Adam_AVX.hpp" />
+    <ClInclude Include="lstm\Adam_Scalar.hpp" />
+    <ClInclude Include="lstm\Adam_SSE2.hpp" />
+    <ClInclude Include="lstm\ByteModelToBitModel.hpp" />
+    <ClInclude Include="lstm\LstmComponent.hpp" />
+    <ClInclude Include="lstm\LoadSave.hpp" />
     <ClInclude Include="lstm\Lstm.hpp" />
-    <ClInclude Include="lstm\LstmFactory.hpp" />
     <ClInclude Include="lstm\LstmLayer.hpp" />
-    <ClInclude Include="lstm\LstmModel.hpp" />
-    <ClInclude Include="lstm\PolynomialDecay.hpp" />
-    <ClInclude Include="lstm\SimdFunctions.hpp" />
-    <ClInclude Include="lstm\SimdLstmModel.hpp" />
+    <ClInclude Include="lstm\LstmModelContainer.hpp" />
+    <ClInclude Include="lstm\SqrtLearningRateDecay.hpp" />
+    <ClInclude Include="lstm\Utils.hpp" />
+    <ClInclude Include="lstm\VectorFunctions.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_AVX2.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_Scalar.hpp" />
+    <ClInclude Include="lstm\VectorFunctions_SSE2.hpp" />
     <ClInclude Include="Mixer.hpp" />
     <ClInclude Include="MixerFactory.hpp" />
     <ClInclude Include="MixerFunctions_SIMD_AVX2.hpp" />
@@ -463,6 +482,7 @@
     <ClInclude Include="Predictor.hpp" />
     <ClInclude Include="PredictorBlock.hpp" />
     <ClInclude Include="PredictorMain.hpp" />
+    <ClInclude Include="PredictorMainLstmOnly.hpp" />
     <ClInclude Include="ProgramChecker.hpp" />
     <ClInclude Include="Random.hpp" />
     <ClInclude Include="RingBuffer.hpp" />

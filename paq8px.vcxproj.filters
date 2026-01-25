@@ -28,6 +28,9 @@
     <Filter Include="Header Files\lstm">
       <UniqueIdentifier>{73abd1bc-6333-4b69-a064-57ad2414ab30}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Source Files\lstm">
+      <UniqueIdentifier>{8f5067c9-8034-446b-9c68-459af4204534}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="paq8px.cpp">
@@ -320,6 +323,57 @@
     </ClCompile>
     <ClCompile Include="model\MatchInfo.cpp">
       <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmComponent.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmLayer.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\SqrtLearningRateDecay.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Lstm.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam_AVX.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam_Scalar.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LstmModelContainer.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\ByteModelToBitModel.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_AVX2.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_Scalar.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\VectorFunctions_SSE2.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Adam_SSE2.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\LoadSave.cpp">
+      <Filter>Source Files\lstm</Filter>
+    </ClCompile>
+    <ClCompile Include="PredictorMainLstmOnly.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="lstm\Utils.cpp">
+      <Filter>Source Files\lstm</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -644,43 +698,22 @@
     <ClInclude Include="ArithmeticEncoder.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\Activations.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\Adam.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\CosineDecay.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IDecay.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IOptimizer.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\Layer.hpp">
+    <ClInclude Include="lstm\LstmComponent.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="lstm\Lstm.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\LstmFactory.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\LstmLayer.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\LstmModel.hpp">
+    <ClInclude Include="lstm\SqrtLearningRateDecay.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="lstm\PolynomialDecay.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\SimdFunctions.hpp">
-      <Filter>Header Files\lstm</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\SimdLstmModel.hpp">
+    <ClInclude Include="lstm\VectorFunctions.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="model\DecAlphaModel.hpp">
@@ -749,9 +782,6 @@
     <ClInclude Include="model\ContextModelBlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="file\BitFileDisk.hpp">
-      <Filter>file</Filter>
-    </ClInclude>
     <ClInclude Include="PredictorBlock.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -763,9 +793,6 @@
     </ClInclude>
     <ClInclude Include="StateMapPair.hpp">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="lstm\IActivation.hpp">
-      <Filter>Header Files\lstm</Filter>
     </ClInclude>
     <ClInclude Include="filter\png.hpp">
       <Filter>filter</Filter>
@@ -793,6 +820,42 @@
     </ClInclude>
     <ClInclude Include="model\MatchInfo.hpp">
       <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Adam_AVX.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Adam_Scalar.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="LstmModelContainer.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\LstmModelContainer.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\ByteModelToBitModel.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_AVX2.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_Scalar.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\VectorFunctions_SSE2.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Adam_SSE2.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\LoadSave.hpp">
+      <Filter>Header Files\lstm</Filter>
+    </ClInclude>
+    <ClInclude Include="PredictorMainLstmOnly.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="lstm\Utils.hpp">
+      <Filter>Header Files\lstm</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
