@@ -284,7 +284,3 @@ auto Models::lstmModelImage24() -> LstmModelContainer& {
   return *instance;
 }
 
-auto Models::lstmModelJpeg() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
-  return *instance;
-}

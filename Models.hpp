@@ -75,5 +75,4 @@ public:
   auto lstmModelImage4() -> LstmModelContainer&;
   auto lstmModelImage8() -> LstmModelContainer&;
   auto lstmModelImage24() -> LstmModelContainer&;
-  auto lstmModelJpeg() -> LstmModelContainer&;
 };
