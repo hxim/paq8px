@@ -1,11 +1,12 @@
 cmake_minimum_required(VERSION 3.10)
 project(paq8px LANGUAGES CXX C)
+set(CMAKE_POLICY_DEFAULT_CMP0009 NEW)  # Suppress GLOB warning
 
 # --------------------------------------
 # Build options
 # --------------------------------------
 option(NATIVECPU "Whether to build for your CPU (vs. general public)" OFF)
-option(DISABLE_ZLIB "Whether to disable zlib (builds bundled zlib if OFF)" OFF)
+option(DISABLE_ZLIB "Disable zlib re-compression support" OFF)
 option(NDEBUG "Suppress asserts and array bound checks" ON)
 option(ENABLE_WARNINGS "Enable compiler warnings ('diag' mode)" OFF)
 
@@ -16,6 +17,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Force floating point reproducibility
+set(SAFEFP_FLAGS -fno-fast-math -ffp-contract=off)
+
 # Base optimization flags
 set(BASE_FLAGS
     -O3
@@ -24,20 +28,21 @@ set(BASE_FLAGS
     -ftree-vectorize
     -fgcse-sm
     -falign-loops=16
+    ${SAFEFP_FLAGS}
 )
 
 # Architecture-specific flags
 if (NATIVECPU)
-    add_compile_options(-march=native -mtune=native)
+    list(APPEND BASE_FLAGS -march=native -mtune=native)
 else()
     if (CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|i.86")
-        add_compile_options(-march=nocona -mtune=generic)
+        list(APPEND BASE_FLAGS -march=nocona -mtune=generic)
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "armv7l")
-        add_compile_options(-march=armv7-a -mtune=cortex-a8)
+        list(APPEND BASE_FLAGS -march=armv7-a -mtune=cortex-a8)
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
-        add_compile_options(-march=armv8-a)
+        list(APPEND BASE_FLAGS -march=armv8-a)
     elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "riscv64")
-        add_compile_options(-march=rv64gc -mabi=lp64d)
+        list(APPEND BASE_FLAGS -march=rv64gc -mabi=lp64d)
     else()
         message(WARNING "Unknown architecture: ${CMAKE_SYSTEM_PROCESSOR}, using generic optimizations")
     endif()
@@ -70,7 +75,7 @@ else()
     # Define zlib source directory
     set(ZLIB_DIR "${CMAKE_CURRENT_SOURCE_DIR}/zlib")
     
-    # Collect zlib sources (matching build.cmd)
+    # Collect zlib sources
     set(ZLIB_SOURCES
         ${ZLIB_DIR}/adler32.c
         ${ZLIB_DIR}/crc32.c
@@ -85,7 +90,7 @@ else()
     
     # Create static zlib library
     add_library(zlib_bundled STATIC ${ZLIB_SOURCES})
-    target_compile_options(zlib_bundled PRIVATE -fexceptions)
+    target_compile_options(zlib_bundled PRIVATE -fexceptions ${SAFEFP_FLAGS})
 
     # Add unistd.h for Linux (provides lseek declaration)
     if (UNIX)
@@ -102,14 +107,22 @@ endif()
 # --------------------------------------
 # Collect source files
 # --------------------------------------
-file(GLOB PAQ_SOURCES
-    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/file/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/filter/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/model/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/text/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/lstm/*.cpp"
+set(PAQ_SOURCES "")
+
+# Directories to scan for cpp files
+set(SOURCE_DIRS
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+    "${CMAKE_CURRENT_SOURCE_DIR}/file"
+    "${CMAKE_CURRENT_SOURCE_DIR}/filter"
+    "${CMAKE_CURRENT_SOURCE_DIR}/model"
+    "${CMAKE_CURRENT_SOURCE_DIR}/text"
+    "${CMAKE_CURRENT_SOURCE_DIR}/lstm"
 )
+
+foreach(DIR ${SOURCE_DIRS})
+    file(GLOB DIR_SOURCES "${DIR}/*.cpp")
+    list(APPEND PAQ_SOURCES ${DIR_SOURCES})
+endforeach()
 
 # --------------------------------------
 # Create executable
@@ -125,8 +138,8 @@ if (NOT DISABLE_ZLIB)
     target_link_libraries(paq8px PRIVATE ${ZLIB_LIBRARIES})
 endif()
 
-# Static linking on Windows
-if (WIN32)
+# Static linking with GCC on Windows
+if (MINGW)
     target_link_options(paq8px PRIVATE -static)
 endif()
 
@@ -145,6 +158,12 @@ check_ipo_supported(RESULT supported OUTPUT error)
 if (supported)
     message(STATUS "IPO / LTO enabled")
     set_property(TARGET paq8px PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+    
+    # Set MAKE for LTO
+    if (WIN32 AND CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        set(CMAKE_CXX_COMPILER_LAUNCHER "")
+        set(ENV{MAKE} "mingw32-make")
+    endif()
 else()
     message(STATUS "IPO / LTO not supported: <${error}>")
 endif()
@@ -158,3 +177,4 @@ message(STATUS "  DISABLE_ZLIB: ${DISABLE_ZLIB}")
 message(STATUS "  NDEBUG: ${NDEBUG}")
 message(STATUS "  ENABLE_WARNINGS: ${ENABLE_WARNINGS}")
 message(STATUS "  Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+message(STATUS "  C++ Standard: ${CMAKE_CXX_STANDARD}")

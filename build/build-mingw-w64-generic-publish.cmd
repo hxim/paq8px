@@ -31,12 +31,15 @@ rem * Why: GCC's LTO wrapper needs a 'make' executable to coordinate parallel co
 rem * By explicitly setting MAKE=mingw32-make, we tell it where to look.
 set MAKE=mingw32-make
 
+rem * Force floating point reproducibility explicitly
+set safefp=-fno-fast-math -ffp-contract=off
+
 rem * Set compiler options (release by default)
-set options=-DNDEBUG -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
+set options=-DNDEBUG -I%zpath% -O3 %safefp% -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
 
 rem * Override for debug build if specified
 if /i "%1"=="diag" (
-  set options=-Wall -I%zpath% -O3 -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
+  set options=-Wall -I%zpath% -O3 %safefp% -m64 -march=nocona -mtune=generic -flto=auto -floop-strip-mine -funroll-loops -ftree-vectorize -fgcse-sm -falign-loops=16
   echo Building with warnings and activating asserts during runtime.
   echo When done, see warnings in _error1_zlib.txt and _error2_paq.txt
 )
@@ -69,7 +72,7 @@ echo Building source file list...
 
 
 echo Compiling and linking paq8px...
-g++.exe -s -static -fno-rtti -std=gnu++1z %options% %zobj% @_sources.txt -o paq8px.exe 2>_error2_paq.txt
+g++.exe -s -static -fno-rtti -std=gnu++17 %options% %zobj% @_sources.txt -o paq8px.exe 2>_error2_paq.txt
 if %ERRORLEVEL% neq 0 (
   echo ERROR: paq8px compilation failed. See _error2_paq.txt for details.
   pause

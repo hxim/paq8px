@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 static_assert(sizeof(short) == 2, "sizeof(short)");
 static_assert(sizeof(int) == 4, "sizeof(int)");
@@ -39,12 +39,26 @@ constexpr bool IS_X64_SIMD_AVAILABLE = false;
 
 
 // Floating point operations need IEEE compliance
-// Do not use compiler optimization options such as the following:
-// gcc : -ffast-math (and -Ofast, -funsafe-math-optimizations, -fno-rounding-math)
-// vc++: /fp:fast
-#if defined(__FAST_MATH__) || defined(_M_FP_FAST) // gcc vc++
+// Do not use unsafe compiler optimization options
+// gcc : -ffast-math (and -Ofast, -funsafe-math-optimizations, -fno-rounding-math) => __FAST_MATH__
+// MSVC: /fp:fast => _M_FP_FAST
+#if defined(__FAST_MATH__) || defined(_M_FP_FAST)
 #error Avoid using aggressive floating-point compiler optimization flags
 #endif
+
+// Enforce -ffp-contract=off (no FMA contraction)
+// GCC/Clang define __FP_FAST_FMA* when FMA is contracted
+#if defined(__FP_FAST_FMA) || defined(__FP_FAST_FMAF) || defined(__FP_FAST_FMAL)
+#error FP contraction detected. Use -ffp-contract=off to disable FMA contraction
+#endif
+
+// MSVC: Verify we're in a safe floating-point mode
+#if defined(_MSC_VER)
+#if !defined(_M_FP_PRECISE) && !defined(_M_FP_STRICT)
+#warning MSVC floating-point mode unclear. Ensure /fp:precise or /fp:strict is set
+#endif
+#endif
+
 
 #if defined(_MSC_VER)
 #define ALWAYS_INLINE  __forceinline
