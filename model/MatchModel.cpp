@@ -1,4 +1,4 @@
-#include "MatchModel.hpp"
+﻿#include "MatchModel.hpp"
 
 MatchModel::MatchModel(Shared* const sh, const uint64_t hashtablesize, const uint64_t mapmemorysize) : 
   shared(sh),
@@ -206,7 +206,8 @@ void MatchModel::AddCandidates(HashElementForMatchPositions* matches, uint32_t L
         //is this position already registered?
         for (uint32_t j = 0; j < numberOfActiveCandidates; j++) {
           MatchInfo* oldcandidate = &matchCandidates[j];
-          if (isSame = oldcandidate->index == matchpos)
+          isSame = oldcandidate->index == matchpos;
+          if (isSame)
             break;
         }
         if (!isSame) { //don't register an already registered sequence

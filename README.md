@@ -578,8 +578,7 @@ At the time of writing, `paq8px v210` likely ranks #2 on Canterbury behind `cmix
 
 Results for `paq8px v210` together with `cmix v21` as a reference:
 
-|           |            | precomp v0.4.7 -cn + |
-| File      |       -12L | cmix v21 (reference) |
+| File      |       -12L | precomp v0.4.7 -cn + cmix v21 (reference) |
 |:----------|-----------:|---------------------:|
 | dickens   |  1'860'023 |            1'802'071 |
 | mozilla   |  6'129'742 |            6'634'210 |
