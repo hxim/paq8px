@@ -51,7 +51,7 @@ public:
   uint64_t mem = 0; /**< pre-calculated value of 65536 * 2^level */
   float tuning_param = 0.0f; /**< used during development to find optimal model parameters */
   bool toScreen = true;
-
+  
   // Getters
   bool GetOptionMultipleFileMode() const { return (options & OPTION_MULTIPLE_FILE_MODE) != 0; }
   bool GetOptionTrainExe() const { return (options & OPTION_TRAINEXE) != 0; }
@@ -75,6 +75,13 @@ public:
   void SetOptionBruteforceDeflateDetection() { detectionOptions |= OPTION_BRUTEFORCE_DEFLATE_DETECTION; }
   void SetOptionDetectBlockAsBinary() { detectionOptions |= OPTION_DETECT_BLOCK_AS_BINARY; }
   void SetOptionDetectBlockAsText() { detectionOptions |= OPTION_DETECT_BLOCK_AS_TEXT; }
+
+  struct
+  {
+    uint8_t hidden_size = 200;
+    uint8_t num_layers = 0; //  set from command line parameters with default = 2
+    uint8_t horizon = 100;
+  } LstmSettings;
 
   struct {
 

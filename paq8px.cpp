@@ -64,7 +64,8 @@ static void printHelp() {
     "  -forcebinary         | Force generic (binary) mode\n"
     "  -forcetext           | Force text mode\n"
     "\n"
-    "LSTM snapshots (expert-only):\n"
+    "LSTM-specific options (expert-only):\n"
+    "  -lstmlayers=N        | Set the number of LSTM layers to N (1..5, default is 2)\n"
     "  -savelstm:text FILE  | Save learned LSTM model weights after compression\n"
     "  -loadlstm:text FILE  | Load LSTM model weights before compression/decompression\n"
     "\n"
@@ -173,8 +174,13 @@ static void printHelpVerbose() {
     "      other block type.\n"
     "\n"
     "---------------------------------------\n"
-    " 5. LSTM Snapshot Options (expert-only)\n"
+    " 5. LSTM-Specific Options (expert-only)\n"
     "---------------------------------------\n"
+    "\n"
+    "  -lstmlayers=N\n"
+    "\n"
+    "      Set the number of LSTM layers to N. Using more layers generally leads to better compression, but memory use\n"
+    "      will be higher (scales linearly with N) and compression time will be significantly slower. The default is N=2.\n"
     "\n"
     "  -savelstm:text FILE\n"
     "\n"
@@ -554,6 +560,19 @@ int processCommandLine(int argc, char **argv) {
             quit("Could not parse tuning param.");
           }
         }
+        else if (strncmp(argv[i], "-lstmlayers=", 12) == 0)
+        {
+          try
+          {
+            shared.LstmSettings.num_layers = std::stoi(argv[i] + 12);
+          }
+          catch (...)
+          {
+            quit("Could not parse lstmlayers parameter.");
+          }
+          if (shared.LstmSettings.num_layers < 1 || shared.LstmSettings.num_layers > 5)
+            quit("Illegal number of lstmlayers. Should be between 1 and 5.");
+        }
         else if( strcasecmp(argv[i], "-simd") == 0 ) {
           if( ++i == argc ) {
             quit("The -simd switch requires an instruction set name (NONE, SSE2, AVX2, AVX512, NEON).");
@@ -633,19 +652,6 @@ int processCommandLine(int argc, char **argv) {
       printf("\nOverriding system highest vectorization support. Expect a crash.");
     }
 
-    if (verbose && shared.GetOptionUseLSTM()) {
-      printf("Numer of trainable parameters in LSTM moel: 773'456\n"); // this is fixed now, the user has no control over it
-    }
-
-    if( verbose ) {
-      printf("\n");
-      printf(" Command line   =");
-      for( int i = 0; i < argc; i++ ) {
-        printf(" %s", argv[i]);
-      }
-      printf("\n");
-    }
-
     // Successfully parsed command line arguments
     // Let's check their validity
 
@@ -702,6 +708,27 @@ int processCommandLine(int argc, char **argv) {
     if (lstmSaveFilename.strsize() != 0 && !shared.GetOptionUseLSTM()) {
       quit("The -savelstm:text switch requires the -L option to be set.");
     }
+    if (shared.LstmSettings.num_layers > 0 && !shared.GetOptionUseLSTM()) {
+      quit("Number of LSTM layers specified without enabling the LSTM model. Enable the LSTM model.");
+    }
+    if (shared.GetOptionUseLSTM() && shared.LstmSettings.num_layers == 0) {
+      shared.LstmSettings.num_layers = 2; // default
+    }
+
+    if (verbose && shared.GetOptionUseLSTM()) {
+      printf("Numer of trainable parameters in LSTM moel: %d\n", LstmModelContainer::GetNumberOfTrainableParameters(&shared));
+    }
+
+    // Print options in verbose mode
+    if (verbose) {
+      printf("\n");
+      printf(" Command line   =");
+      for (int i = 0; i < argc; i++) {
+        printf(" %s", argv[i]);
+      }
+      printf("\n");
+    }
+
 
     // Separate paths from input filename/directory name
     pathType = examinePath(input.c_str());
@@ -813,16 +840,24 @@ int processCommandLine(int argc, char **argv) {
         }
       }
       
-      c = archive.getchar();
-      level = static_cast<uint8_t>(c);
+      c = archive.getchar(); // level
+      level = c;
+      c = archive.getchar(); // options
+      shared.options = static_cast<uint8_t>(c);
+
       if (level > 12) {
         quit("Unexpected compression level setting in archive");
       }
-      c = archive.getchar();
-      if( c == EOF) {
-        printf("Unexpected end of archive file.\n");
+      if (shared.GetOptionUseLSTM()) {
+        c = archive.getchar(); // lstmlayers
+        shared.LstmSettings.num_layers = c;
+        if (c < 1 || c > 5) {
+          quit("Unexpected lstm layer settings in archive");
+        }
       }
-      shared.options = static_cast<uint8_t>(c);
+      if (c == EOF) {
+        quit("Unexpected end of archive file.");
+      }
     }
 
     // Load LSTM model if requested
@@ -861,6 +896,8 @@ int processCommandLine(int argc, char **argv) {
       archive.append(PROGNAME);
       archive.putChar(level);
       archive.putChar(shared.options);
+      if(shared.GetOptionUseLSTM())
+        archive.putChar(shared.LstmSettings.num_layers);
     }
 
     // In single file mode with no output filename specified we must construct it from the supplied archive filename
