@@ -1,4 +1,4 @@
-#include "RecordModel.hpp"
+﻿#include "RecordModel.hpp"
 #include "../CharacterNames.hpp"
 
 RecordModel::RecordModel(Shared* const sh, const uint64_t size) : shared(sh),
@@ -184,7 +184,7 @@ void RecordModel::mix(Mixer &m) {
     cp.set(hash(++i, iCtx[1]() & 0xFF, iCtx[3]() & 0xFF));
 
     cp.set(hash(++i, N, (WxNW = c ^ buf(rLength[0] + 1))));
-    cp.set(hash(++i, (shared->State.Match.length2 != 0) << 8 | shared->State.Match.expectedByte, uint8_t(iCtx[1]()), N, WxNW));
+    cp.set(hash(++i, shared->State.Match.expectedByte, uint8_t(iCtx[1]()), N, WxNW));
 
     if (!isText) {
       int k = 0x300;

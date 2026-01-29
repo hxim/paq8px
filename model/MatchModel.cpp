@@ -181,8 +181,7 @@ void MatchModel::mix(Mixer &m) {
     length <= 7 ? 2 : 3;
   shared->State.Match.mode3 = mode3; 
   shared->State.Match.mode5 = mode5;
-  shared->State.Match.expectedByte = length != 0 ? expectedByte : 0;
-
+  shared->State.Match.expectedByte = length != 0 ? expectedByte : 256;
 }
 
 bool MatchModel::isMatch(const uint32_t pos, const uint32_t MINLEN) const {

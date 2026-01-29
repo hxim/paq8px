@@ -1,11 +1,11 @@
-#include "SSE.hpp"
+﻿#include "SSE.hpp"
 #include "Hash.hpp"
 #include "Utils.hpp"
 
 SSE::SSE(Shared* const sh) : shared(sh),
 Text{
     { /*APM:*/  {sh,1 << 15,20,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}} , /* APM: contexts, steps */
-    { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,6}, {sh,1 << 16,6}}, /* APM1: contexts, rate */
+    { /*APM1:*/ {sh,256*257,7}, {sh,1 << 16,6}, {sh,1 << 16,6}}, /* APM1: contexts, rate */
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
 },
@@ -23,7 +23,7 @@ Image{
       { /*ApmPostB: */ sh,1}
     }, 
     // gray:
-    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}} ,
+    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,256*257,24,1023}} ,
       { /*ApmPostA: */ sh,8},
       { /*ApmPostB: */ sh,8}
     }
@@ -45,13 +45,13 @@ Image{
   },
   x86_64{
     { /*APM:*/ {sh,1 << 14,20,1023}, {sh,1 << 16,16,1023}, {sh,1 << 16,16,1023} },
-    { /*APM1:*/ {sh,1 << 13,7}, {sh,1 << 16,7}, {sh,1 << 16,7} },
+    { /*APM1:*/ {sh,64*257,7}, {sh,1 << 16,7}, {sh,1 << 16,7} },
     { /*ApmPostA: */ sh,1},
     { /*ApmPostB: */ sh,1}
   },
   Generic {
     { /*APM:*/  {sh,1<<8,20,1023}, {sh,1 << 8,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}}, /* APM: contexts, steps */
-    { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,7}, {sh,1 << 16,7}},
+    { /*APM1:*/ {sh,256*257,7}, {sh,1 << 16,7}, {sh,1 << 16,7}},
     { /*ApmPostA: */ sh,8},
     { /*ApmPostB: */ sh,8}
   }
@@ -96,7 +96,7 @@ uint32_t SSE::p(const uint32_t pr_orig) {
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
-      uint32_t pr4 = Text.APM1s[0].p(prA, (shared->State.WordModel.order>>2)<<13 | shared->State.Match.expectedByte << 5 | shared->State.Match.length2 << 3 | (shared->State.Text.order>>1)); //16
+      uint32_t pr4 = Text.APM1s[0].p(prA, shared->State.Match.expectedByte + ((shared->State.WordModel.order >> 2) << 5 | shared->State.Match.length2 << 3 | (shared->State.Text.order >> 1)) * 257); //256*257
       uint32_t pr5 = Text.APM1s[1].p(pr0, finalize64(hash(c0, c4 & 0x00FFFFFF), 16)); //16
       uint32_t pr6 = Text.APM1s[2].p(pr0, finalize64(hash(c0, c4), 16)); //16
 
@@ -127,7 +127,7 @@ uint32_t SSE::p(const uint32_t pr_orig) {
     case BlockType::IMAGE8GRAY: {
       uint32_t pr0 = Image.Gray.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos == 0 ? 0 : (misses3 & 3))); //11
       uint32_t pr1 = Image.Gray.APMs[1].p(pr0, (c0 << 8) | shared->State.Image.ctx); //16
-      uint32_t pr2 = Image.Gray.APMs[2].p(pr_orig, bpos | (shared->State.Image.ctx & 0xF8) | (shared->State.Match.expectedByte << 8)); //16
+      uint32_t pr2 = Image.Gray.APMs[2].p(pr_orig, (bpos | (shared->State.Image.ctx & 0xF8)) * 257 + shared->State.Match.expectedByte); //256*257
 
       int prA = (2 * pr_orig + pr1 + pr2 + 2) >> 2;
 
@@ -143,7 +143,7 @@ uint32_t SSE::p(const uint32_t pr_orig) {
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
-      uint32_t pr4 = Image.Palette.APM1s[0].p(prA, finalize64(hash(c0 | shared->State.Match.expectedByte << 8 | shared->State.Image.pixels.N << 16), 16)); //16
+      uint32_t pr4 = Image.Palette.APM1s[0].p(prA, finalize64(hash(c0 | shared->State.Image.pixels.N << 8 | shared->State.Match.expectedByte << 16), 16)); //16
       uint32_t pr5 = Image.Palette.APM1s[1].p(pr0, finalize64(hash(c0 | shared->State.Image.pixels.W << 8 | shared->State.Image.pixels.N << 16), 16)); //16
 
       uint32_t prB = (pr0 * 2 + pr4 + pr5 + 2) >> 2;
@@ -180,7 +180,7 @@ uint32_t SSE::p(const uint32_t pr_orig) {
 
       uint32_t prA = (pr_orig + pr0 + pr1 + pr2 + 2) >> 2;
 
-      uint32_t pr4 = x86_64.APM1s[0].p(prA, shared->State.Match.expectedByte << 5 | shared->State.NormalModel.order << 2 | shared->State.Match.length2); //13
+      uint32_t pr4 = x86_64.APM1s[0].p(prA, shared->State.Match.expectedByte + (shared->State.NormalModel.order << 3 | shared->State.Match.mode3) * 257); //64*257
       uint32_t pr5 = x86_64.APM1s[1].p(prA, c0 | (c4 & 0xFF) << 8); //16
       uint32_t pr6 = x86_64.APM1s[1].p(pr_orig, c0 | (c4 & 0xFF) << 8); //16
 
@@ -198,7 +198,7 @@ uint32_t SSE::p(const uint32_t pr_orig) {
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
       
-      uint32_t pr4 = Generic.APM1s[0].p(prA, misses3<<13 | shared->State.Match.expectedByte << 5 | shared->State.NormalModel.order << 2 | shared->State.Match.length2); //16
+      uint32_t pr4 = Generic.APM1s[0].p(prA, shared->State.Match.expectedByte + (misses3 << 5 | shared->State.NormalModel.order << 2 | shared->State.Match.length2) * 257); //256*257
       uint32_t pr5 = Generic.APM1s[1].p(pr0, misses3<<13 | shared->State.Match.length2 << 11 | (shared->State.WordModel.order >> 2) << 8 | c0); //16
       uint32_t pr6 = Generic.APM1s[2].p(pr0, (misses3&3)<<14 | (bpos>>1) << 12 | (c4 & 0xFF) << 4 | (static_cast<uint32_t>(shared->State.WordModel.order) >> 1)); //16
 

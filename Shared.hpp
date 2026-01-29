@@ -118,12 +118,12 @@ public:
       uint8_t length2;      //used by SSE stage and RecordModel
       uint8_t mode3;        //used by SSE stage 
       uint8_t mode5;        //used by SSE stage 
-      uint8_t expectedByte; //used by SSE stage and RecordModel
+      uint16_t expectedByte; //used by SSE stage and RecordModel; 0-256 where 256 = not valid
     } Match{};
 
     //NormalModel
     struct {
-      uint8_t order;
+      uint8_t order; // 0-7
       uint64_t cxt[15]; // context hashes used by NormalModel and MatchModel
     } NormalModel{};
 
@@ -156,12 +156,12 @@ public:
       uint8_t characterGroup; //used by RecordModel, TextModel - Quantized partial byte as ASCII group
       uint8_t firstLetter; //used by SSE stage
       uint8_t mask; //used by SSE stage
-      uint8_t order; //used by SSE stage
+      uint8_t order; //used by SSE stage; 0-15
     } Text{};
 
     //WordModel
     struct {
-      uint8_t order; //used by SSE stage
+      uint8_t order; //used by SSE stage; 0-31
     } WordModel{};
 
     //IndirectModel
