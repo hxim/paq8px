@@ -20,7 +20,7 @@ uint64_t File::getVLI() {
   int k = 0;
   uint8_t b = 0;
   do {
-    b = getchar();
+    b = max(0, getchar());
     i |= static_cast<uint64_t>(b & 0x7F) << k;
     k += 7;
   } while((b >> 7) > 0 );
