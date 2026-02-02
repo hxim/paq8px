@@ -269,6 +269,7 @@
     <ClCompile Include="Ilog.cpp" />
     <ClCompile Include="IndirectMap.cpp" />
     <ClCompile Include="LargeStationaryMap.cpp" />
+    <ClCompile Include="LMS.cpp" />
     <ClCompile Include="lstm\Adam.cpp" />
     <ClCompile Include="lstm\Adam_AVX.cpp" />
     <ClCompile Include="lstm\Adam_Scalar.cpp" />

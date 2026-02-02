@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "AudioModel.hpp"
 #include "../LMS.hpp"
@@ -23,9 +23,11 @@ private:
                                     {{shared,90,  34, 0.9985}, {shared,90,  34, 0.9985}},
                                     {{shared,28,  4,  0.98},   {shared,28,  4,  0.98}},
                                     {{shared,32,  3,  0.992},  {shared,32,  3,  0.992}}};
-  LMS<float, short> lms[nLMS][2] {{{1280, 640, 5e-5f, 5e-5f}, {1280, 640, 5e-5f, 5e-5f}},
-                                  {{640,  64,  7e-5f, 1e-5f}, {640,  64,  7e-5f, 1e-5f}},
-                                  {{2450, 8,   2e-5f, 2e-6f}, {2450, 8,   2e-5f, 2e-6f}}};
+  LMS lms[nLMS][2] {
+    {{1280, 640, 5e-5f, 5e-5f}, {1280, 640, 5e-5f, 5e-5f}},
+    {{ 640,  64, 7e-5f, 1e-5f}, { 640,  64, 7e-5f, 1e-5f}},
+    {{2450,   8, 2e-5f, 2e-6f}, {2450,   8, 2e-5f, 2e-6f}}
+  };
   int prd[nSSM][2][2] {0};
   int residuals[nSSM][2] {0};
   uint32_t ch = 0;

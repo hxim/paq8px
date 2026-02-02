@@ -375,6 +375,9 @@
     <ClCompile Include="lstm\Utils.cpp">
       <Filter>Source Files\lstm</Filter>
     </ClCompile>
+    <ClCompile Include="LMS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
