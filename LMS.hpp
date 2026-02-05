@@ -1,5 +1,10 @@
 ﻿#pragma once
 
+#include <memory>
+#include <cmath> // sqrt
+#include "Array.hpp"
+#include "Shared.hpp"
+
 /**
  * Least Mean Squares predictor with RMSProp-style adaptive learning rates
  *
@@ -17,10 +22,10 @@
  */
 class LMS
 {
-private:
-  float* weights;
-  float* eg;                // RMSProp gradient accumulator
-  float* buffer;            // Sample history buffer [s same-channel | d other-channel]
+protected:
+  Array<float, 32> weights;
+  Array<float, 32> eg;      // RMSProp gradient accumulator
+  Array<float, 32> buffer;  // Sample history buffer [s same-channel | d other-channel]
   float sameChannelRate;    // Learning rate for same-channel weights
   float otherChannelRate;   // Learning rate for other-channel weights
   float rho;                // RMSProp decay rate
@@ -29,7 +34,7 @@ private:
   int s;                    // Same-channel buffer size (updated every sample)
   int d;                    // Other-channel buffer size
 
-public:
+  // Protected constructor for subclasses
   /**
    * Construct an LMS predictor
    * @param s Same-channel buffer size (updated every sample)
@@ -39,14 +44,21 @@ public:
    */
   LMS(int s, int d, float sameChannelRate, float otherChannelRate);
 
-  /**
-   * Destructor - frees allocated memory
-   */
-  ~LMS();
+public:
 
-  // Prevent copying (we manage raw pointers)
+  virtual ~LMS() = default;
   LMS(const LMS&) = delete;
   LMS& operator=(const LMS&) = delete;
+
+
+  // Static factory method
+  static std::unique_ptr<LMS> create(
+    SIMDType simd,
+    int s,
+    int d,
+    float sameChannelRate,
+    float otherChannelRate
+  );
 
   /**
    * Generate prediction for the next sample
@@ -54,14 +66,14 @@ public:
    * @param sample Input sample (from the other channel)
    * @return Predicted value
    */
-  float predict(int sample);
+  virtual float predict(int sample);
 
   /**
    * Update weights based on prediction error
    * Updates the same-channel buffer (s component)
    * @param sample Input sample (from this channel)
    */
-  void update(int sample);
+  virtual void update(int sample);
 
   /**
    * Reset all weights, gradients, and buffer to zero

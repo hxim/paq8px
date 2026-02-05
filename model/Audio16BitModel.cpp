@@ -1,4 +1,4 @@
-#include "Audio16BitModel.hpp"
+﻿#include "Audio16BitModel.hpp"
 #include "../BitCount.hpp"
 
 Audio16BitModel::Audio16BitModel(Shared* const sh) : AudioModel(sh), 
@@ -8,7 +8,17 @@ Audio16BitModel::Audio16BitModel(Shared* const sh) : AudioModel(sh),
     /*nLMS: 0-2*/ {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86},{sh,17,1,10,86},  {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},
     /*nSSM: 0-2*/ {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86},{sh,17,1,10,86},  {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}}
   }
-{}
+{
+  /* s, d, sameChannelRate, otherChannelRate */
+  lms[0][0] = LMS::create(sh->chosenSimd, 1280, 640, 5e-5f, 5e-5f);
+  lms[0][1] = LMS::create(sh->chosenSimd, 1280, 640, 5e-5f, 5e-5f);
+
+  lms[1][0] = LMS::create(sh->chosenSimd, 640, 64, 7e-5f, 1e-5f);
+  lms[1][1] = LMS::create(sh->chosenSimd, 640, 64, 7e-5f, 1e-5f);
+
+  lms[2][0] = LMS::create(sh->chosenSimd, 2456, 8, 2e-5f, 2e-6f);
+  lms[2][1] = LMS::create(sh->chosenSimd, 2456, 8, 2e-5f, 2e-6f);
+}
 
 void Audio16BitModel::setParam(int info) {
   INJECT_SHARED_bpos
@@ -21,7 +31,7 @@ void Audio16BitModel::setParam(int info) {
     mask = 0;
     wMode = info;
     for( int i = 0; i < nLMS; i++ ) {
-      lms[i][0].reset(), lms[i][1].reset();
+      lms[i][0].get()->reset(), lms[i][1].get()->reset();
     }
   }
 }
@@ -44,7 +54,7 @@ void Audio16BitModel::mix(Mixer &m) {
         errLog += square(absResidual >> 6);
       }
       for( int j = 0; j < nLMS; j++ ) {
-        lms[j][pCh].update(sample);
+        lms[j][pCh].get()->update(sample);
       }
       for( ; i < nSSM; i++ ) {
         residuals[i][pCh] = sample - prd[i][pCh][0];
@@ -132,7 +142,8 @@ void Audio16BitModel::mix(Mixer &m) {
         prd[i][ch][0] = signedClip16(static_cast<int>(floor(ols[i][ch].predict())));
       }
       for( ; i < nOLS + nLMS; i++ ) {
-        prd[i][ch][0] = signedClip16(static_cast<int>(floor(lms[i - nOLS][ch].predict(sample))));
+        float prediction = lms[i - nOLS][ch].get()->predict(sample);
+        prd[i][ch][0] = signedClip16(static_cast<int>(floor(prediction)));
       }
       prd[i++][ch][0] = signedClip16(x1(1) * 2 - x1(2));
       prd[i++][ch][0] = signedClip16(x1(1) * 3 - x1(2) * 3 + x1(3));

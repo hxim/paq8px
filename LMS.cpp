@@ -1,34 +1,48 @@
-﻿#include "LMS.hpp"
-#include <cassert>
+﻿#include <cassert>
 #include <cmath>
 #include <cstring>
+
+#include "LMS.hpp"
+#include "LMS_Scalar.hpp"
+#include "LMS_SSE2.hpp"
+#include "LMS_AVX.hpp"
 
 LMS::LMS(const int s, const int d,
   const float sameChannelRate,
   const float otherChannelRate) :
+  weights(s + d),
+  eg(s + d),
+  buffer(s + d),
   sameChannelRate(sameChannelRate),
   otherChannelRate(otherChannelRate),
   rho(1.0f - 1.0f / 20.0f),
   eps(0.001f),
   prediction(0.0f),
   s(s),
-  d(d) {
-
-  assert(s > 0 && d > 0);
-
-  weights = new float[s + d];
-  eg = new float[s + d];
-  buffer = new float[s + d];
-
-  reset();
+  d(d)
+{
+  assert(s > 0 && d > 0 && (s & 7) == 0 && (d & 7) == 0);
 }
 
-LMS::~LMS() {
-  delete[] weights;
-  delete[] eg;
-  delete[] buffer;
+
+std::unique_ptr<LMS> LMS::create(
+  SIMDType simd,
+  int s,
+  int d,
+  float sameChannelRate,
+  float otherChannelRate
+) {
+#ifdef X64_SIMD_AVAILABLE
+  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+    return std::make_unique<LMS_AVX>(s, d, sameChannelRate, otherChannelRate);
+  else if (simd == SIMDType::SIMD_SSE2)
+    return std::make_unique<LMS_SSE2>(s, d, sameChannelRate, otherChannelRate);
+  else
+#endif
+    return std::make_unique<LMS_Scalar>(s, d, sameChannelRate, otherChannelRate);
 }
 
+// Reference implementation - not in use
 float LMS::predict(const int sample) {
   // Shift other-channel history (the 'd' component)
   memmove(&buffer[s + 1], &buffer[s], (d - 1) * sizeof(float));
@@ -43,6 +57,7 @@ float LMS::predict(const int sample) {
   return prediction;
 }
 
+// Reference implementation - not in use
 void LMS::update(const int sample) {
   const float error = static_cast<float>(sample) - prediction;
   float complement = 1.0f - rho;

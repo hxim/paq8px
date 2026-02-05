@@ -1,4 +1,4 @@
-#include "Audio8BitModel.hpp"
+﻿#include "Audio8BitModel.hpp"
 #include "../BitCount.hpp"
 
 Audio8BitModel::Audio8BitModel(Shared* const sh) : AudioModel(sh),
@@ -8,7 +8,17 @@ Audio8BitModel::Audio8BitModel(Shared* const sh) : AudioModel(sh),
     /*nLMS: 0-2*/ {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}},
     /*nSSM: 0-2*/ {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}
   }
-{}
+{
+  /* s, d, sameChannelRate, otherChannelRate */
+  lms[0][0] = LMS::create(sh->chosenSimd, 1280, 640, 3e-5f, 2e-5f);
+  lms[0][1] = LMS::create(sh->chosenSimd, 1280, 640, 3e-5f, 2e-5f);
+
+  lms[1][0] = LMS::create(sh->chosenSimd, 640, 64, 8e-5f, 1e-5f);
+  lms[1][1] = LMS::create(sh->chosenSimd, 640, 64, 8e-5f, 1e-5f);
+
+  lms[2][0] = LMS::create(sh->chosenSimd, 2448 + 8, 8, 1.6e-5f, 1e-6f);
+  lms[2][1] = LMS::create(sh->chosenSimd, 2448 + 8, 8, 1.6e-5f, 1e-6f);
+}
 
 void Audio8BitModel::setParam(int info) {
   INJECT_SHARED_bpos
@@ -19,7 +29,7 @@ void Audio8BitModel::setParam(int info) {
     mask = 0;
     wMode = info;
     for( int i = 0; i < nLMS; i++ ) {
-      lms[i][0].reset(), lms[i][1].reset();
+      lms[i][0].get()->reset(), lms[i][1].get()->reset();
     }
   }
 }
@@ -41,7 +51,7 @@ void Audio8BitModel::mix(Mixer &m) {
       errLog += square(absResidual);
     }
     for( int j = 0; j < nLMS; j++ ) {
-      lms[j][pCh].update(s);
+      lms[j][pCh].get()->update(s);
     }
     for( ; i < nSSM; i++ ) {
       residuals[i][pCh] = s - prd[i][pCh][0];
@@ -126,7 +136,8 @@ void Audio8BitModel::mix(Mixer &m) {
       prd[i][ch][0] = signedClip8(static_cast<int>(floor(ols[i][ch].predict())));
     }
     for( ; i < nOLS + nLMS; i++ ) {
-      prd[i][ch][0] = signedClip8(static_cast<int>(floor(lms[i - nOLS][ch].predict(s))));
+      float prediction = lms[i - nOLS][ch].get()->predict(s);
+      prd[i][ch][0] = signedClip8(static_cast<int>(floor(prediction)));
     }
     prd[i++][ch][0] = signedClip8(x1(1) * 2 - x1(2));
     prd[i++][ch][0] = signedClip8(x1(1) * 3 - x1(2) * 3 + x1(3));

@@ -270,6 +270,9 @@
     <ClCompile Include="IndirectMap.cpp" />
     <ClCompile Include="LargeStationaryMap.cpp" />
     <ClCompile Include="LMS.cpp" />
+    <ClCompile Include="LMS_AVX.cpp" />
+    <ClCompile Include="LMS_Scalar.cpp" />
+    <ClCompile Include="LMS_SSE2.cpp" />
     <ClCompile Include="lstm\Adam.cpp" />
     <ClCompile Include="lstm\Adam_AVX.cpp" />
     <ClCompile Include="lstm\Adam_Scalar.cpp" />
@@ -420,6 +423,9 @@
     <ClInclude Include="LargeIndirectContext.hpp" />
     <ClInclude Include="LargeStationaryMap.hpp" />
     <ClInclude Include="LMS.hpp" />
+    <ClInclude Include="LMS_AVX.hpp" />
+    <ClInclude Include="LMS_Scalar.hpp" />
+    <ClInclude Include="LMS_SSE2.hpp" />
     <ClInclude Include="LstmModelContainer.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />
     <ClInclude Include="lstm\Adam_AVX.hpp" />
