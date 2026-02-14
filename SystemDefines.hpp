@@ -68,16 +68,16 @@ constexpr bool IS_X64_SIMD_AVAILABLE = false;
 #define ALWAYS_INLINE inline
 #endif
 
-
-#if defined(NDEBUG)
-#if defined(_MSC_VER)
-#define assume(cond) __assume(cond)
-#else
-#define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
-#endif
-#else
 #include <cassert>
-#define assume(cond) assert(cond)
+
+#if defined(__clang__)
+#define ASSUME(cond) do { assert(cond); __builtin_assume(cond); } while (0)
+#elif defined(_MSC_VER)
+#define ASSUME(cond) do { assert(cond); __assume(cond); } while (0)
+#elif defined(__GNUC__)
+#define ASSUME(cond) do { assert(cond); if (!(cond)) __builtin_unreachable(); } while (0)
+#else
+#define ASSUME(cond) assert(cond)
 #endif
 
 #include <algorithm>
