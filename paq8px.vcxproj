@@ -333,6 +333,7 @@
     <ClCompile Include="model\WordModel.cpp" />
     <ClCompile Include="model\XMLModel.cpp" />
     <ClCompile Include="MTFList.cpp" />
+    <ClCompile Include="OLS.cpp" />
     <ClCompile Include="paq8px.cpp" />
     <ClCompile Include="Predictor.cpp" />
     <ClCompile Include="PredictorBlock.cpp" />

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../Array.hpp"
 #include "../ContextMap2.hpp"
@@ -66,14 +66,18 @@ public:
   int columns[2] = {1, 1}, column[2] {};
   uint8_t mapContexts[nSM1] = {0};
   uint8_t pOLS[nOLS] = {0};
-  static constexpr double lambda[nOLS] = {0.996, 0.87, 0.93, 0.8, 0.9};
+
+  static constexpr float lambda[nOLS] = {0.996f, 0.87f, 0.93f, 0.8f, 0.9f};
   static constexpr int num[nOLS] = {32, 12, 15, 10, 14};
-  OLS<double, uint8_t> ols[nOLS] = {{shared,num[0], 1, lambda[0]},
-                                    {shared,num[1], 1, lambda[1]},
-                                    {shared,num[2], 1, lambda[2]},
-                                    {shared,num[3], 1, lambda[3]},
-                                    {shared,num[4], 1, lambda[4]}};
-  OLS<double, uint8_t> sceneOls {shared,13, 1, 0.994};
+  static constexpr float nu = 0.001f;
+  OLS_float ols[nOLS] = {
+    {num[0], 1, lambda[0], nu},
+    {num[1], 1, lambda[1], nu},
+    {num[2], 1, lambda[2], nu},
+    {num[3], 1, lambda[3], nu},
+    {num[4], 1, lambda[4], nu}
+  };
+  OLS_float sceneOls {13, 1, 0.994f, nu};
   const uint8_t *olsCtx1[32] = {&WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
                                 &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
                                 &NNNNNN};

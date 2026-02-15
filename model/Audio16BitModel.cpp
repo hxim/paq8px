@@ -63,14 +63,14 @@ void Audio16BitModel::mix(Mixer &m) {
 
       if( stereo != 0 ) {
         for( int i = 1; i <= 24; i++ ) {
-          ols[0][ch].add(x2(i));
+          ols[0][ch].add((double)x2(i));
         }
         for( int i = 1; i <= 104; i++ ) {
-          ols[0][ch].add(x1(i));
+          ols[0][ch].add((double)x1(i));
         }
       } else {
         for( int i = 1; i <= 128; i++ ) {
-          ols[0][ch].add(x1(i));
+          ols[0][ch].add((double)x1(i));
         }
       }
 
@@ -80,7 +80,7 @@ void Audio16BitModel::mix(Mixer &m) {
               << (static_cast<int>(j > 16) + 
                   static_cast<int>(j > 32) + 
                   static_cast<int>(j > 64))) {
-        ols[1][ch].add(x1(i));
+        ols[1][ch].add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1
               << (static_cast<int>(j > 5) + 
@@ -88,7 +88,7 @@ void Audio16BitModel::mix(Mixer &m) {
                   static_cast<int>(j > 17) + 
                   static_cast<int>(j > 26) +
                   static_cast<int>(j > 37))) {
-        ols[2][ch].add(x1(i));
+        ols[2][ch].add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1
               << (static_cast<int>(j > 3) + 
@@ -97,12 +97,12 @@ void Audio16BitModel::mix(Mixer &m) {
                   static_cast<int>(j > 20) +
                   static_cast<int>(j > 33) + 
                   static_cast<int>(j > 49))) {
-        ols[3][ch].add(x1(i));
+        ols[3][ch].add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1 + 
                   static_cast<int>(j > 4) + 
                   static_cast<int>(j > 8)) {
-        ols[4][ch].add(x1(i));
+        ols[4][ch].add((double)x1(i));
       }
       for( int j = (i = 1); j <= k1; j++, i += 2 + 
                   (static_cast<int>(j > 3) + 
@@ -110,36 +110,37 @@ void Audio16BitModel::mix(Mixer &m) {
                    static_cast<int>(j > 19) +
                    static_cast<int>(j > 36) + 
                    static_cast<int>(j > 61))) {
-        ols[5][ch].add(x1(i));
+        ols[5][ch].add((double)x1(i));
       }
 
       if( stereo != 0 ) {
         for( i = 1; i <= k1 - k2; i++ ) {
-          const double s = static_cast<double>(x2(i));
-          ols[2][ch].addFloat(s);
-          ols[3][ch].addFloat(s);
-          ols[4][ch].addFloat(s);
+          const double s = (double)x2(i);
+          ols[2][ch].add(s);
+          ols[3][ch].add(s);
+          ols[4][ch].add(s);
         }
       }
 
       k1 = 28, k2 = k1 - 6 * stereo;
       for( i = 1; i <= k2; i++ ) {
-        ols[6][ch].add(x1(i));
+        ols[6][ch].add((double)x1(i));
       }
       for( i = 1; i <= k1 - k2; i++ ) {
-        ols[6][ch].add(x2(i));
+        ols[6][ch].add((double)x2(i));
       }
 
       k1 = 32, k2 = k1 - 8 * stereo;
       for( i = 1; i <= k2; i++ ) {
-        ols[7][ch].add(x1(i));
+        ols[7][ch].add((double)x1(i));
       }
       for( i = 1; i <= k1 - k2; i++ ) {
-        ols[7][ch].add(x2(i));
+        ols[7][ch].add((double)x2(i));
       }
 
       for( i = 0; i < nOLS; i++ ) {
-        prd[i][ch][0] = signedClip16(static_cast<int>(floor(ols[i][ch].predict())));
+        double prediction = ols[i][ch].predict();
+        prd[i][ch][0] = signedClip16(static_cast<int>(floor(prediction)));
       }
       for( ; i < nOLS + nLMS; i++ ) {
         float prediction = lms[i - nOLS][ch].get()->predict(sample);

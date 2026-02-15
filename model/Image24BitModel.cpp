@@ -1,4 +1,4 @@
-#include "Image24BitModel.hpp"
+﻿#include "Image24BitModel.hpp"
 
 Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) : 
   shared(sh), cm(sh, size, nCM, 64),
@@ -198,9 +198,19 @@ void Image24BitModel::update() {
     scMapContexts[++j] = NNE + W - NN;
     scMapContexts[++j] = NNW + W - NNWW;
     assert(++j == nSSM);
+
     j = 0;
-    for( int k = (color > 0) ? color - 1 : stride - 1; j < nOLS; j++ ) {
-      pOLS[j] = clip(int(floor(ols[j][color].predict(olsCtxs[j]))));
+    for (; j < nOLS; j++) {
+      auto ols_j_color = &ols[j][color];
+      auto ols_ctx_j = olsCtxs[j];
+      for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {
+        float val = *ols_ctx_j[ctx_idx];
+        ols_j_color->add(val);
+      }
+      float prediction = ols_j_color->predict();
+      pOLS[j] = clip(int(floor(prediction)));
+
+      int k = (color > 0) ? color - 1 : stride - 1;
       ols[j][k].update(p1);
     }
 

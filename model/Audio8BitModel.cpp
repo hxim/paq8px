@@ -65,7 +65,7 @@ void Audio8BitModel::mix(Mixer &m) {
             << (static_cast<int>(j > 8) + 
                 static_cast<int>(j > 16) + 
                 static_cast<int>(j > 64))) {
-      ols[1][ch].add(x1(i));
+      ols[1][ch].add((float)x1(i));
     }
     for( int j = (i = 1); j <= k2; j++, i += 1
             << (static_cast<int>(j > 5) + 
@@ -73,7 +73,7 @@ void Audio8BitModel::mix(Mixer &m) {
                 static_cast<int>(j > 17) + 
                 static_cast<int>(j > 26) +
                 static_cast<int>(j > 37))) {
-      ols[2][ch].add(x1(i));
+      ols[2][ch].add((float)x1(i));
     }
     for( int j = (i = 1); j <= k2; j++, i += 1
             << (static_cast<int>(j > 3) + 
@@ -82,12 +82,12 @@ void Audio8BitModel::mix(Mixer &m) {
                 static_cast<int>(j > 20) +
                 static_cast<int>(j > 33) + 
                 static_cast<int>(j > 49))) {
-      ols[3][ch].add(x1(i));
+      ols[3][ch].add((float)x1(i));
     }
     for( int j = (i = 1); j <= k2; j++, i += 1 + 
                 static_cast<int>(j > 4) + 
                 static_cast<int>(j > 8)) {
-      ols[4][ch].add(x1(i));
+      ols[4][ch].add((float)x1(i));
     }
     for( int j = (i = 1); j <= k1; j++, i += 2 + 
                (static_cast<int>(j > 3) + 
@@ -95,45 +95,46 @@ void Audio8BitModel::mix(Mixer &m) {
                 static_cast<int>(j > 19) +
                 static_cast<int>(j > 36) + 
                 static_cast<int>(j > 61))) {
-      ols[5][ch].add(x1(i));
+      ols[5][ch].add((float)x1(i));
     }
     if( stereo != 0 ) {
       for( i = 1; i <= k1 - k2; i++ ) {
-        const double s = static_cast<double>(x2(i));
-        ols[2][ch].addFloat(s);
-        ols[3][ch].addFloat(s);
-        ols[4][ch].addFloat(s);
+        const float s = (float)x2(i);
+        ols[2][ch].add(s);
+        ols[3][ch].add(s);
+        ols[4][ch].add(s);
       }
     }
     k1 = 28;
     k2 = k1 - 6 * stereo;
     for( i = 1; i <= k2; i++ ) {
-      const double s = static_cast<double>(x1(i));
-      ols[0][ch].addFloat(s);
-      ols[6][ch].addFloat(s);
-      ols[7][ch].addFloat(s);
+      const float s = (float)x1(i);
+      ols[0][ch].add(s);
+      ols[6][ch].add(s);
+      ols[7][ch].add(s);
     }
     for( ; i <= 96; i++ ) {
-      ols[0][ch].add(x1(i));
+      ols[0][ch].add((float)x1(i));
     }
     if( stereo != 0 ) {
       for( i = 1; i <= k1 - k2; i++ ) {
-        const double s = static_cast<double>(x2(i));
-        ols[0][ch].addFloat(s);
-        ols[6][ch].addFloat(s);
-        ols[7][ch].addFloat(s);
+        const float s = (float)x2(i);
+        ols[0][ch].add(s);
+        ols[6][ch].add(s);
+        ols[7][ch].add(s);
       }
       for( ; i <= 32; i++ ) {
-        ols[0][ch].add(x2(i));
+        ols[0][ch].add((float)x2(i));
       }
     } else {
       for( ; i <= 128; i++ ) {
-        ols[0][ch].add(x1(i));
+        ols[0][ch].add((float)x1(i));
       }
     }
 
     for( i = 0; i < nOLS; i++ ) {
-      prd[i][ch][0] = signedClip8(static_cast<int>(floor(ols[i][ch].predict())));
+      float prediction = ols[i][ch].predict();
+      prd[i][ch][0] = signedClip8(static_cast<int>(floor(prediction)));
     }
     for( ; i < nOLS + nLMS; i++ ) {
       float prediction = lms[i - nOLS][ch].get()->predict(s);

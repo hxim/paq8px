@@ -1,4 +1,4 @@
-#include "LinearPredictionModel.hpp"
+﻿#include "LinearPredictionModel.hpp"
 
 LinearPredictionModel::LinearPredictionModel(const Shared* const sh) : shared(sh),
   sMap {{sh, 11, 1, 6, 128},
@@ -26,7 +26,8 @@ void LinearPredictionModel::mix(Mixer &m) {
       ols[2].add(buf(i * 2));
     }
     for( i = 0; i < nOLS; i++ ) {
-      prd[i] = clip(static_cast<int>(floor(ols[i].predict())));
+      float prediction = ols[i].predict();
+      prd[i] = clip(static_cast<int>(floor(prediction)));
     }
     prd[i++] = clip(W * 2 - WW);
     prd[i] = clip(W * 3 - WW * 3 + WWW);

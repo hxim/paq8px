@@ -387,6 +387,9 @@
     <ClCompile Include="LMS_Scalar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OLS.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">

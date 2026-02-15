@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../OLS.hpp"
 #include "../SmallStationaryContextMap.hpp"
@@ -10,9 +10,12 @@ private:
   static constexpr int nSSM = nOLS + 2;
   const Shared * const shared;
   SmallStationaryContextMap sMap[nSSM];
-  OLS<double, uint8_t> ols[nOLS] {{shared, 32, 4, 0.995},
-                                  {shared, 32, 4, 0.995},
-                                  {shared, 32, 4, 0.995}};
+  static constexpr float nu = 0.001f;
+  OLS_float ols[nOLS] {
+    {32, 4, 0.995f, nu},
+    {32, 4, 0.995f, nu},
+    {32, 4, 0.995f, nu}
+  };
   uint8_t prd[nSSM] {0};
 
 public:

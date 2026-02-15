@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "../ContextMap2.hpp"
 #include "../OLS.hpp"
@@ -56,14 +56,18 @@ public:
   int columns[2] = {1, 1}, column[2] {};
   short mapContexts[nSM1] = { 0 }, scMapContexts[nSSM] = { 0 };
   uint8_t pOLS[nOLS] = {0};
-  static constexpr double lambda[nOLS] = {0.98, 0.87, 0.9, 0.8, 0.9, 0.7};
+
+  static constexpr float lambda[nOLS] = {0.98f, 0.87f, 0.9f, 0.8f, 0.9f, 0.7f};
   static constexpr int num[nOLS] = {32, 12, 15, 10, 14, 8};
-  OLS<double, uint8_t> ols[nOLS][4] = {{{shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}, {shared,num[0], 1, lambda[0]}},
-                                        {{shared,num[1], 1, lambda[1]}, {shared,num[1], 1, lambda[1]}, {shared,num[1], 1, lambda[1]}, {shared,num[1], 1, lambda[1]}},
-                                        {{shared,num[2], 1, lambda[2]}, {shared,num[2], 1, lambda[2]}, {shared,num[2], 1, lambda[2]}, {shared,num[2], 1, lambda[2]}},
-                                        {{shared,num[3], 1, lambda[3]}, {shared,num[3], 1, lambda[3]}, {shared,num[3], 1, lambda[3]}, {shared,num[3], 1, lambda[3]}},
-                                        {{shared,num[4], 1, lambda[4]}, {shared,num[4], 1, lambda[4]}, {shared,num[4], 1, lambda[4]}, {shared,num[4], 1, lambda[4]}},
-                                        {{shared,num[5], 1, lambda[5]}, {shared,num[5], 1, lambda[5]}, {shared,num[5], 1, lambda[5]}, {shared,num[5], 1, lambda[5]}}};
+  static constexpr float nu = 0.001f;
+  OLS_float ols[nOLS][4] = {
+    {{num[0], 1, lambda[0], nu}, {num[0], 1, lambda[0], nu}, {num[0], 1, lambda[0], nu}, {num[0], 1, lambda[0], nu}},
+    {{num[1], 1, lambda[1], nu}, {num[1], 1, lambda[1], nu}, {num[1], 1, lambda[1], nu}, {num[1], 1, lambda[1], nu}},
+    {{num[2], 1, lambda[2], nu}, {num[2], 1, lambda[2], nu}, {num[2], 1, lambda[2], nu}, {num[2], 1, lambda[2], nu}},
+    {{num[3], 1, lambda[3], nu}, {num[3], 1, lambda[3], nu}, {num[3], 1, lambda[3], nu}, {num[3], 1, lambda[3], nu}},
+    {{num[4], 1, lambda[4], nu}, {num[4], 1, lambda[4], nu}, {num[4], 1, lambda[4], nu}, {num[4], 1, lambda[4], nu}},
+    {{num[5], 1, lambda[5], nu}, {num[5], 1, lambda[5], nu}, {num[5], 1, lambda[5], nu}, {num[5], 1, lambda[5], nu}}
+  };
   const uint8_t *olsCtx1[32] = {&WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
                                 &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
                                 &NNNNNN};
