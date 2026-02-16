@@ -7,7 +7,11 @@ LinearPredictionModel::LinearPredictionModel(const Shared* const sh) : shared(sh
         {sh, 11, 1, 6, 128},
         {sh, 11, 1, 6, 128}
   }
-{}
+{
+  for (int i = 0; i < nOLS; i++) {
+    ols[i] = create_OLS_float(sh->chosenSimd, 32, 4, 0.995f, nu);
+  }
+}
 
 void LinearPredictionModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
@@ -18,15 +22,15 @@ void LinearPredictionModel::mix(Mixer &m) {
     const uint8_t WWW = buf(3);
     int i = 0;
     for( ; i < nOLS; i++ ) {
-      ols[i].update(W);
+      ols[i]->update(W);
     }
     for( i = 1; i <= 32; i++ ) {
-      ols[0].add(buf(i));
-      ols[1].add(buf(i * 2 - 1));
-      ols[2].add(buf(i * 2));
+      ols[0]->add(buf(i));
+      ols[1]->add(buf(i * 2 - 1));
+      ols[2]->add(buf(i * 2));
     }
     for( i = 0; i < nOLS; i++ ) {
-      float prediction = ols[i].predict();
+      float prediction = ols[i]->predict();
       prd[i] = clip(static_cast<int>(floor(prediction)));
     }
     prd[i++] = clip(W * 2 - WW);
