@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "210"  //update version here before publishing your changes
+#define PROGVERSION  "211"  //update version here before publishing your changes
 #define PROGYEAR     "2026"
 
 
@@ -303,13 +303,22 @@ static void printHelpVerbose() {
     "\n"
     "  -simd MODE\n"
     "\n"
-    "    Normally, the highest usable SIMD instruction set is detected and used automatically for the CM mixer and\n"
-    "    neural network operations (LSTM model).\n"
+    "    Normally, the highest usable SIMD instruction set is detected and used automatically\n"
+    "\n"
+    "    - for the CM mixer - supported: SSE2, AVX2, AVX512, ARM NEON\n"
+    "    - for neural network operations in the LSTM model - supported: SSE2, AVX2\n"
+    "    - for the LSM and OLS predictors (used mainly in image and audio models) - supported: SSE2.\n"
+    "\n"
     "    This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.\n"
     "    Supported values (case-insensitive):\n"
     "       NONE\n"
     "       SSE2, AVX2, AVX512 (on x64)\n"
     "       NEON (on ARM)\n"
+    "\n"
+    "    Note that when paq8px is compiled for a specific CPU architecture, the compiler may automatically\n"
+    "    vectorize some parts of the code. While selecting 'NONE' disables all manually optimized SIMD\n"
+    "    implementations, the remaining scalar code may still be auto-vectorized by the compiler and\n"
+    "    therefore may not be entirely free of vector instructions.\n"
     "\n"
     "----------------------\n"
     " 10. Argument Ordering\n"
