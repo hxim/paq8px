@@ -259,11 +259,6 @@ auto Models::lstmModelAudio8() -> LstmModelContainer& {
   return *instance;
 }
 
-auto Models::lstmModelAudio16() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared);
-  return *instance;
-}
-
 auto Models::lstmModelImage1() -> LstmModelContainer& {
   static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;

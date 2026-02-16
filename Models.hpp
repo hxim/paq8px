@@ -70,7 +70,6 @@ public:
   auto lstmModelGeneric() -> LstmModelContainer&;
   auto lstmModelDec() -> LstmModelContainer&;
   auto lstmModelAudio8() -> LstmModelContainer&;
-  auto lstmModelAudio16() -> LstmModelContainer&;
   auto lstmModelImage1() -> LstmModelContainer&;
   auto lstmModelImage4() -> LstmModelContainer&;
   auto lstmModelImage8() -> LstmModelContainer&;

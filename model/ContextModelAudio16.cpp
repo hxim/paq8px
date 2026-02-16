@@ -10,25 +10,21 @@ private:
 
 public:
   ContextModelAudio16(Shared* const sh, Models* const models, const MixerFactory* const mf) : shared(sh), models(models){
-    const bool useLSTM = shared->GetOptionUseLSTM();
     m = mf->createMixer (
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS +
       Audio16BitModel::MIXERINPUTS +
-      RecordModel::MIXERINPUTS + 
-      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
+      RecordModel::MIXERINPUTS
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       Audio16BitModel::MIXERCONTEXTS +
-      RecordModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
+      RecordModel::MIXERCONTEXTS
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       Audio16BitModel::MIXERCONTEXTSETS +
-      RecordModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
+      RecordModel::MIXERCONTEXTSETS
       ,
-      (useLSTM ? 1 : 0)
+      0
     );
     m->setScaleFactor(1024, 128);
   }
@@ -50,13 +46,6 @@ public:
 
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
-
-    //is it useful?
-    const bool useLSTM = shared->GetOptionUseLSTM();
-    if (useLSTM) {
-      LstmModelContainer& lstmModel = models->lstmModelAudio16();
-      lstmModel.mix(*m);
-    }
 
     Audio16BitModel& audio16BitModel = models->audio16BitModel();
     audio16BitModel.mix(*m);
