@@ -27,7 +27,13 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
     /*nSM1:72-75*/ {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74},
     /*nOLS: 0- 5*/ {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}
   }
-  {}
+{
+  for (int i = 0; i < nOLS; i++) {
+    for (int j = 0; j < 4; j++) { // RGBA color components
+      ols[i][j] = create_OLS_float(sh->chosenSimd, num[i], 1, lambda[i], nu);
+    }
+  }
+}
 
 void Image24BitModel::update() {
   INJECT_SHARED_bpos
@@ -201,7 +207,7 @@ void Image24BitModel::update() {
 
     j = 0;
     for (; j < nOLS; j++) {
-      auto ols_j_color = &ols[j][color];
+      auto ols_j_color = ols[j][color].get();
       auto ols_ctx_j = olsCtxs[j];
       for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {
         float val = *ols_ctx_j[ctx_idx];
@@ -211,7 +217,7 @@ void Image24BitModel::update() {
       pOLS[j] = clip(int(floor(prediction)));
 
       int k = (color > 0) ? color - 1 : stride - 1;
-      ols[j][k].update(p1);
+      ols[j][k]->update(p1);
     }
 
     int mean = (W + NW + N + NE + 2) >> 2;

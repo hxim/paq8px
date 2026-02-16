@@ -38,13 +38,13 @@ protected:
 public:
   OLS(size_t n, size_t solveInterval, T lambda, T nu);
 
-  void add(T val);  // Builds up the feature vector for the next prediction, should be called n times
-  T predict();      // Makes prediction using the added features
-  void update(T y); // Incorporates the previous prediction's true value (y)
+  virtual void add(T val);  // Builds up the feature vector for the next prediction, should be called n times
+  virtual T predict();      // Makes prediction using the added features
+  virtual void update(T y); // Incorporates the previous prediction's true value (y)
 
 protected:
-  bool factor();
-  void solve();
+  virtual bool factor();
+  virtual void solve();
 };
 
 // Explicit instantiation declarations

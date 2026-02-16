@@ -334,6 +334,11 @@
     <ClCompile Include="model\XMLModel.cpp" />
     <ClCompile Include="MTFList.cpp" />
     <ClCompile Include="OLS.cpp" />
+    <ClCompile Include="OLS_double_Scalar.cpp" />
+    <ClCompile Include="OLS_double_SSE3.cpp" />
+    <ClCompile Include="OLS_factory.cpp" />
+    <ClCompile Include="OLS_float_Scalar.cpp" />
+    <ClCompile Include="OLS_float_SSE3.cpp" />
     <ClCompile Include="paq8px.cpp" />
     <ClCompile Include="Predictor.cpp" />
     <ClCompile Include="PredictorBlock.cpp" />
@@ -487,6 +492,11 @@
     <ClInclude Include="model\XMLModel.hpp" />
     <ClInclude Include="MTFList.hpp" />
     <ClInclude Include="OLS.hpp" />
+    <ClInclude Include="OLS_double_Scalar.hpp" />
+    <ClInclude Include="OLS_double_SSE3.hpp" />
+    <ClInclude Include="OLS_factory.hpp" />
+    <ClInclude Include="OLS_float_Scalar.hpp" />
+    <ClInclude Include="OLS_float_SSE3.hpp" />
     <ClInclude Include="Predictor.hpp" />
     <ClInclude Include="PredictorBlock.hpp" />
     <ClInclude Include="PredictorMain.hpp" />

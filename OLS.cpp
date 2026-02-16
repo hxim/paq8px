@@ -32,7 +32,8 @@ constexpr size_t OLS<T>::computePadding(size_t n) {
     return (n + 1) & ~1ULL;
   }
   else {
-    return n; // No padding for other types (not in use)
+    static_assert(std::is_same_v<T, float> || std::is_same_v<T, double>,
+      "computePadding only supports float or double");
   }
 }
 
@@ -42,6 +43,7 @@ void OLS<T>::add(T val) {
   x[featureIndex++] = val;
 }
 
+// Reference implementation - not in use
 template <typename T>
 T OLS<T>::predict() {
 
@@ -56,6 +58,7 @@ T OLS<T>::predict() {
   return sum;
 }
 
+// Reference implementation - not in use
 template <typename T>
 void OLS<T>::update(T y) {
 
@@ -86,6 +89,7 @@ void OLS<T>::update(T y) {
   }
 }
 
+// Reference implementation - not in use
 template <typename T>
 bool OLS<T>::factor() {
 
@@ -122,6 +126,7 @@ bool OLS<T>::factor() {
   return true; // Success
 }
 
+// Reference implementation - not in use
 template <typename T>
 void OLS<T>::solve() {
 

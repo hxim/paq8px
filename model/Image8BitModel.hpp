@@ -4,7 +4,7 @@
 #include "../ContextMap2.hpp"
 #include "../IndirectContext.hpp"
 #include "../IndirectMap.hpp"
-#include "../OLS.hpp"
+#include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../StationaryMap.hpp"
 #include "ImageModelsCommon.hpp"
@@ -70,14 +70,9 @@ public:
   static constexpr float lambda[nOLS] = {0.996f, 0.87f, 0.93f, 0.8f, 0.9f};
   static constexpr int num[nOLS] = {32, 12, 15, 10, 14};
   static constexpr float nu = 0.001f;
-  OLS_float ols[nOLS] = {
-    {num[0], 1, lambda[0], nu},
-    {num[1], 1, lambda[1], nu},
-    {num[2], 1, lambda[2], nu},
-    {num[3], 1, lambda[3], nu},
-    {num[4], 1, lambda[4], nu}
-  };
-  OLS_float sceneOls {13, 1, 0.994f, nu};
+  std::unique_ptr<OLS_float> ols[nOLS];
+  std::unique_ptr<OLS_float> sceneOls;
+
   const uint8_t *olsCtx1[32] = {&WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
                                 &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
                                 &NNNNNN};

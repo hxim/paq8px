@@ -1,5 +1,6 @@
-﻿#include "Image8BitModel.hpp"
-#include <cmath> // round
+﻿#include <cmath> // round
+
+#include "Image8BitModel.hpp"
 
 Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) : 
   shared(sh), 
@@ -28,7 +29,13 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
     {16,8}, {16,8}, {16,8}, {16,8}
   }
-  {}
+{
+  for (int i = 0; i < nOLS; i++) {
+    ols[i] = create_OLS_float(sh->chosenSimd, num[i], 1, lambda[i], nu);
+  }
+
+  sceneOls = create_OLS_float(sh->chosenSimd, 13, 1, 0.994f, nu);
+}
 
 void Image8BitModel::setParam(int width, uint32_t isGray) {
   this->w = width;
@@ -128,17 +135,17 @@ void Image8BitModel::mix(Mixer &m) {
       int offset = prevFramePos + line * w + x;
       prvFrmPx = buf[offset];
       if( isGray != 0 ) {
-        sceneOls.update((float)W);
-        sceneOls.add((float)W);
-        sceneOls.add((float)NW);
-        sceneOls.add((float)N);
-        sceneOls.add((float)NE);
+        sceneOls->update((float)W);
+        sceneOls->add((float)W);
+        sceneOls->add((float)NW);
+        sceneOls->add((float)N);
+        sceneOls->add((float)NE);
         for( int i = -1; i < 2; i++ ) {
           for( int j = -1; j < 2; j++ ) {
-            sceneOls.add((float)buf[offset + i * w + j]);
+            sceneOls->add((float)buf[offset + i * w + j]);
           }
         }
-        float prediction = sceneOls.predict();
+        float prediction = sceneOls->predict();
         prvFrmPrediction = clip(int(floor(prediction)));
       } else {
         prvFrmPrediction = W;
@@ -272,7 +279,7 @@ void Image8BitModel::mix(Mixer &m) {
       mapContexts[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
       mapContexts[j++] = ((W + N) * 3 - NW * 2) / 4;
       for( j = 0; j < nOLS; j++ ) {
-        auto ols_j = &ols[j];
+        auto ols_j = ols[j].get();
         ols_j->update((float)W);
         auto ols_ctx_j = olsCtxs[j];
         for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {

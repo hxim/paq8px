@@ -2,7 +2,7 @@
 
 #include "AudioModel.hpp"
 #include "../LMS.hpp"
-#include "../OLS.hpp"
+#include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../Utils.hpp"
 #include "../BitCount.hpp"
@@ -20,16 +20,7 @@ private:
   static constexpr int solveInterval[nOLS] = { 24, 30, 31, 32, 33, 34, 4, 3 };
   static constexpr double lambda[nOLS] = { 0.9975, 0.997,0.996, 0.995, 0.995, 0.9985, 0.98, 0.992 };
   static constexpr double nu = 0.001;
-  OLS_double ols[nOLS][2] {
-    {{num[0],solveInterval[0],lambda[0],nu}, {num[0],solveInterval[0],lambda[0],nu}},
-    {{num[1],solveInterval[1],lambda[1],nu}, {num[1],solveInterval[1],lambda[1],nu}},
-    {{num[2],solveInterval[2],lambda[2],nu}, {num[2],solveInterval[2],lambda[2],nu}},
-    {{num[3],solveInterval[3],lambda[3],nu}, {num[3],solveInterval[3],lambda[3],nu}},
-    {{num[4],solveInterval[4],lambda[4],nu}, {num[4],solveInterval[4],lambda[4],nu}},
-    {{num[5],solveInterval[5],lambda[5],nu}, {num[5],solveInterval[5],lambda[5],nu}},
-    {{num[6],solveInterval[6],lambda[6],nu}, {num[6],solveInterval[6],lambda[6],nu}},
-    {{num[7],solveInterval[7],lambda[7],nu}, {num[7],solveInterval[7],lambda[7],nu}}
-  };
+  std::unique_ptr<OLS_double> ols[nOLS][2]; // 2: channels
 
   std::unique_ptr<LMS> lms[nLMS][2];
   int prd[nSSM][2][2] {0};

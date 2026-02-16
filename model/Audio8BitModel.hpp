@@ -3,7 +3,7 @@
 #include "AudioModel.hpp"
 #include "../Ilog.hpp"
 #include "../LMS.hpp"
-#include "../OLS.hpp"
+#include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include <cmath>
 #include <cstdint>
@@ -16,22 +16,13 @@ private:
   static constexpr int nCtx = 3;
   SmallStationaryContextMap sMap1B[nSSM][nCtx];
 
+  std::unique_ptr<LMS> lms[nLMS][2]; // 2: channels
+
   static constexpr int num[nOLS] = { 128, 90, 90, 90, 90, 90, 28, 28 };
   static constexpr int solveInterval[nOLS] = { 24, 30, 31, 32, 33, 34, 4, 3 };
   static constexpr float lambda[nOLS] = { 0.9975f, 0.9965f, 0.996f, 0.995f, 0.995f, 0.9985f, 0.98f, 0.992f };
   static constexpr float nu = 0.001f;
-  OLS_float ols[nOLS][2] {
-    {{num[0],solveInterval[0],lambda[0],nu}, {num[0],solveInterval[0],lambda[0],nu}},
-    {{num[1],solveInterval[1],lambda[1],nu}, {num[1],solveInterval[1],lambda[1],nu}},
-    {{num[2],solveInterval[2],lambda[2],nu}, {num[2],solveInterval[2],lambda[2],nu}},
-    {{num[3],solveInterval[3],lambda[3],nu}, {num[3],solveInterval[3],lambda[3],nu}},
-    {{num[4],solveInterval[4],lambda[4],nu}, {num[4],solveInterval[4],lambda[4],nu}},
-    {{num[5],solveInterval[5],lambda[5],nu}, {num[5],solveInterval[5],lambda[5],nu}},
-    {{num[6],solveInterval[6],lambda[6],nu}, {num[6],solveInterval[6],lambda[6],nu}},
-    {{num[7],solveInterval[7],lambda[7],nu}, {num[7],solveInterval[7],lambda[7],nu}}
-  };
-
-  std::unique_ptr<LMS> lms[nLMS][2];
+  std::unique_ptr<OLS_float> ols[nOLS][2];
 
   int prd[nSSM][2][2] {0};
   int residuals[nSSM][2] {0};

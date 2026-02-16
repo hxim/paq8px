@@ -390,6 +390,21 @@
     <ClCompile Include="OLS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="OLS_double_Scalar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OLS_double_SSE3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OLS_float_Scalar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OLS_float_SSE3.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="OLS_factory.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -879,6 +894,21 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LMS_Scalar.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OLS_double_Scalar.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OLS_double_SSE3.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OLS_float_Scalar.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OLS_float_SSE3.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="OLS_factory.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
