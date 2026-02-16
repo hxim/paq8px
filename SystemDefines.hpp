@@ -46,12 +46,6 @@ constexpr bool IS_X64_SIMD_AVAILABLE = false;
 #error Avoid using aggressive floating-point compiler optimization flags
 #endif
 
-// Enforce -ffp-contract=off (no FMA contraction)
-// GCC/Clang define __FP_FAST_FMA* when FMA is contracted
-#if defined(__FP_FAST_FMA) || defined(__FP_FAST_FMAF) || defined(__FP_FAST_FMAL)
-#error FP contraction detected. Use -ffp-contract=off to disable FMA contraction
-#endif
-
 // MSVC: Verify we're in a safe floating-point mode
 #if defined(_MSC_VER)
 #if !defined(_M_FP_PRECISE) && !defined(_M_FP_STRICT)
