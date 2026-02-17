@@ -1,4 +1,4 @@
-#include "MatchModel.hpp"
+﻿#include "MatchModel.hpp"
 
 MatchModel::MatchModel(Shared* const sh, const uint64_t hashtablesize, const uint64_t mapmemorysize) : 
   shared(sh),
@@ -181,8 +181,7 @@ void MatchModel::mix(Mixer &m) {
     length <= 7 ? 2 : 3;
   shared->State.Match.mode3 = mode3; 
   shared->State.Match.mode5 = mode5;
-  shared->State.Match.expectedByte = length != 0 ? expectedByte : 0;
-
+  shared->State.Match.expectedByte = length != 0 ? expectedByte : 256;
 }
 
 bool MatchModel::isMatch(const uint32_t pos, const uint32_t MINLEN) const {
@@ -206,7 +205,8 @@ void MatchModel::AddCandidates(HashElementForMatchPositions* matches, uint32_t L
         //is this position already registered?
         for (uint32_t j = 0; j < numberOfActiveCandidates; j++) {
           MatchInfo* oldcandidate = &matchCandidates[j];
-          if (isSame = oldcandidate->index == matchpos)
+          isSame = oldcandidate->index == matchpos;
+          if (isSame)
             break;
         }
         if (!isSame) { //don't register an already registered sequence

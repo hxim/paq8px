@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 static_assert(sizeof(short) == 2, "sizeof(short)");
 static_assert(sizeof(int) == 4, "sizeof(int)");
@@ -39,12 +39,20 @@ constexpr bool IS_X64_SIMD_AVAILABLE = false;
 
 
 // Floating point operations need IEEE compliance
-// Do not use compiler optimization options such as the following:
-// gcc : -ffast-math (and -Ofast, -funsafe-math-optimizations, -fno-rounding-math)
-// vc++: /fp:fast
-#if defined(__FAST_MATH__) || defined(_M_FP_FAST) // gcc vc++
+// Do not use unsafe compiler optimization options
+// gcc : -ffast-math (and -Ofast, -funsafe-math-optimizations, -fno-rounding-math) => __FAST_MATH__
+// MSVC: /fp:fast => _M_FP_FAST
+#if defined(__FAST_MATH__) || defined(_M_FP_FAST)
 #error Avoid using aggressive floating-point compiler optimization flags
 #endif
+
+// MSVC: Verify we're in a safe floating-point mode
+#if defined(_MSC_VER)
+#if !defined(_M_FP_PRECISE) && !defined(_M_FP_STRICT)
+#warning MSVC floating-point mode unclear. Ensure /fp:precise or /fp:strict is set
+#endif
+#endif
+
 
 #if defined(_MSC_VER)
 #define ALWAYS_INLINE  __forceinline
@@ -54,16 +62,16 @@ constexpr bool IS_X64_SIMD_AVAILABLE = false;
 #define ALWAYS_INLINE inline
 #endif
 
-
-#if defined(NDEBUG)
-#if defined(_MSC_VER)
-#define assume(cond) __assume(cond)
-#else
-#define assume(cond) do { if (!(cond)) __builtin_unreachable(); } while (0)
-#endif
-#else
 #include <cassert>
-#define assume(cond) assert(cond)
+
+#if defined(__clang__)
+#define ASSUME(cond) do { assert(cond); __builtin_assume(cond); } while (0)
+#elif defined(_MSC_VER)
+#define ASSUME(cond) do { assert(cond); __assume(cond); } while (0)
+#elif defined(__GNUC__)
+#define ASSUME(cond) do { assert(cond); if (!(cond)) __builtin_unreachable(); } while (0)
+#else
+#define ASSUME(cond) assert(cond)
 #endif
 
 #include <algorithm>

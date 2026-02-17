@@ -51,7 +51,7 @@ public:
   uint64_t mem = 0; /**< pre-calculated value of 65536 * 2^level */
   float tuning_param = 0.0f; /**< used during development to find optimal model parameters */
   bool toScreen = true;
-
+  
   // Getters
   bool GetOptionMultipleFileMode() const { return (options & OPTION_MULTIPLE_FILE_MODE) != 0; }
   bool GetOptionTrainExe() const { return (options & OPTION_TRAINEXE) != 0; }
@@ -75,6 +75,13 @@ public:
   void SetOptionBruteforceDeflateDetection() { detectionOptions |= OPTION_BRUTEFORCE_DEFLATE_DETECTION; }
   void SetOptionDetectBlockAsBinary() { detectionOptions |= OPTION_DETECT_BLOCK_AS_BINARY; }
   void SetOptionDetectBlockAsText() { detectionOptions |= OPTION_DETECT_BLOCK_AS_TEXT; }
+
+  struct
+  {
+    uint8_t hidden_size = 200;
+    uint8_t num_layers = 0; //  set from command line parameters with default = 2
+    uint8_t horizon = 100;
+  } LstmSettings;
 
   struct {
 
@@ -111,12 +118,12 @@ public:
       uint8_t length2;      //used by SSE stage and RecordModel
       uint8_t mode3;        //used by SSE stage 
       uint8_t mode5;        //used by SSE stage 
-      uint8_t expectedByte; //used by SSE stage and RecordModel
+      uint16_t expectedByte; //used by SSE stage and RecordModel; 0-256 where 256 = not valid
     } Match{};
 
     //NormalModel
     struct {
-      uint8_t order;
+      uint8_t order; // 0-7
       uint64_t cxt[15]; // context hashes used by NormalModel and MatchModel
     } NormalModel{};
 
@@ -149,12 +156,12 @@ public:
       uint8_t characterGroup; //used by RecordModel, TextModel - Quantized partial byte as ASCII group
       uint8_t firstLetter; //used by SSE stage
       uint8_t mask; //used by SSE stage
-      uint8_t order; //used by SSE stage
+      uint8_t order; //used by SSE stage; 0-15
     } Text{};
 
     //WordModel
     struct {
-      uint8_t order; //used by SSE stage
+      uint8_t order; //used by SSE stage; 0-31
     } WordModel{};
 
     //IndirectModel

@@ -10,7 +10,6 @@ private:
 
 public:
   ContextModelJpeg(Shared* const sh, Models* const models, const MixerFactory* const mf) : shared(sh), models(models) {
-    const bool useLSTM = shared->GetOptionUseLSTM();
     m = mf->createMixer (
       1 +  //bias
       MatchModel::MIXERINPUTS + NormalModel::MIXERINPUTS + 
@@ -18,26 +17,23 @@ public:
       SparseMatchModel::MIXERINPUTS +
       SparseModel::MIXERINPUTS + SparseBitModel::MIXERINPUTS + RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + 
-      LinearPredictionModel::MIXERINPUTS +
-      (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
+      LinearPredictionModel::MIXERINPUTS
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + 
       JpegModel::MIXERCONTEXTS +
       SparseMatchModel::MIXERCONTEXTS +
       SparseModel::MIXERCONTEXTS + SparseBitModel::MIXERCONTEXTS + RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + 
-      LinearPredictionModel::MIXERCONTEXTS +
-      (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
+      LinearPredictionModel::MIXERCONTEXTS
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + 
       JpegModel::MIXERCONTEXTSETS +
       SparseMatchModel::MIXERCONTEXTSETS +
       SparseModel::MIXERCONTEXTSETS + SparseBitModel::MIXERCONTEXTSETS + RecordModel::MIXERCONTEXTSETS + CharGroupModel::MIXERCONTEXTSETS +
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS +
-      LinearPredictionModel::MIXERCONTEXTSETS +
-      (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
+      LinearPredictionModel::MIXERCONTEXTSETS
       ,
-      useLSTM ? 1 : 0
+      0
     );
   }
 
@@ -50,13 +46,6 @@ public:
 
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
-
-    //is it useful?
-    const bool useLSTM = shared->GetOptionUseLSTM();
-    if (useLSTM) {
-      LstmModelContainer& lstmModel = models->lstmModelJpeg();
-      lstmModel.mix(*m);
-    }
 
     JpegModel& jpegModel = models->jpegModel();
     if (jpegModel.mix(*m) != 0) {
@@ -84,7 +73,6 @@ public:
       m->setScaleFactor(1200, 120); 
       return m->p();
     }
-
   }
 
   ~ContextModelJpeg() {

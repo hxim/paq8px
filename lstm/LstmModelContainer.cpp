@@ -2,14 +2,10 @@
 #include "../Stretch.hpp"
 #include <cmath>
 
-LstmModelContainer::LstmModelContainer(
-  Shared* const sh,
-  size_t const hidden_size,
-  size_t const num_layers,
-  size_t const horizon)
+LstmModelContainer::LstmModelContainer(Shared* const sh)
   : shared(sh)
   , simd(sh->chosenSimd)
-  , shape{ alphabetSize, hidden_size, num_layers, horizon }
+  , shape{ alphabetSize, shared->LstmSettings.hidden_size, shared->LstmSettings.num_layers, shared->LstmSettings.horizon }
   , lstm(sh->chosenSimd, shape, sh->tuning_param)
   , probs(nullptr)
   , byteModelToBitModel()

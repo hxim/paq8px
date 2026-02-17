@@ -141,7 +141,7 @@
       <UndefinePreprocessorDefinitions>
       </UndefinePreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
-      <FloatingPointModel>Strict</FloatingPointModel>
+      <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>$(SolutionDir)zlib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -207,7 +207,7 @@
       <StructMemberAlignment>16Bytes</StructMemberAlignment>
       <ControlFlowGuard>false</ControlFlowGuard>
       <EnableEnhancedInstructionSet>StreamingSIMDExtensions2</EnableEnhancedInstructionSet>
-      <FloatingPointModel>Strict</FloatingPointModel>
+      <FloatingPointModel>Precise</FloatingPointModel>
       <AdditionalIncludeDirectories>$(SolutionDir)zlib</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
@@ -269,6 +269,10 @@
     <ClCompile Include="Ilog.cpp" />
     <ClCompile Include="IndirectMap.cpp" />
     <ClCompile Include="LargeStationaryMap.cpp" />
+    <ClCompile Include="LMS.cpp" />
+    <ClCompile Include="LMS_AVX.cpp" />
+    <ClCompile Include="LMS_Scalar.cpp" />
+    <ClCompile Include="LMS_SSE2.cpp" />
     <ClCompile Include="lstm\Adam.cpp" />
     <ClCompile Include="lstm\Adam_AVX.cpp" />
     <ClCompile Include="lstm\Adam_Scalar.cpp" />
@@ -329,6 +333,12 @@
     <ClCompile Include="model\WordModel.cpp" />
     <ClCompile Include="model\XMLModel.cpp" />
     <ClCompile Include="MTFList.cpp" />
+    <ClCompile Include="OLS.cpp" />
+    <ClCompile Include="OLS_double_Scalar.cpp" />
+    <ClCompile Include="OLS_double_SSE3.cpp" />
+    <ClCompile Include="OLS_factory.cpp" />
+    <ClCompile Include="OLS_float_Scalar.cpp" />
+    <ClCompile Include="OLS_float_SSE3.cpp" />
     <ClCompile Include="paq8px.cpp" />
     <ClCompile Include="Predictor.cpp" />
     <ClCompile Include="PredictorBlock.cpp" />
@@ -419,6 +429,9 @@
     <ClInclude Include="LargeIndirectContext.hpp" />
     <ClInclude Include="LargeStationaryMap.hpp" />
     <ClInclude Include="LMS.hpp" />
+    <ClInclude Include="LMS_AVX.hpp" />
+    <ClInclude Include="LMS_Scalar.hpp" />
+    <ClInclude Include="LMS_SSE2.hpp" />
     <ClInclude Include="LstmModelContainer.hpp" />
     <ClInclude Include="lstm\Adam.hpp" />
     <ClInclude Include="lstm\Adam_AVX.hpp" />
@@ -479,6 +492,11 @@
     <ClInclude Include="model\XMLModel.hpp" />
     <ClInclude Include="MTFList.hpp" />
     <ClInclude Include="OLS.hpp" />
+    <ClInclude Include="OLS_double_Scalar.hpp" />
+    <ClInclude Include="OLS_double_SSE3.hpp" />
+    <ClInclude Include="OLS_factory.hpp" />
+    <ClInclude Include="OLS_float_Scalar.hpp" />
+    <ClInclude Include="OLS_float_SSE3.hpp" />
     <ClInclude Include="Predictor.hpp" />
     <ClInclude Include="PredictorBlock.hpp" />
     <ClInclude Include="PredictorMain.hpp" />

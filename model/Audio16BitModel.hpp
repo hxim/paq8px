@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include "AudioModel.hpp"
 #include "../LMS.hpp"
-#include "../OLS.hpp"
+#include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../Utils.hpp"
 #include "../BitCount.hpp"
@@ -15,17 +15,14 @@ private:
   static constexpr int nSSM = nOLS + nLMS + 3;
   static constexpr int nCtx = 4;
   SmallStationaryContextMap sMap1B[nSSM][nCtx];
-  OLS<double, short> ols[nOLS][2] {{{shared,128, 24, 0.9975}, {shared,128, 24, 0.9975}},
-                                    {{shared,90,  30, 0.997},  {shared,90,  30, 0.997}},
-                                    {{shared,90,  31, 0.996},  {shared,90,  31, 0.996}},
-                                    {{shared,90,  32, 0.995},  {shared,90,  32, 0.995}},
-                                    {{shared,90,  33, 0.995},  {shared,90,  33, 0.995}},
-                                    {{shared,90,  34, 0.9985}, {shared,90,  34, 0.9985}},
-                                    {{shared,28,  4,  0.98},   {shared,28,  4,  0.98}},
-                                    {{shared,32,  3,  0.992},  {shared,32,  3,  0.992}}};
-  LMS<float, short> lms[nLMS][2] {{{1280, 640, 5e-5f, 5e-5f}, {1280, 640, 5e-5f, 5e-5f}},
-                                  {{640,  64,  7e-5f, 1e-5f}, {640,  64,  7e-5f, 1e-5f}},
-                                  {{2450, 8,   2e-5f, 2e-6f}, {2450, 8,   2e-5f, 2e-6f}}};
+
+  static constexpr int num[nOLS] = { 128, 90, 90, 90, 90, 90, 28, 32 };
+  static constexpr int solveInterval[nOLS] = { 24, 30, 31, 32, 33, 34, 4, 3 };
+  static constexpr double lambda[nOLS] = { 0.9975, 0.997,0.996, 0.995, 0.995, 0.9985, 0.98, 0.992 };
+  static constexpr double nu = 0.001;
+  std::unique_ptr<OLS_double> ols[nOLS][2]; // 2: channels
+
+  std::unique_ptr<LMS> lms[nLMS][2];
   int prd[nSSM][2][2] {0};
   int residuals[nSSM][2] {0};
   uint32_t ch = 0;

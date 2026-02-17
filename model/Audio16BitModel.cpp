@@ -1,4 +1,4 @@
-#include "Audio16BitModel.hpp"
+﻿#include "Audio16BitModel.hpp"
 #include "../BitCount.hpp"
 
 Audio16BitModel::Audio16BitModel(Shared* const sh) : AudioModel(sh), 
@@ -8,7 +8,22 @@ Audio16BitModel::Audio16BitModel(Shared* const sh) : AudioModel(sh),
     /*nLMS: 0-2*/ {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86},{sh,17,1,10,86},  {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},
     /*nSSM: 0-2*/ {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86},{sh,17,1,10,86},  {sh,17,1,6,64},{sh,17,1,6,86}},  {{sh,17,1,7,86}, {sh,17,1,10,86}, {sh,17,1,6,64},{sh,17,1,6,86}}
   }
-{}
+{
+  /* s, d, sameChannelRate, otherChannelRate */
+  lms[0][0] = LMS::create(sh->chosenSimd, 1280, 640, 5e-5f, 5e-5f);
+  lms[0][1] = LMS::create(sh->chosenSimd, 1280, 640, 5e-5f, 5e-5f);
+
+  lms[1][0] = LMS::create(sh->chosenSimd, 640, 64, 7e-5f, 1e-5f);
+  lms[1][1] = LMS::create(sh->chosenSimd, 640, 64, 7e-5f, 1e-5f);
+
+  lms[2][0] = LMS::create(sh->chosenSimd, 2456, 8, 2e-5f, 2e-6f);
+  lms[2][1] = LMS::create(sh->chosenSimd, 2456, 8, 2e-5f, 2e-6f);
+
+  for (int i = 0; i < nOLS; i++) {
+    ols[i][0] = create_OLS_double(sh->chosenSimd, num[i], solveInterval[i], lambda[i], nu);
+    ols[i][1] = create_OLS_double(sh->chosenSimd, num[i], solveInterval[i], lambda[i], nu);
+  }
+}
 
 void Audio16BitModel::setParam(int info) {
   INJECT_SHARED_bpos
@@ -21,7 +36,7 @@ void Audio16BitModel::setParam(int info) {
     mask = 0;
     wMode = info;
     for( int i = 0; i < nLMS; i++ ) {
-      lms[i][0].reset(), lms[i][1].reset();
+      lms[i][0].get()->reset(), lms[i][1].get()->reset();
     }
   }
 }
@@ -37,14 +52,14 @@ void Audio16BitModel::mix(Mixer &m) {
       const int pCh = ch ^stereo;
       int i = 0;
       for( errLog = 0; i < nOLS; i++ ) {
-        ols[i][pCh].update(sample);
+        ols[i][pCh]->update(sample);
         residuals[i][pCh] = sample - prd[i][pCh][0];
         const uint32_t absResidual = static_cast<uint32_t>(abs(residuals[i][pCh]));
         mask += mask + static_cast<uint32_t>(absResidual > 128);
         errLog += square(absResidual >> 6);
       }
       for( int j = 0; j < nLMS; j++ ) {
-        lms[j][pCh].update(sample);
+        lms[j][pCh].get()->update(sample);
       }
       for( ; i < nSSM; i++ ) {
         residuals[i][pCh] = sample - prd[i][pCh][0];
@@ -53,14 +68,14 @@ void Audio16BitModel::mix(Mixer &m) {
 
       if( stereo != 0 ) {
         for( int i = 1; i <= 24; i++ ) {
-          ols[0][ch].add(x2(i));
+          ols[0][ch]->add((double)x2(i));
         }
         for( int i = 1; i <= 104; i++ ) {
-          ols[0][ch].add(x1(i));
+          ols[0][ch]->add((double)x1(i));
         }
       } else {
         for( int i = 1; i <= 128; i++ ) {
-          ols[0][ch].add(x1(i));
+          ols[0][ch]->add((double)x1(i));
         }
       }
 
@@ -70,7 +85,7 @@ void Audio16BitModel::mix(Mixer &m) {
               << (static_cast<int>(j > 16) + 
                   static_cast<int>(j > 32) + 
                   static_cast<int>(j > 64))) {
-        ols[1][ch].add(x1(i));
+        ols[1][ch]->add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1
               << (static_cast<int>(j > 5) + 
@@ -78,7 +93,7 @@ void Audio16BitModel::mix(Mixer &m) {
                   static_cast<int>(j > 17) + 
                   static_cast<int>(j > 26) +
                   static_cast<int>(j > 37))) {
-        ols[2][ch].add(x1(i));
+        ols[2][ch]->add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1
               << (static_cast<int>(j > 3) + 
@@ -87,12 +102,12 @@ void Audio16BitModel::mix(Mixer &m) {
                   static_cast<int>(j > 20) +
                   static_cast<int>(j > 33) + 
                   static_cast<int>(j > 49))) {
-        ols[3][ch].add(x1(i));
+        ols[3][ch]->add((double)x1(i));
       }
       for( int j = (i = 1); j <= k2; j++, i += 1 + 
                   static_cast<int>(j > 4) + 
                   static_cast<int>(j > 8)) {
-        ols[4][ch].add(x1(i));
+        ols[4][ch]->add((double)x1(i));
       }
       for( int j = (i = 1); j <= k1; j++, i += 2 + 
                   (static_cast<int>(j > 3) + 
@@ -100,39 +115,41 @@ void Audio16BitModel::mix(Mixer &m) {
                    static_cast<int>(j > 19) +
                    static_cast<int>(j > 36) + 
                    static_cast<int>(j > 61))) {
-        ols[5][ch].add(x1(i));
+        ols[5][ch]->add((double)x1(i));
       }
 
       if( stereo != 0 ) {
         for( i = 1; i <= k1 - k2; i++ ) {
-          const double s = static_cast<double>(x2(i));
-          ols[2][ch].addFloat(s);
-          ols[3][ch].addFloat(s);
-          ols[4][ch].addFloat(s);
+          const double s = (double)x2(i);
+          ols[2][ch]->add(s);
+          ols[3][ch]->add(s);
+          ols[4][ch]->add(s);
         }
       }
 
       k1 = 28, k2 = k1 - 6 * stereo;
       for( i = 1; i <= k2; i++ ) {
-        ols[6][ch].add(x1(i));
+        ols[6][ch]->add((double)x1(i));
       }
       for( i = 1; i <= k1 - k2; i++ ) {
-        ols[6][ch].add(x2(i));
+        ols[6][ch]->add((double)x2(i));
       }
 
       k1 = 32, k2 = k1 - 8 * stereo;
       for( i = 1; i <= k2; i++ ) {
-        ols[7][ch].add(x1(i));
+        ols[7][ch]->add((double)x1(i));
       }
       for( i = 1; i <= k1 - k2; i++ ) {
-        ols[7][ch].add(x2(i));
+        ols[7][ch]->add((double)x2(i));
       }
 
       for( i = 0; i < nOLS; i++ ) {
-        prd[i][ch][0] = signedClip16(static_cast<int>(floor(ols[i][ch].predict())));
+        double prediction = ols[i][ch]->predict();
+        prd[i][ch][0] = signedClip16(static_cast<int>(floor(prediction)));
       }
       for( ; i < nOLS + nLMS; i++ ) {
-        prd[i][ch][0] = signedClip16(static_cast<int>(floor(lms[i - nOLS][ch].predict(sample))));
+        float prediction = lms[i - nOLS][ch]->predict(sample);
+        prd[i][ch][0] = signedClip16(static_cast<int>(floor(prediction)));
       }
       prd[i++][ch][0] = signedClip16(x1(1) * 2 - x1(2));
       prd[i++][ch][0] = signedClip16(x1(1) * 3 - x1(2) * 3 + x1(3));

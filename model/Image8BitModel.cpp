@@ -1,3 +1,5 @@
+﻿#include <cmath> // round
+
 #include "Image8BitModel.hpp"
 
 Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) : 
@@ -27,7 +29,13 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
     {16,8}, {16,8}, {16,8}, {16,8}
   }
-  {}
+{
+  for (int i = 0; i < nOLS; i++) {
+    ols[i] = create_OLS_float(sh->chosenSimd, num[i], 1, lambda[i], nu);
+  }
+
+  sceneOls = create_OLS_float(sh->chosenSimd, 13, 1, 0.994f, nu);
+}
 
 void Image8BitModel::setParam(int width, uint32_t isGray) {
   this->w = width;
@@ -127,17 +135,18 @@ void Image8BitModel::mix(Mixer &m) {
       int offset = prevFramePos + line * w + x;
       prvFrmPx = buf[offset];
       if( isGray != 0 ) {
-        sceneOls.update(W);
-        sceneOls.add(W);
-        sceneOls.add(NW);
-        sceneOls.add(N);
-        sceneOls.add(NE);
+        sceneOls->update((float)W);
+        sceneOls->add((float)W);
+        sceneOls->add((float)NW);
+        sceneOls->add((float)N);
+        sceneOls->add((float)NE);
         for( int i = -1; i < 2; i++ ) {
           for( int j = -1; j < 2; j++ ) {
-            sceneOls.add(buf[offset + i * w + j]);
+            sceneOls->add((float)buf[offset + i * w + j]);
           }
         }
-        prvFrmPrediction = clip(int(floor(sceneOls.predict())));
+        float prediction = sceneOls->predict();
+        prvFrmPrediction = clip(int(floor(prediction)));
       } else {
         prvFrmPrediction = W;
       }
@@ -270,8 +279,16 @@ void Image8BitModel::mix(Mixer &m) {
       mapContexts[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
       mapContexts[j++] = ((W + N) * 3 - NW * 2) / 4;
       for( j = 0; j < nOLS; j++ ) {
-        ols[j].update(W);
-        pOLS[j] = clip(int(floor(ols[j].predict(olsCtxs[j]))));
+        auto ols_j = ols[j].get();
+        ols_j->update((float)W);
+        auto ols_ctx_j = olsCtxs[j];
+        for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {
+          float val = *ols_ctx_j[ctx_idx];
+          ols_j->add(val);
+        }
+
+        float prediction = ols_j->predict();
+        pOLS[j] = clip(int(floor(prediction)));
       }
       
       cm.set(R_, 0);

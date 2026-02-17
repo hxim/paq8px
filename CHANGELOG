@@ -2056,3 +2056,11 @@ paq8px_v210 by Zoltán Gotthardt
   - VS: Added .editorconfig.
   - VS: Fixed zlib path in debug mode.
   - Fixed MinGW-w64 script issue with LTO.
+
+
+paq8px_v211 by Zoltán Gotthardt
+2026.02.16
+- Speed improvement in OLS predictor (audio and image models): added compatible Scalar and SSE3 code paths.
+- Speed improvement in LMS predictor (audio models): added compatible Scalar and SSE2 code paths.
+- New LSTM command line option: -lstmlayers
+- Don't use LSTM as a submodel for jpeg and 16-bit audio data.

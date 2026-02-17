@@ -240,51 +240,42 @@ auto Models::decAlphaModel() -> DECAlphaModel & {
 //An LSTM model adapts slowly to new contents, so we'll have a separate LSTM model per main content type
 
 auto Models::lstmModelText() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelGeneric() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelDec() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelAudio8() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
-  return *instance;
-}
-
-auto Models::lstmModelAudio16() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelImage1() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelImage4() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelImage8() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
 auto Models::lstmModelImage24() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
+  static LstmModelContainer* instance = new LstmModelContainer(shared);
   return *instance;
 }
 
-auto Models::lstmModelJpeg() -> LstmModelContainer& {
-  static LstmModelContainer* instance = new LstmModelContainer(shared, 200, 2, 100);
-  return *instance;
-}

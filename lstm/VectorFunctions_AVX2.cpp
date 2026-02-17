@@ -286,7 +286,7 @@ AVX2_TARGET
 void VectorFunctions_AVX2::BackpropagateErrors(
   size_t len,                       // hidden_size (200)
   size_t base_offset,               // 0 for temporal, hidden_size for spatial
-  size_t component_input_dim,    // Layer 0: 200, Layer 1: 400
+  size_t component_input_dim,       // Layer 0: 200, Layer 1: 400
   float* weights,                   // Weight matrix
   float* pre_activation_gradients,  // Current layer errors
   float* grad_store)                // Where to accumulate gradients

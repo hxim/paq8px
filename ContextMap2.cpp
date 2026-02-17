@@ -1,4 +1,4 @@
-#include "ContextMap2.hpp"
+﻿#include "ContextMap2.hpp"
 
 ContextMap2::ContextMap2(const Shared* const sh, const uint64_t size, const uint32_t contexts, const int scale) : shared(sh), 
         C(contexts), contextInfoList(contexts), hashTable(size >> 6),
@@ -126,7 +126,9 @@ void ContextMap2::update() {
 
       const auto slot0 = &contextInfo->hashElementInSlot0->slot0;
 
-      assume(bpos >= 0 && bpos <= 7);
+      ASSUME(bpos >= 0);
+      ASSUME(bpos <= 7);
+
       if (bpos == 0) {
         // update byte history and run statistics
         if (slot0->bitState < 3) {

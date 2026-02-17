@@ -1,4 +1,4 @@
-#include "Image24BitModel.hpp"
+﻿#include "Image24BitModel.hpp"
 
 Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) : 
   shared(sh), cm(sh, size, nCM, 64),
@@ -27,7 +27,13 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
     /*nSM1:72-75*/ {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74},
     /*nOLS: 0- 5*/ {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}
   }
-  {}
+{
+  for (int i = 0; i < nOLS; i++) {
+    for (int j = 0; j < 4; j++) { // RGBA color components
+      ols[i][j] = create_OLS_float(sh->chosenSimd, num[i], 1, lambda[i], nu);
+    }
+  }
+}
 
 void Image24BitModel::update() {
   INJECT_SHARED_bpos
@@ -198,10 +204,20 @@ void Image24BitModel::update() {
     scMapContexts[++j] = NNE + W - NN;
     scMapContexts[++j] = NNW + W - NNWW;
     assert(++j == nSSM);
+
     j = 0;
-    for( int k = (color > 0) ? color - 1 : stride - 1; j < nOLS; j++ ) {
-      pOLS[j] = clip(int(floor(ols[j][color].predict(olsCtxs[j]))));
-      ols[j][k].update(p1);
+    for (; j < nOLS; j++) {
+      auto ols_j_color = ols[j][color].get();
+      auto ols_ctx_j = olsCtxs[j];
+      for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {
+        float val = *ols_ctx_j[ctx_idx];
+        ols_j_color->add(val);
+      }
+      float prediction = ols_j_color->predict();
+      pOLS[j] = clip(int(floor(prediction)));
+
+      int k = (color > 0) ? color - 1 : stride - 1;
+      ols[j][k]->update(p1);
     }
 
     int mean = (W + NW + N + NE + 2) >> 2;

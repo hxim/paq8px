@@ -32,11 +32,7 @@ public:
   static constexpr int MIXERCONTEXTSETS = 2;
   static constexpr size_t alphabetSize = 1llu << 8;
 
-  explicit LstmModelContainer(
-    Shared* const sh,
-    size_t hidden_size,
-    size_t num_layers,
-    size_t horizon);
+  explicit LstmModelContainer(Shared* const sh);
 
   void next();
   float getp();
@@ -45,4 +41,33 @@ public:
 
   void SaveModelParameters(FILE* file);
   void LoadModelParameters(FILE* file);
+
+  static int GetNumberOfTrainableParameters(Shared* sh) {
+    int vocabulary_size = alphabetSize;
+    int hidden_size = sh->LstmSettings.hidden_size;
+    int num_layers = sh->LstmSettings.num_layers;
+
+    int total = 0;
+
+    // Parameters for each LSTM layer
+    for (int layer = 0; layer < num_layers; layer++) {
+      int component_input_dim = (layer > 0) ? (2 * hidden_size) : hidden_size;
+
+      // Each layer has 3 components (forget gate, cell candidate, output gate)
+      int params_per_component =
+        (hidden_size * vocabulary_size) +  // symbol_embeddings
+        (hidden_size * component_input_dim) +  // weights
+        hidden_size +  // bias
+        hidden_size +  // gamma (RMSNorm)
+        hidden_size;   // beta (RMSNorm)
+
+      total += 3 * params_per_component;
+    }
+
+    // Output layer parameters
+    total += vocabulary_size * (hidden_size * num_layers);  // output_weights
+    total += vocabulary_size;  // output_bias
+
+    return total;
+  }
 };
