@@ -291,6 +291,11 @@
     <ClCompile Include="lstm\VectorFunctions_SSE2.cpp" />
     <ClCompile Include="Mixer.cpp" />
     <ClCompile Include="MixerFactory.cpp" />
+    <ClCompile Include="Mixer_AVX2.cpp" />
+    <ClCompile Include="Mixer_AVX512.cpp" />
+    <ClCompile Include="Mixer_Neon.cpp" />
+    <ClCompile Include="Mixer_Scalar.cpp" />
+    <ClCompile Include="Mixer_SSE2.cpp" />
     <ClCompile Include="Models.cpp" />
     <ClCompile Include="model\Audio16BitModel.cpp" />
     <ClCompile Include="model\Audio8BitModel.cpp" />
@@ -347,7 +352,6 @@
     <ClCompile Include="ProgramChecker.cpp" />
     <ClCompile Include="Random.cpp" />
     <ClCompile Include="Shared.cpp" />
-    <ClCompile Include="SimdMixer.cpp" />
     <ClCompile Include="SmallStationaryContextMap.cpp" />
     <ClCompile Include="Squash.cpp" />
     <ClCompile Include="SSE.cpp" />
@@ -451,11 +455,11 @@
     <ClInclude Include="lstm\VectorFunctions_SSE2.hpp" />
     <ClInclude Include="Mixer.hpp" />
     <ClInclude Include="MixerFactory.hpp" />
-    <ClInclude Include="MixerFunctions_SIMD_AVX2.hpp" />
-    <ClInclude Include="MixerFunctions_SIMD_AVX512.hpp" />
-    <ClInclude Include="MixerFunctions_SIMD_Neon.hpp" />
-    <ClInclude Include="MixerFunctions_SIMD_None.hpp" />
-    <ClInclude Include="MixerFunctions_SIMD_SSE2.hpp" />
+    <ClInclude Include="Mixer_AVX2.hpp" />
+    <ClInclude Include="Mixer_AVX512.hpp" />
+    <ClInclude Include="Mixer_Neon.hpp" />
+    <ClInclude Include="Mixer_Scalar.hpp" />
+    <ClInclude Include="Mixer_SSE2.hpp" />
     <ClInclude Include="Models.hpp" />
     <ClInclude Include="model\Audio16BitModel.hpp" />
     <ClInclude Include="model\Audio8BitModel.hpp" />
@@ -506,7 +510,6 @@
     <ClInclude Include="RingBuffer.hpp" />
     <ClInclude Include="Shared.hpp" />
     <ClInclude Include="simd.hpp" />
-    <ClInclude Include="SimdMixer.hpp" />
     <ClInclude Include="SIMDType.hpp" />
     <ClInclude Include="SmallStationaryContextMap.hpp" />
     <ClInclude Include="Squash.hpp" />
