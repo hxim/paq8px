@@ -214,7 +214,7 @@ void Image24BitModel::update() {
         ols_j_color->add(val);
       }
       float prediction = ols_j_color->predict();
-      pOLS[j] = clip(int(floor(prediction)));
+      pOLS[j] = clip(int(roundf(prediction)));
 
       int k = (color > 0) ? color - 1 : stride - 1;
       ols[j][k]->update(p1);

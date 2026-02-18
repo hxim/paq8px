@@ -146,7 +146,7 @@ void Image8BitModel::mix(Mixer &m) {
           }
         }
         float prediction = sceneOls->predict();
-        prvFrmPrediction = clip(int(floor(prediction)));
+        prvFrmPrediction = clip(int(roundf(prediction)));
       } else {
         prvFrmPrediction = W;
       }
@@ -288,7 +288,7 @@ void Image8BitModel::mix(Mixer &m) {
         }
 
         float prediction = ols_j->predict();
-        pOLS[j] = clip(int(floor(prediction)));
+        pOLS[j] = clip(int(roundf(prediction)));
       }
       
       cm.set(R_, 0);

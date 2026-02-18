@@ -138,11 +138,11 @@ void Audio8BitModel::mix(Mixer &m) {
 
     for( i = 0; i < nOLS; i++ ) {
       float prediction = ols[i][ch]->predict();
-      prd[i][ch][0] = signedClip8(static_cast<int>(floor(prediction)));
+      prd[i][ch][0] = signedClip8(static_cast<int>(roundf(prediction)));
     }
     for( ; i < nOLS + nLMS; i++ ) {
       float prediction = lms[i - nOLS][ch]->predict(s);
-      prd[i][ch][0] = signedClip8(static_cast<int>(floor(prediction)));
+      prd[i][ch][0] = signedClip8(static_cast<int>(roundf(prediction)));
     }
     prd[i++][ch][0] = signedClip8(x1(1) * 2 - x1(2));
     prd[i++][ch][0] = signedClip8(x1(1) * 3 - x1(2) * 3 + x1(3));
