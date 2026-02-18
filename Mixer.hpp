@@ -20,7 +20,7 @@ protected:
   static constexpr int MIN_LEARNING_RATE_SN = 6 * 65536 - 1;
 
   const Shared* const shared;
-  const uint32_t n; /**< max inputs */
+  const size_t n; /**< max inputs */
   const uint32_t m; /**< max contexts */
   const uint32_t s; /**< max context sets */
   const int lowerLimitOfLearningRate; /**< for linear learning rate decay */
@@ -31,9 +31,9 @@ protected:
   Array<uint32_t> cxt; /**< s contexts */
   Array<ErrorInfo> info; /**< stats for the adaptive learning rates  */
   Array<int> rates; /**< learning rates */
-  uint32_t numContexts{}; /**< number of contexts (0 to s)  */
+  size_t numContexts{}; /**< number of contexts (0 to s)  */
   uint32_t base{}; /**< offset of next context */
-  uint32_t nx{}; /**< number of inputs in tx, 0 to n */
+  size_t nx{}; /**< number of inputs in tx, 0 to n */
   Array<int> pr; /**< last result (scaled 12 bits) */
   Mixer* mp; /**< points to a second-layer Mixer to combine results, or nullptr */
   const int simdWidth; /**< number of shorts per SIMD lane, used for input padding */
@@ -48,6 +48,17 @@ protected:
   virtual int dotProduct(const short* w, const size_t n) = 0;
 
   /**
+    * Computes dot products of tx against two weight vectors simultaneously,
+    * sharing tx loads across both.
+    * @param w0 first weight vector
+    * @param w1 second weight vector
+    * @param n number of elements (multiple of simdWidth)
+    * @param sum1 receives the dot product for w1
+    * @return dot product for w0
+    */
+  virtual int dotProduct2(const short* w0, const short* w1, const size_t n, int& sum1) = 0;
+
+  /**
     * Adjusts weight vector @p w by adding a term proportional to
     * input vector tx and error @p e (gradient descent step).
     * @param w weight vector to update in place
@@ -55,14 +66,6 @@ protected:
     * @param e scaled error term
     */
   virtual void train(short* w, const size_t n, const int e) = 0;
-
-  /**
-    * Must be called at the end of each derived constructor.
-    * Creates the second-layer Mixer (when s > 1) using the same SIMD
-    * implementation as @p this, so that virtual dispatch is consistent.
-    * @param promoted extra inputs forwarded to the second-layer mixer
-    */
-  virtual void initSecondLayer(int promoted) = 0;
 
 public:
   /**
@@ -95,7 +98,7 @@ public:
     * Adjusts weights to minimize the coding cost of the last prediction.
     * Trains the network where the expected output is the last bit (shared y).
     */
-  virtual void update() ;
+  virtual void update();
 
   /**
     * Inputs x (call up to n times).

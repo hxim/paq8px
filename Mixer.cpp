@@ -115,11 +115,11 @@ void Mixer::promote(const int x) {
 void Mixer::update() {
   INJECT_SHARED_y
     const int target = y << 12;
-  if (nx > 0) {
-    for (size_t i = 0; i < numContexts; ++i) {
-      const int err = target - pr[i];
-      const int rate = rates[i] = updateLearningRate(isAdaptiveLearningRate, info[i], rates[i], err, lowerLimitOfLearningRate);
-      train(&wx[cxt[i] * n], nx, (err * rate) >> 16);
+  for (size_t i = 0; i < numContexts; ++i) {
+    const int err = target - pr[i];
+    if (err < -1 || err > 1) {
+      rates[i] = updateLearningRate(isAdaptiveLearningRate, info[i], rates[i], err, lowerLimitOfLearningRate);
+      train(&wx[cxt[i] * n], nx, (err * rates[i]) >> 16);
     }
   }
   reset();
@@ -133,10 +133,21 @@ int Mixer::p() {
     tx[nx++] = 0;
   }
   if (mp != nullptr) { // first mixer layer: feed results to second layer
-    for (size_t i = 0; i < numContexts; ++i) {
+    const size_t end = numContexts & ~1ULL;
+    size_t i = 0;
+    for (; i < end; i += 2) {
+      int dp1 = 0;
+      const int dp0 = dotProduct2(
+        &wx[cxt[i + 0] * n],
+        &wx[cxt[i + 1] * n], nx, dp1);
+      pr[i + 0] = processDotProduct(mp, dp0, scaleFactor);
+      pr[i + 1] = processDotProduct(mp, dp1, scaleFactor);
+    }
+    if (i < numContexts) {
       const int dp = dotProduct(&wx[cxt[i] * n], nx);
       pr[i] = processDotProduct(mp, dp, scaleFactor);
     }
+
     mp->set(0, 1);
     return mp->p();
   }

@@ -24,10 +24,6 @@ static inline int32x4_t neon_madd_epi16(int32x4_t a, int32x4_t b) {
 
 Mixer_Neon::Mixer_Neon(const Shared* const sh, const int n, const int m, const int s, const int promoted)
   : Mixer(sh, n, m, s, SIMD_WIDTH_NEON) {
-  initSecondLayer(promoted);
-}
-
-void Mixer_Neon::initSecondLayer(const int promoted) {
   if (s > 1) {
     mp = new Mixer_Neon(shared, s + promoted, 1, 1, 0);
   }
@@ -45,6 +41,27 @@ int Mixer_Neon::dotProduct(const short* const w, const size_t n) {
   sum = vaddq_s32(sum, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(sum), vdupq_n_s8(0), 8)));
   sum = vaddq_s32(sum, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(sum), vdupq_n_s8(0), 4)));
   return vgetq_lane_s32(sum, 0);
+}
+
+int Mixer_Neon::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+  int32x4_t s0 = vdupq_n_s32(0);
+  int32x4_t s1 = vdupq_n_s32(0);
+
+  for (size_t i = 0; i < n; i += 8) {
+    const int32x4_t t = *(int32x4_t*)&tx[i];
+    int32x4_t tmp0 = neon_madd_epi16(t, *(int32x4_t*)&w0[i]);
+    int32x4_t tmp1 = neon_madd_epi16(t, *(int32x4_t*)&w1[i]);
+    s0 = vaddq_s32(s0, vshrq_n_s32(tmp0, 8));
+    s1 = vaddq_s32(s1, vshrq_n_s32(tmp1, 8));
+  }
+
+  s0 = vaddq_s32(s0, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(s0), vdupq_n_s8(0), 8)));
+  s0 = vaddq_s32(s0, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(s0), vdupq_n_s8(0), 4)));
+  s1 = vaddq_s32(s1, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(s1), vdupq_n_s8(0), 8)));
+  s1 = vaddq_s32(s1, vreinterpretq_s32_s8(vextq_s8(vreinterpretq_s8_s32(s1), vdupq_n_s8(0), 4)));
+
+  sum1 = vgetq_lane_s32(s1, 0);
+  return vgetq_lane_s32(s0, 0);
 }
 
 void Mixer_Neon::train(short* const w, const size_t n, const int e) {

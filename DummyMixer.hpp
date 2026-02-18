@@ -17,6 +17,6 @@ public:
   void promote(int) override {}
 protected:
   int  dotProduct(const short* /*w*/, const size_t /*n*/) override { return 0; }
+  int  dotProduct2(const short* /*w0*/, const short* /*w1*/, const size_t /*n*/, int& sum1) override { sum1 = 0; return 0; }
   void train(short* /*w*/, const size_t /*n*/, const int /*e*/) override {}
-  void initSecondLayer(int promoted) override;
 };

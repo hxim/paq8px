@@ -6,10 +6,6 @@ static constexpr int SIMD_WIDTH_SSE2 = 16 / sizeof(short); // 8 shorts per 128-b
 
 Mixer_SSE2::Mixer_SSE2(const Shared* const sh, const int n, const int m, const int s, const int promoted)
   : Mixer(sh, n, m, s, SIMD_WIDTH_SSE2) {
-  initSecondLayer(promoted);
-}
-
-void Mixer_SSE2::initSecondLayer(const int promoted) {
   if (s > 1) {
     mp = new Mixer_SSE2(shared, s + promoted, 1, 1, 0);
   }
@@ -30,6 +26,27 @@ int Mixer_SSE2::dotProduct(const short* const w, const size_t n) {
   sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 8));
   sum = _mm_add_epi32(sum, _mm_srli_si128(sum, 4));
   return _mm_cvtsi128_si32(sum);
+}
+
+#if (defined(__GNUC__) || defined(__clang__))
+__attribute__((target("sse2")))
+#endif
+int Mixer_SSE2::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+  __m128i s0 = _mm_setzero_si128();
+  __m128i s1 = _mm_setzero_si128();
+  for (size_t i = 0; i < n; i += 8) {
+    const __m128i t = *(__m128i*) & tx[i];
+    __m128i tmp0 = _mm_madd_epi16(t, *(__m128i*) & w0[i]);
+    __m128i tmp1 = _mm_madd_epi16(t, *(__m128i*) & w1[i]);
+    s0 = _mm_add_epi32(s0, _mm_srai_epi32(tmp0, 8));
+    s1 = _mm_add_epi32(s1, _mm_srai_epi32(tmp1, 8));
+  }
+  s0 = _mm_add_epi32(s0, _mm_srli_si128(s0, 8));
+  s0 = _mm_add_epi32(s0, _mm_srli_si128(s0, 4));
+  s1 = _mm_add_epi32(s1, _mm_srli_si128(s1, 8));
+  s1 = _mm_add_epi32(s1, _mm_srli_si128(s1, 4));
+  sum1 = _mm_cvtsi128_si32(s1);
+  return _mm_cvtsi128_si32(s0);
 }
 
 #if (defined(__GNUC__) || defined(__clang__))

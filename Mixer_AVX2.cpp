@@ -6,10 +6,6 @@ static constexpr int SIMD_WIDTH_AVX2 = 32 / sizeof(short); // 16 shorts per 256-
 
 Mixer_AVX2::Mixer_AVX2(const Shared* const sh, const int n, const int m, const int s, const int promoted)
   : Mixer(sh, n, m, s, SIMD_WIDTH_AVX2) {
-  initSecondLayer(promoted);
-}
-
-void Mixer_AVX2::initSecondLayer(const int promoted) {
   if (s > 1) {
     mp = new Mixer_AVX2(shared, s + promoted, 1, 1, 0);
   }
@@ -34,6 +30,37 @@ int Mixer_AVX2::dotProduct(const short* const w, const size_t n) {
   newSum = _mm_add_epi32(newSum, _mm_srli_si128(newSum, 8));
   newSum = _mm_add_epi32(newSum, _mm_srli_si128(newSum, 4));
   return _mm_cvtsi128_si32(newSum);
+}
+
+#if (defined(__GNUC__) || defined(__clang__))
+__attribute__((target("avx2")))
+#endif
+int Mixer_AVX2::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+  __m256i s0 = _mm256_setzero_si256();
+  __m256i s1 = _mm256_setzero_si256();
+
+  for (size_t i = 0; i < n; i += 16) {
+    const __m256i t = *(__m256i*) & tx[i];
+    __m256i tmp0 = _mm256_madd_epi16(t, *(__m256i*) & w0[i]);
+    __m256i tmp1 = _mm256_madd_epi16(t, *(__m256i*) & w1[i]);
+    s0 = _mm256_add_epi32(s0, _mm256_srai_epi32(tmp0, 8));
+    s1 = _mm256_add_epi32(s1, _mm256_srai_epi32(tmp1, 8));
+  }
+
+  __m128i lo0 = _mm256_extractf128_si256(s0, 0);
+  __m128i hi0 = _mm256_extractf128_si256(s0, 1);
+  __m128i r0 = _mm_hadd_epi32(lo0, hi0);
+  r0 = _mm_add_epi32(r0, _mm_srli_si128(r0, 8));
+  r0 = _mm_add_epi32(r0, _mm_srli_si128(r0, 4));
+
+  __m128i lo1 = _mm256_extractf128_si256(s1, 0);
+  __m128i hi1 = _mm256_extractf128_si256(s1, 1);
+  __m128i r1 = _mm_hadd_epi32(lo1, hi1);
+  r1 = _mm_add_epi32(r1, _mm_srli_si128(r1, 8));
+  r1 = _mm_add_epi32(r1, _mm_srli_si128(r1, 4));
+
+  sum1 = _mm_cvtsi128_si32(r1);
+  return _mm_cvtsi128_si32(r0);
 }
 
 #if (defined(__GNUC__) || defined(__clang__))

@@ -10,7 +10,3 @@ int DummyMixer::p() {
   shared->GetUpdateBroadcaster()->subscribe(this);
   return 2048;
 }
-
-void DummyMixer::initSecondLayer(int /*promoted*/) {
-  // DummyMixer never creates a second layer
-}
