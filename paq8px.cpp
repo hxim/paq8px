@@ -1084,12 +1084,16 @@ int processCommandLine(int argc, char **argv) {
       printf("\n");
       // Log compression results
       if( logfile.strsize() != 0 ) {
+        bool showParam = shared.tuning_param != 0.0f;
         String results;
         pathType = examinePath(logfile.c_str());
         //Write header if needed
         if( pathType == 3 /*does not exist*/ ||
             (pathType == 1 && getFileSize(logfile.c_str()) == 0)/*exists but does not contain a header*/) {
-          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\tPARAM\tINPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
+          results += "PROG_NAME\tPROG_VERSION\tCOMMAND_LINE\tLEVEL\t";
+            if (showParam)
+              results += "PARAM\t";
+          results +=  "INPUT_FILENAME\tORIGINAL_SIZE_BYTES\tCOMPRESSED_SIZE_BYTES\tRUNTIME_MS\n";
         }
         //Write results to logfile
         results += PROGNAME "\t" PROGVERSION "\t";
@@ -1102,8 +1106,10 @@ int processCommandLine(int argc, char **argv) {
         results += "\t";
         results += uint64_t(shared.level);
         results += "\t";
-        results += (shared.tuning_param == 0.0f ? "" : std::to_string(shared.tuning_param).c_str());
-        results += "\t";
+        if (showParam) {
+          results += std::to_string(shared.tuning_param).c_str();
+          results += "\t";
+        }
         results += input.c_str();
         results += "\t";
         results += contentSize;
