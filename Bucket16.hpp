@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include <cstring>
@@ -32,6 +32,34 @@ template<typename T, int ElementsInBucket>
 class Bucket16 {
 private:
   HashElement<T> elements[ElementsInBucket];
+
+  // Optimized memmove with known parameters
+  // Original:
+  //  memmove(&elements[1], &elements[0], i * sizeof(HashElement<T>));
+  // Optimized:
+  // Implementation: iterate over compile-time indices (N-1 down to 0).
+  // Each copy is guarded at runtime by `count`, but the loop itself is
+  // fully unrolled by the compiler — no branch on the loop counter.
+  // It translates to a series of (fully unrolled) 'mov' intructions.
+  //
+  // Is = { 0, 1, ..., ElementsInBucket-2 }
+  // We copy element[N-1-Is] <- element[N-2-Is] for each Is where
+  // (N-1-Is) <= count, i.e. we copy the last `count` positions right by 1.
+  template<size_t... Is>
+  ALWAYS_INLINE
+  void shiftImpl(size_t count, std::index_sequence<Is...>) noexcept {
+    // Fold expression : each clause is evaluated in order(left - to - right comma).
+    // The copy only executes when the destination index falls within [1, count].
+    ((Is < ElementsInBucket - 1 && (ElementsInBucket - 1 - Is) <= count
+    ? (elements[ElementsInBucket - 1 - Is] = elements[ElementsInBucket - 2 - Is], 0)
+    : 0), ...);
+  }
+
+  ALWAYS_INLINE
+  void shiftElementsRight(size_t count) noexcept {
+    shiftImpl(count, std::make_index_sequence<ElementsInBucket - 1>{});
+  }
+
 public:
 
   void reset() {
@@ -59,13 +87,13 @@ public:
       if (thisChecksum == checksum) { // found matching checksum
         //shift elements down and move matching element to front
         HashElement<T> tmpElement = elements[i];
-        memmove(&elements[1], &elements[0], i * sizeof(HashElement<T>));
+        shiftElementsRight(i);
         elements[0] = tmpElement;
         return &elements[0].value;
       }
       if (thisChecksum == 0) { // found empty slot
         //shift elements down by 1 (make room for the new element in the first slot)
-        memmove(&elements[1], &elements[0], i * sizeof(HashElement<T>));
+        shiftElementsRight(i);
         elements[0].checksum = checksum;
         elements[0].value = {};
         return &elements[0].value;
@@ -135,7 +163,7 @@ public:
 
     //shift elements down by 1 (make room for the new element in the first slot)
     //at the same time owerwrite the element at position "minElementIdx" (the element to be evicted)
-    memmove(&elements[1], &elements[0], minElementIdx * sizeof(HashElement<T>));
+    shiftElementsRight(minElementIdx);
     elements[0].checksum = checksum;
     elements[0].value = {};
     return &elements[0].value;
