@@ -725,7 +725,7 @@ int processCommandLine(int argc, char **argv) {
     }
 
     if (verbose && shared.GetOptionUseLSTM()) {
-      printf("Numer of trainable parameters in LSTM model: %d\n", LstmModelContainer::GetNumberOfTrainableParameters(&shared));
+      printf("Number of trainable parameters in LSTM model: %d\n", LstmModelContainer::GetNumberOfTrainableParameters(&shared));
     }
 
     // Print options in verbose mode
