@@ -2064,3 +2064,18 @@ paq8px_v211 by Zoltán Gotthardt
 - Speed improvement in LMS predictor (audio models): added compatible Scalar and SSE2 code paths.
 - New LSTM command line option: -lstmlayers
 - Don't use LSTM as a submodel for jpeg and 16-bit audio data.
+
+
+paq8px_v212 by Zoltán Gotthardt
+2026.02.21
+- Speed improvements:
+  - Mixer: Parallel prediction + skipping training if prediction was perfect.
+  - StateMap: Better cache locality.
+  - Hashtable: Optimized MTF in Bucket16.
+- Model improvement:
+  - OLS predictor: reverted to the earlier better min_diagonal constant. Use round instead of floor.
+- Detection:
+  - Fixed .s3m audio header detection.
+- Cosmetics:
+  - Don't log optimization param to the logfile when it's not specified.
+  - Cosmetics in Hash and in Arithmetic encoder.
