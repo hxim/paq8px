@@ -31,7 +31,7 @@ void LinearPredictionModel::mix(Mixer &m) {
     }
     for( i = 0; i < nOLS; i++ ) {
       float prediction = ols[i]->predict();
-      prd[i] = clip(static_cast<int>(floor(prediction)));
+      prd[i] = clip(static_cast<int>(roundf(prediction)));
     }
     prd[i++] = clip(W * 2 - WW);
     prd[i] = clip(W * 3 - WW * 3 + WWW);

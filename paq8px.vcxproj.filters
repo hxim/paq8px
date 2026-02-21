@@ -318,9 +318,6 @@
     <ClCompile Include="StateMapPair.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SimdMixer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="model\MatchInfo.cpp">
       <Filter>model</Filter>
     </ClCompile>
@@ -405,6 +402,21 @@
     <ClCompile Include="OLS_factory.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Mixer_Scalar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mixer_SSE2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mixer_AVX2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mixer_AVX512.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Mixer_Neon.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -486,9 +498,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="Simd.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="SimdMixer.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SmallStationaryContextMap.hpp">
@@ -833,19 +842,19 @@
     <ClInclude Include="filter\tar.hpp">
       <Filter>filter</Filter>
     </ClInclude>
-    <ClInclude Include="MixerFunctions_SIMD_AVX2.hpp">
+    <ClInclude Include="Mixer_AVX2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MixerFunctions_SIMD_AVX512.hpp">
+    <ClInclude Include="Mixer_AVX512.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MixerFunctions_SIMD_Neon.hpp">
+    <ClInclude Include="Mixer_Neon.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MixerFunctions_SIMD_None.hpp">
+    <ClInclude Include="Mixer_Scalar.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MixerFunctions_SIMD_SSE2.hpp">
+    <ClInclude Include="Mixer_SSE2.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="model\MatchInfo.hpp">

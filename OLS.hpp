@@ -15,7 +15,7 @@ template <typename T>
 class OLS
 {
 protected:
-  static constexpr T min_diagonal = static_cast<T>(0.001); // Minimum acceptable pivot magnitude
+  static constexpr T min_diagonal = static_cast<T>(1E-8); // Minimum acceptable pivot magnitude
 
   const size_t n;               // State dimension
   const size_t nPadded;         // Padded row size in matrices and vectors for SIMD alignment

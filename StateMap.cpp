@@ -1,4 +1,4 @@
-#include "StateMap.hpp"
+﻿#include "StateMap.hpp"
 #include "Utils.hpp"
 
 StateMap::StateMap (const Shared* const sh, const int s, const int n, const int lim, const StateMapType mapType) :
@@ -6,9 +6,9 @@ StateMap::StateMap (const Shared* const sh, const int s, const int n, const int 
   assert(numContextSets > 0 && numContextsPerSet > 0);
   if( mapType == StateMapType::BitHistory ) { // when the context is a bit history byte, we have a-priory for p
     assert((numContextsPerSet & 255) == 0);
-    for( uint64_t cx = 0; cx < numContextsPerSet; ++cx ) {
+    for (uint64_t cx = 0; cx < numContextsPerSet; ++cx) {
       uint8_t state = cx & 255;
-      for ( uint64_t s = 0; s < numContextSets; ++s ) {
+      for (uint64_t s = 0; s < numContextSets; ++s) {
         uint32_t n0 = StateTable::getNextState(state, 2);
         uint32_t n1 = StateTable::getNextState(state, 3);
         uint32_t p;
@@ -33,7 +33,7 @@ StateMap::StateMap (const Shared* const sh, const int s, const int n, const int 
         else { // 253, 254, 255
           p = 2048 << 20; //unused states: p=0.5
         }
-        t[s * numContextsPerSet + cx] = p;
+        t[cx * numContextSets + s] = p;
       }
     }
   } else if( mapType == StateMapType::Run ) { // when the context is a run count: we have a-priory for p
@@ -49,7 +49,7 @@ StateMap::StateMap (const Shared* const sh, const int s, const int n, const int 
       }
       assert(n0 < 4096 && n1 < 4096);
       for( uint64_t s = 0; s < numContextSets; ++s ) {
-        t[s * numContextsPerSet + cx] = ((n1 << 20) / (n0 + n1)) << 12 | limit;
+        t[cx * numContextSets + s] = ((n1 << 20) / (n0 + n1)) << 12 | limit;
       }
     }
   } else { // no a-priory in the general case
@@ -67,7 +67,7 @@ void StateMap::update() {
     if( idx == UINT32_MAX) {
       continue; // skipped context
     }
-    assert(currentContextSetIndex * numContextsPerSet <= idx && idx < (currentContextSetIndex + 1) * numContextsPerSet);
+    assert(idx % numContextSets == currentContextSetIndex && idx / numContextSets < numContextsPerSet);
     AdaptiveMap::update(&t[idx], limit);
   }
 }
@@ -86,7 +86,7 @@ int StateMap::p2(const uint32_t s, const uint32_t cx) {
   assert(s < numContextSets);
   assert(cx < numContextsPerSet);
   assert(s == currentContextSetIndex);
-  const uint32_t idx = currentContextSetIndex * numContextsPerSet + cx;
+  const uint32_t idx = cx * numContextSets + currentContextSetIndex;
   cxt[currentContextSetIndex] = idx;
   currentContextSetIndex++;
   return t[idx] >> 20;
@@ -104,8 +104,10 @@ void StateMap::skip(const uint32_t contextSetIndex) {
 }
 
 void StateMap::print() const {
-  for( uint32_t i = 0; i < t.size(); i++ ) {
-    uint32_t p0 = t[i] >> 10;
-    printf("%d\t%d\n", i, p0);
+  for (uint32_t cx = 0; cx < numContextsPerSet; cx++) {
+    for (uint32_t s = 0; s < numContextSets; s++) {
+      uint32_t p0 = t[cx * numContextSets + s] >> 10;
+      printf("%d\t%d\t%d\n", cx, s, p0);
+    }
   }
 }

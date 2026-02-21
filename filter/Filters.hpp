@@ -955,7 +955,7 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
     }
 
     // Detect .s3m file header
-    if (buf0 == 0x1a100000) { //0x1A: signature byte, 0x10: song type, 0x0000: reserved
+    if (buf0 == 0x1a100000 && i >= 31) { //0x1A: signature byte, 0x10: song type, 0x0000: reserved
       s3mi = i, s3Mno = s3Mni = 0; 
     }
     if (s3mi != 0) {

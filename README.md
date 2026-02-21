@@ -31,9 +31,9 @@ Start with a small file – compression takes time.
 Example output (on Windows):
 ```
 c:\>paq8px.exe -8 file.txt
-paq8px archiver v211 (c) 2026, Matt Mahoney et al.
+paq8px archiver v212 (c) 2026, Matt Mahoney et al.
 
-Creating archive file.txt.paq8px211 in single file mode...
+Creating archive file.txt.paq8px212 in single file mode...
 
 Filename: file.txt (111261 bytes)
 Block segmentation:
@@ -42,11 +42,11 @@ Block segmentation:
 Total input size     : 111261
 Total archive size   : 19595
 
-Time 19.58 sec, used 2163 MB (2268982538 bytes) of memory
+Time 16.62 sec, used 2164 MB (2269587029 bytes) of memory
 ```
 
 > [!NOTE]
-> The output archive extension is versioned (e.g., .paq8px211).
+> The output archive extension is versioned (e.g., .paq8px212).
 
 > [!NOTE]
 > You can place the binary anywhere and reference inputs/outputs by path.
@@ -74,14 +74,14 @@ To view available options + detailed help pages, run `paq8px -help`.
 <summary>Click to expand: full <code>paq8px</code> help</summary>
 
 ```
-paq8px archiver v211 (c) 2026, Matt Mahoney et al.
+paq8px archiver v212 (c) 2026, Matt Mahoney et al.
 Free under GPL, http://www.gnu.org/licenses/gpl.txt
 
 Usage:
   to compress       ->   paq8px -LEVEL[FLAGS] [OPTIONS] INPUT [OUTPUT]
-  to decompress     ->   paq8px -d INPUT.paq8px211 [OUTPUT]
-  to test           ->   paq8px -t INPUT.paq8px211 [OUTPUT]
-  to list contents  ->   paq8px -l INPUT.paq8px211
+  to decompress     ->   paq8px -d INPUT.paq8px212 [OUTPUT]
+  to test           ->   paq8px -t INPUT.paq8px212 [OUTPUT]
+  to list contents  ->   paq8px -l INPUT.paq8px212
 
 LEVEL:
   -1 -2 -3 -4          | Compress using less memory (529, 543, 572, 630 MB)
@@ -92,7 +92,7 @@ LEVEL:
 
 FLAGS:
   L                    | Enable LSTM model (+24 MB per block type)
-  A                    | Use adaptive learning rate in CM mixer
+  A                    | Use adaptive learning rate
   S                    | Skip RGB color transform (images)
   B                    | Brute-force DEFLATE detection
   E                    | Pre-train x86/x64 model
@@ -117,7 +117,7 @@ Misc options:
 Notes:
   INPUT may be FILE, PATH/FILE, or @FILELIST
   OUTPUT is optional: FILE, PATH, PATH/FILE
-  The archive is created in the current folder with .paq8px211 extension if OUTPUT omitted
+  The archive is created in the current folder with .paq8px212 extension if OUTPUT omitted
   FLAGS are case-insensitive and only needed for compression; they may appear in any order
   INPUT must precede OUTPUT; all other OPTIONS may appear anywhere
 
@@ -239,26 +239,26 @@ Detailed Help
 
   -d  Decompress an archive.
       In single-file mode the content is decompressed, the name of the output is the name of the archive without
-      the .paq8px211 extension.
+      the .paq8px212 extension.
       In multi-file mode first the @LISTFILE is extracted then the rest of the files. Any required folders will
       be created recursively, all files will be extracted with their original names.
       If the output file or files already exist they will be overwritten.
 
       Example: to decompress file.txt to the current folder:
-      paq8px -d file.txt.paq8px211
+      paq8px -d file.txt.paq8px212
 
   -t  Test archive contents by decompressing to memory and comparing with the original data on-the-fly.
       If a file fails the test, the first mismatched position will be printed to screen.
 
       Example: to test archive contents:
-      paq8px -t file.txt.paq8px211
+      paq8px -t file.txt.paq8px212
 
   -l  List archive contents.
       Extracts the embedded @FILELIST (if present) and prints it.
       Applicable only to multi-file archives.
 
       Example: to list the file list (when the archive was created using @files):
-      paq8px -l files.paq8px211
+      paq8px -l files.paq8px212
 
 ----------------------------------
  7. INPUT and OUTPUT Specification
@@ -279,7 +279,7 @@ Detailed Help
     For compression:
 
     * If omitted, the archive is created in the current directory.
-      The name of the archive: INPUT + paq8px211 extension appended.
+      The name of the archive: INPUT + paq8px212 extension appended.
     * If a filename is given, it is used as the archive name.
     * If a directory is given, the archive is created inside it.
     * If the archive file already exists, it will be overwritten.
@@ -287,20 +287,20 @@ Detailed Help
     For decompression:
 
     * If an output filename is not provided, the output will be named the same as the archive without
-      the paq8px211 extension.
+      the paq8px212 extension.
     * If a filename is given, it is used as the output name.
     * If a directory is given, the restored file will be created inside it (the directory must exist).
     * If the output file(s) already exist, they will be overwritten.
 
   Examples:
 
-  To create data.txt.paq8px211 in current directory:
+  To create data.txt.paq8px212 in current directory:
   paq8px -8 data.txt
 
-  To create archive.paq8px211 in current directory:
-  paq8px -8 data.txt archive.paq8px211
+  To create archive.paq8px212 in current directory:
+  paq8px -8 data.txt archive.paq8px212
 
-  To create data.txt.paq8px211 in results/ directory:
+  To create data.txt.paq8px212 in results/ directory:
   paq8px -8 data.txt results/
 
 ---------------------------------
@@ -344,7 +344,7 @@ Detailed Help
     - for the CM mixer - supported: SSE2, AVX2, AVX512, ARM NEON
     - for neural network operations in the LSTM model - supported: SSE2, AVX2
     - for the LSM and OLS predictors (used mainly in image and audio models) - supported: SSE2.
-     
+
     This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.
     Supported values (case-insensitive):
        NONE
@@ -396,7 +396,7 @@ A `paq8px` archive stores one or more files in a highly compressed format.
 
 ### How to recognize it
 
-The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px211`).  
+The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px212`).  
 You can also check the header: if the first bytes read "paq8px", it is likely a `paq8px` archive.  
 Exact version information cannot be inferred from the archive content: the archive header does not encode the specific `paq8px` version used. Only the file extension reflects the version.
 
@@ -469,9 +469,9 @@ The following compiler/OS combinations have been tested successfully:
 
 | Version | OS                             | Compiler/IDE                                                  |
 |---------|--------------------------------|---------------------------------------------------------------|
-| v211    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
-| v211    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
-| v211    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
+| v212    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
+| v212    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
+| v212    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
 | v211    | Lubuntu 25.04 Plucky Puffin    | gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0                          |
 | v211    | Lubuntu 25.04 Plucky Puffin    | Ubuntu clang version 20.1.2 (0ubuntu1), Target: x86_64-pc-linux-gnu |
 | v211    | Lubuntu 25.04 Plucky Puffin    | aarch64-linux-gnu-gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0        |
@@ -648,7 +648,7 @@ The images were converted from PNG to PPM before compression.
 |**Total compressed size**         | **6'958'650** | **6'865'940** |
 |**Compression time (approx. sec)**|   **1'125**   | **5'121**     |
 
-At the time of writing, `paq8px v211` likely ranks #1 on the Kodak test set among lossless compressors with no pre-trained models.
+At the time of writing, `paq8px v212` likely ranks #1 on the Kodak test set among lossless compressors with no pre-trained models.
 
 Other compressors for reference:
 [GitHub - WangXuan95/Image-Compression-Benchmark: A comparison of many lossless image compression formats.](https://github.com/WangXuan95/Image-Compression-Benchmark)
@@ -699,7 +699,7 @@ Compressed sizes for v210 with compression option `-12L` (`-12Ls` for rafale.bmp
 |**Total compressed size**  | **5'824'680** |
 |**Compression time (sec)**| **19'384** |
 
-To the best of our knowledge, `paq8px`'s latest version, `v211`, would still **rank #1** at the time of writing.
+To the best of our knowledge, `paq8px`'s latest version, `v212`, would still **rank #1** at the time of writing.
 
 ### fenwik9 benchmark
 
@@ -744,7 +744,7 @@ The table below highlights milestones, contributors, and notable changes over th
 | **2022**     | v207       | **Zoltán Gotthardt**: PNG filtering moved to transform layer; DEC-Alpha detection via object signature; TAR detection/transform; base85 filter (from paq8pxd); structured-text WordModel (linemodel) enhancements; separate LSTM per main context. |
 | **2023**     | v208       | **Zoltán Gotthardt**: TAR detection fixes; new -forcetext option; enhanced 1-bit image model; shifted contexts (fewer in IndirectModel, added to WordModel for TEXT); refactors; Pavel Rosický: AVX512 detection |
 | **2025**     | v209       | **Zoltán Gotthardt**: Model tweaks (initialized mixer weights; corrected matchmodel context); TEXT detection fixes; build/toolchain updates |
-| **2026**     | v210-v211  | **Zoltán Gotthardt**: LSTM model enhancements, speed improvements in image and audio compression |
+| **2026**     | v210-v212  | **Zoltán Gotthardt**: LSTM model enhancements, speed improvements |
 
 This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
