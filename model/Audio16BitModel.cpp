@@ -29,8 +29,8 @@ void Audio16BitModel::setParam(int info) {
   INJECT_SHARED_bpos
   INJECT_SHARED_blockPos
   if( blockPos == 0 && bpos == 0 ) {
-    info |= 4; // comment this line if skipping the endianness transform
-    assert((info & 2) != 0);
+    info |= 4; // force internal flag for Big Endian; why: EndiannessFilter already transformed the data from LE to BE
+    assert((info & 2) != 0); // has to be 16-bit
     stereo = (info & 1);
     lsb = static_cast<uint32_t>(info < 4);
     mask = 0;

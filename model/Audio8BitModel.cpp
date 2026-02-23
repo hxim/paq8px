@@ -28,7 +28,7 @@ void Audio8BitModel::setParam(int info) {
   INJECT_SHARED_bpos
   INJECT_SHARED_blockPos
   if(blockPos == 0 && bpos == 0 ) {
-    assert((info & 2) == 0);
+    assert((info & 2) == 0); // has to be 8-bit
     stereo = (info & 1);
     mask = 0;
     wMode = info;

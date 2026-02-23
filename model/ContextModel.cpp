@@ -1,4 +1,4 @@
-#include "ContextModel.hpp"
+﻿#include "ContextModel.hpp"
 #include "ContextModelGeneric.cpp"
 #include "ContextModelText.cpp"
 #include "ContextModelImage1.cpp"
@@ -119,6 +119,9 @@ int ContextModel::p() {
 
         case BlockType::AUDIO:
         case BlockType::AUDIO_LE: {
+          // blockInfo flags:
+          // 1: stereo
+          // 2: 16-bit
           if ((blockInfo & 2) == 0) {
             static ContextModelAudio8 contextModelAudio8{ shared, models, mixerFactory };
             contextModelAudio8.setParam(blockInfo);
