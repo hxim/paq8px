@@ -866,9 +866,6 @@
     <ClInclude Include="lstm\Adam_Scalar.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
-    <ClInclude Include="LstmModelContainer.hpp">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="lstm\LstmModelContainer.hpp">
       <Filter>Header Files\lstm</Filter>
     </ClInclude>
