@@ -2,10 +2,10 @@
 
 #include "Image8BitModel.hpp"
 
-Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) : 
-  shared(sh), 
+Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
+  shared(sh),
   cm(sh, size, nCM, 64),
-  map { /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
+  map{ /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
     /*nSM0: 0- 1*/ {sh, 0,8}, {sh,15,1},
     /*nSM1: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
     /*nSM1: 5- 9*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
@@ -20,16 +20,15 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
     /*nSM1:50-54*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
     /*nOLS: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}
   },
-  pltMap {   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
+  pltMap{   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
     {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}
   },
-  sceneMap { /* IndirectMap: BitsOfContext, InputBits, Scale, Limit */
+  sceneMap{ /* IndirectMap: BitsOfContext, InputBits, Scale, Limit */
     {sh,8,8,64,255}, {sh,8,8,64,255}, {sh,22,1,64,255}, {sh,11,1,64,255}, {sh,11,1,64,255}
   },
-  iCtx {     /* IndirectContext<U8>: BitsPerContext, InputBits */
+  iCtx{     /* IndirectContext<U8>: BitsPerContext, InputBits */
     {16,8}, {16,8}, {16,8}, {16,8}
-  }
-{
+  } {
   for (int i = 0; i < nOLS; i++) {
     ols[i] = create_OLS_float(sh->chosenSimd, num[i], 1, lambda[i], nu);
   }
@@ -42,25 +41,25 @@ void Image8BitModel::setParam(int width, uint32_t isGray) {
   this->isGray = isGray;
 }
 
-void Image8BitModel::mix(Mixer &m) {
+void Image8BitModel::mix(Mixer& m) {
   // Select nearby pixels as context
   INJECT_SHARED_bpos
-  if( bpos == 0 ) {
+  if (bpos == 0) {
     INJECT_SHARED_buf
     INJECT_SHARED_pos
-    if( pos != lastPos + 1 ) {
+    if (pos != lastPos + 1) {
       x = line = jump = 0;
       filterOn = false;
       columns[0] = max(1, w / max(1, ilog2(w) * 2));
       columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
-      if( isGray ) {
-        if(lastPos != 0 && false) { // todo: when shall we reset ?
-          for( int i = 0; i < nSM; i++ ) {
+      if (isGray) {
+        if (lastPos != 0 && false) { // todo: when shall we reset ?
+          for (int i = 0; i < nSM; i++) {
             map[i].reset();
           }
         }
       }
-      else if(frameWidth != w) {
+      else if (frameWidth != w) {
         for (int i = 0; i < nPltMaps; i++) {
           iCtx[i].reset();
           pltMap[i].reset();
@@ -70,9 +69,10 @@ void Image8BitModel::mix(Mixer &m) {
       framePos = pos;
       prevFrameWidth = frameWidth;
       frameWidth = w;
-    } else {
+    }
+    else {
       x++;
-      if( x >= w ) {
+      if (x >= w) {
         x = 0;
         line++;
       }
@@ -80,9 +80,9 @@ void Image8BitModel::mix(Mixer &m) {
     lastPos = pos;
 
     INJECT_SHARED_c1
-    if( x == 0 ) {
+    if (x == 0) {
       memset(&jumps[0], 0, sizeof(short) * jumps.size());
-      if( line > 0 && w > 8 ) {
+      if (line > 0 && w > 8) {
         uint8_t bMask = 0xFF - ((1 << isGray) - 1);
         uint32_t pMask = bMask * 0x01010101;
         uint32_t left = 0;
@@ -92,16 +92,17 @@ void Image8BitModel::mix(Mixer &m) {
         do {
           left = ((buf(l - x) << 24) | (buf(l - x - 1) << 16) | (buf(l - x - 2) << 8) | buf(l - x - 3)) & pMask;
           int i = end;
-          while( i >= x + 4 ) {
+          while (i >= x + 4) {
             right = ((buf(l - i - 3) << 24) | (buf(l - i - 2) << 16) | (buf(l - i - 1) << 8) | buf(l - i)) & pMask;
-            if( left == right ) {
+            if (left == right) {
               int j = (i + 3 - x - 1) / 2;
               int k = 0;
-              for( ; k <= j; k++ ) {
-                if( k < 4 || (buf(l - x - k) & bMask) == (buf(l - i - 3 + k) & bMask)) {
+              for (; k <= j; k++) {
+                if (k < 4 || (buf(l - x - k) & bMask) == (buf(l - i - 3 + k) & bMask)) {
                   jumps[x + k] = -(x + (l - i - 3) + 2 * k);
                   jumps[i + 3 - k] = i + 3 - x - 2 * k;
-                } else {
+                }
+                else {
                   break;
                 }
               }
@@ -109,13 +110,13 @@ void Image8BitModel::mix(Mixer &m) {
               end -= k;
               break;
             }
-           i--;
+            i--;
           }
           x++;
-          if( x > end ) {
-              break;
+          if (x > end) {
+            break;
           }
-        } while( x + 4 < l );
+        } while (x + 4 < l);
         x = 0;
       }
     }
@@ -124,33 +125,35 @@ void Image8BitModel::mix(Mixer &m) {
     column[1] = x / columns[1];
     WWWWW = buf(5), WWWW = buf(4), WWW = buf(3), WW = buf(2), W = buf(1);
     NWWWW = buf(w + 4), NWWW = buf(w + 3), NWW = buf(w + 2), NW = buf(w + 1), N = buf(w), NE = buf(w - 1), NEE = buf(
-            w - 2), NEEE = buf(w - 3), NEEEE = buf(w - 4);
+      w - 2), NEEE = buf(w - 3), NEEEE = buf(w - 4);
     NNWWW = buf(w * 2 + 3), NNWW = buf(w * 2 + 2), NNW = buf(w * 2 + 1), NN = buf(w * 2), NNE = buf(
-            w * 2 - 1), NNEE = buf(w * 2 - 2), NNEEE = buf(w * 2 - 3);
+      w * 2 - 1), NNEE = buf(w * 2 - 2), NNEEE = buf(w * 2 - 3);
     NNNWW = buf(w * 3 + 2), NNNW = buf(w * 3 + 1), NNN = buf(w * 3), NNNE = buf(w * 3 - 1), NNNEE = buf(w * 3 - 2);
     NNNNW = buf(w * 4 + 1), NNNN = buf(w * 4), NNNNE = buf(w * 4 - 1);
     NNNNN = buf(w * 5);
     NNNNNN = buf(w * 6);
-    if( prevFramePos > 0 && prevFrameWidth == w ) {
+    if (prevFramePos > 0 && prevFrameWidth == w) {
       int offset = prevFramePos + line * w + x;
       prvFrmPx = buf[offset];
-      if( isGray != 0 ) {
+      if (isGray != 0) {
         sceneOls->update((float)W);
         sceneOls->add((float)W);
         sceneOls->add((float)NW);
         sceneOls->add((float)N);
         sceneOls->add((float)NE);
-        for( int i = -1; i < 2; i++ ) {
-          for( int j = -1; j < 2; j++ ) {
+        for (int i = -1; i < 2; i++) {
+          for (int j = -1; j < 2; j++) {
             sceneOls->add((float)buf[offset + i * w + j]);
           }
         }
         float prediction = sceneOls->predict();
         prvFrmPrediction = clip(int(roundf(prediction)));
-      } else {
+      }
+      else {
         prvFrmPrediction = W;
       }
-    } else {
+    }
+    else {
       prvFrmPx = prvFrmPrediction = W;
     }
     sceneMap[0].setDirect(prvFrmPx);
@@ -161,8 +164,8 @@ void Image8BitModel::mix(Mixer &m) {
     uint64_t i = isGray * 1024;
     const uint8_t R_ = CM_USE_RUN_STATS;
     cm.set(R_, hash(++i, (jump != 0) ? (0x100 | buf(abs(jump))) * (1 - 2 * static_cast<int>(jump < 0)) : N, line & 3));
-    if( !isGray ) {
-      for( j = 0; j < nPltMaps; j++ ) {
+    if (!isGray) {
+      for (j = 0; j < nPltMaps; j++) {
         iCtx[j] += W;
       }
       iCtx[0] = W | (NE << 8);
@@ -216,13 +219,14 @@ void Image8BitModel::mix(Mixer &m) {
       cm.set(R_, hash(++i, column[0]));
       cm.set(R_, hash(++i, N, column[1]));
       cm.set(R_, hash(++i, W, column[1]));
-      for( int j = 0; j < nPltMaps; j++ ) {
+      for (int j = 0; j < nPltMaps; j++) {
         cm.set(R_, hash(++i, iCtx[j]()));
       }
-      
+
       ctx = min(0x1F, x / min(0x20, columns[0]));
       res = W;
-    } else { // gray
+    }
+    else { // gray
       mapContexts[j++] = clamp4(W + N - NW, W, NW, N, NE);
       mapContexts[j++] = clip(W + N - NW);
       mapContexts[j++] = clamp4(W + NE - N, W, NW, N, NE);
@@ -278,7 +282,7 @@ void Image8BitModel::mix(Mixer &m) {
       mapContexts[j++] = clip((WWW - 4 * WW + 6 * W + clip(NE * 3 - NNE * 3 + buf(w * 3 - 1))) / 4);
       mapContexts[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
       mapContexts[j++] = ((W + N) * 3 - NW * 2) / 4;
-      for( j = 0; j < nOLS; j++ ) {
+      for (j = 0; j < nOLS; j++) {
         auto ols_j = ols[j].get();
         ols_j->update((float)W);
         auto ols_ctx_j = olsCtxs[j];
@@ -290,7 +294,7 @@ void Image8BitModel::mix(Mixer &m) {
         float prediction = ols_j->predict();
         pOLS[j] = clip(int(roundf(prediction)));
       }
-      
+
       cm.set(R_, 0);
       cm.set(R_, hash(++i, N));
       cm.set(R_, hash(++i, W));
@@ -318,7 +322,7 @@ void Image8BitModel::mix(Mixer &m) {
       cm.set(R_, hash(++i, clip(W * 2 - WW), DiffQt(NE, clip(N * 2 - NW))));
 
       ctx = min(0x1F, x / max(1, w / min(32, columns[0]))) |
-            (((static_cast<int>(abs(W - N) * 16 > W + N) << 1) | static_cast<int>(abs(N - NW) > 8)) << 5) | ((W + N) & 0x180);
+        (((static_cast<int>(abs(W - N) * 16 > W + N) << 1) | static_cast<int>(abs(N - NW) > 8)) << 5) | ((W + N) & 0x180);
 
       res = clamp4(W + N - NW, W, NW, N, NE);
     }
@@ -331,17 +335,17 @@ void Image8BitModel::mix(Mixer &m) {
   }
   INJECT_SHARED_c0
   uint8_t b = (c0 << (8 - bpos));
-  if( isGray ) {
+  if (isGray) {
     int i = 0;
     map[i++].set(0);
     map[i++].set(((static_cast<uint8_t>(clip(W + N - NW) - b)) * 8 + bpos) |
-                       (DiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11));
+      (DiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11));
 
-    for( int j = 0; j < nSM1; i++, j++ ) {
+    for (int j = 0; j < nSM1; i++, j++) {
       map[i].set((mapContexts[j] - b) * 8 + bpos);
     }
 
-    for( int j = 0; i < nSM; i++, j++ ) {
+    for (int j = 0; i < nSM; i++, j++) {
       map[i].set((pOLS[j] - b) * 8 + bpos);
     }
   }
@@ -351,17 +355,18 @@ void Image8BitModel::mix(Mixer &m) {
 
   // predict next bit
   cm.mix(m);
-  if( isGray ) {
-    for( int i = 0; i < nSM; i++ ) {
+  if (isGray) {
+    for (int i = 0; i < nSM; i++) {
       map[i].mix(m);
     }
-  } else {
-    for( int i = 0; i < nPltMaps; i++ ) {
+  }
+  else {
+    for (int i = 0; i < nPltMaps; i++) {
       pltMap[i].set((bpos << 8) | iCtx[i]());
       pltMap[i].mix(m);
     }
   }
-  for( int i = 0; i < nIM; i++ ) {
+  for (int i = 0; i < nIM; i++) {
     const int scale = (prevFramePos > 0 && prevFrameWidth == w) ? 64 : 0;
     sceneMap[i].setScale(scale);
     sceneMap[i].mix(m);
@@ -371,11 +376,11 @@ void Image8BitModel::mix(Mixer &m) {
   m.set(ctx, 512);
   m.set(col << 1 | static_cast<int>(c0 == ((0x100 | res) >> (8 - bpos))), 16);
   m.set((N + W) >> 4, 32);
-  m.set(c0-1, 255);
+  m.set(c0 - 1, 255);
   m.set((static_cast<int>(abs(W - N) > 4) << 9) | (static_cast<int>(abs(N - NE) > 4) << 8) |
-        (static_cast<int>(abs(W - NW) > 4) << 7) | (static_cast<int>(W > N) << 6) | (static_cast<int>(N > NE) << 5) |
-        (static_cast<int>(W > NW) << 4) | (static_cast<int>(W > WW) << 3) | (static_cast<int>(N > NN) << 2) |
-        (static_cast<int>(NW > NNWW) << 1) | static_cast<int>(NE > NNEE), 1024);
+    (static_cast<int>(abs(W - NW) > 4) << 7) | (static_cast<int>(W > N) << 6) | (static_cast<int>(N > NE) << 5) |
+    (static_cast<int>(W > NW) << 4) | (static_cast<int>(W > WW) << 3) | (static_cast<int>(N > NN) << 2) |
+    (static_cast<int>(NW > NNWW) << 1) | static_cast<int>(NE > NNEE), 1024);
   m.set(min(63, column[0]), 64);
   m.set(min(127, column[1]), 128);
   m.set(min(255, (x + line) / 32), 256);
