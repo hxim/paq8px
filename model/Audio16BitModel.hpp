@@ -18,7 +18,7 @@ private:
 
   static constexpr int num[nOLS] = { 128, 90, 90, 90, 90, 90, 28, 32 };
   static constexpr int solveInterval[nOLS] = { 24, 30, 31, 32, 33, 34, 4, 3 };
-  static constexpr double lambda[nOLS] = { 0.9975, 0.997,0.996, 0.995, 0.995, 0.9985, 0.98, 0.992 };
+  double lambda[nOLS] = { 0.998, 0.998, 0.998, 0.998, 0.995, 0.998, 0.999, 0.991 };
   static constexpr double nu = 0.001;
   std::unique_ptr<OLS_double> ols[nOLS][2]; // 2: channels
 
