@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cassert>
 #include <cstdint>
@@ -77,14 +77,5 @@ public:
     */
   uint32_t size() {
     return (uint32_t) b.size();
-  }
-
-  void copyTo(RingBuffer &dst) {
-    dst.setSize(size());
-    dst.offset = offset;
-    uint32_t n = (uint32_t) b.size();
-    for( uint32_t i = 0; i < n; i++ ) {
-      dst.b[i] = b[i];
-    }
   }
 };
