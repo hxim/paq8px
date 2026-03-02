@@ -20,7 +20,7 @@ Mixer* MixerFactory::createMixer(const int n, const int m, const int s, const in
 #endif
 #ifdef ARM_NEON_AVAILABLE
   else if (chosenSimd == SIMDType::SIMD_NEON) {
-    return new MixerNeon(shared, n, m, s, promoted);
+    return new Mixer_Neon(shared, n, m, s, promoted);
   }
 #endif
   assert(false);
