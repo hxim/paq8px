@@ -48,7 +48,6 @@ public:
     MatchModel& matchModel = models->matchModel();
     matchModel.mix(*m);
 
-    //is it needed?
     const bool useLSTM = shared->GetOptionUseLSTM();
     if (useLSTM) {
       LstmModelContainer& lstmModel = models->lstmModelImage24();

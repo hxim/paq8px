@@ -1,4 +1,5 @@
-#include "Shared.hpp"
+﻿#include "Shared.hpp"
+#include "ArithmeticEncoder.hpp"
 
 /*
  relationship between compression level, shared->mem and buf memory use
@@ -34,7 +35,7 @@ void Shared::init(uint8_t level, uint32_t bufMem) {
   toScreen = !isOutputRedirected();
 }
 
-void Shared::update(int y, bool isMissed) {
+void Shared::update(int y, uint32_t p, bool isMissed) {
   State.y = y;
   State.c0 += State.c0 + y;
   State.bitPosition = (State.bitPosition + 1) & 7;
@@ -49,6 +50,12 @@ void Shared::update(int y, bool isMissed) {
   State.Text.characterGroup = (State.bitPosition > 0) ? asciiGroup[(1u << State.bitPosition) - 2 + (State.c0 & ((1 << State.bitPosition) - 1))] : 0;
   
   State.misses = (State.misses << 1) | static_cast<uint32_t>(isMissed);
+
+  constexpr uint32_t shift = ArithmeticEncoder::PRECISION - 8;
+  constexpr uint32_t maxp = (1u << ArithmeticEncoder::PRECISION) - 1;
+
+  State.loss = ((y == 0 ? p : maxp - p)) >> shift; //0..255
+  assert(State.loss >= 0 && State.loss <= 255);
 
   // Broadcast to all current subscribers: y (and c0, c1, c4, etc) is known
   updateBroadcaster.broadcastUpdate();

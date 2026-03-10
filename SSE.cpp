@@ -11,8 +11,8 @@ Text{
 },
 Image{
   // color:
-    { { /*APM:*/ {sh,1 << 11,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}},
-      { /*APM1:*/ {sh,1 << 16,7}, {sh,1 << 16,7}} ,
+    { { /*APM:*/ {sh,1 << 7,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}, {sh,1 << 16,24,1023}}, 
+      { /*APM1:*/ {sh,1 << 15,7}, {sh,1 << 16,7}} ,
       { /*ApmPostA: */ sh,8},
       { /*ApmPostB: */ sh,8}
     }, 
@@ -73,6 +73,10 @@ uint32_t SSE::p(const uint32_t pr_orig) {
   assert(shared->State.Audio <= 255);
   assert(shared->State.JPEG.state <= 4095 + 1);
 
+  assert(shared->State.Image.plane <= 3);
+  assert(shared->State.Image.lossQ <= 639);
+  assert(shared->State.loss <= 255);
+
   //uint32_t misses4 = shared->State.misses & 15u;
   uint32_t misses = shared->State.misses << ((8 - bpos) & 7); //byte-aligned
   misses = (misses & 0xffffff00) | (misses & 0xff) >> ((8 - bpos) & 7);
@@ -108,15 +112,17 @@ uint32_t SSE::p(const uint32_t pr_orig) {
     }
     case BlockType::IMAGE24:
     case BlockType::IMAGE32: {
-      uint32_t pr0 = Image.Color.APMs[0].p(pr_orig, static_cast<uint32_t>(c0) << 3 | (bpos==0 ? 0 : (misses3&3))); //11
+      uint32_t plane = shared->State.Image.plane; // 0..3
+      uint32_t pr0 = Image.Color.APMs[0].p(pr_orig, plane << 5 | bpos << 2 | (bpos == 0 ? 0 : (misses3 & 3))); //7, even the plane could be enough
       uint32_t pr1 = Image.Color.APMs[1].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.W, shared->State.Image.pixels.WW), 16)); //16
       uint32_t pr2 = Image.Color.APMs[2].p(pr_orig, finalize64(hash(c0, shared->State.Image.pixels.N, shared->State.Image.pixels.NN), 16)); //16
       uint32_t pr3 = Image.Color.APMs[3].p(pr_orig, (c0 << 8) | shared->State.Image.ctx); //16
 
       uint32_t prA = (pr_orig + pr1 + pr2 + pr3 + 2) >> 2;
 
-      uint32_t pr4 = Image.Color.APM1s[0].p(pr0, finalize64(hash(c0, shared->State.Image.pixels.W, (c4 & 0xFF) - shared->State.Image.pixels.Wp1, shared->State.Image.plane), 16)); //16
-      uint32_t pr5 = Image.Color.APM1s[1].p(pr0, finalize64(hash(c0, shared->State.Image.pixels.N, (c4 & 0xFF) - shared->State.Image.pixels.Np1, shared->State.Image.plane), 16)); //16
+      uint32_t lossQ = shared->State.Image.lossQ; // 0 .. 639
+      uint32_t pr4 = Image.Color.APM1s[0].p(pr0, (lossQ >> 2) << 5 | plane << 3 | bpos); //15
+      uint32_t pr5 = Image.Color.APM1s[1].p(pr0, finalize64(hash(c0, min(lossQ, 255), plane), 16)); //16
 
       uint32_t prB = (pr0 * 2 + pr4 * 3 + pr5 * 3 + 4) >> 3;
       

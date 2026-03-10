@@ -91,7 +91,7 @@ void Encoder::appendToBlockTypeHistoryForBlockModel(BlockType blockType) {
 
 void Encoder::updateModels(Predictor* predictor, uint32_t p, int y) {
   bool isMissed = ((p >> (ArithmeticEncoder::PRECISION - 1)) != y);
-  predictor->shared->update(y, isMissed);
+  predictor->shared->update(y, p, isMissed);
 }
 
 

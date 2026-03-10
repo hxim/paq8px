@@ -255,6 +255,7 @@
     <ClCompile Include="Clz.hpp" />
     <ClCompile Include="ContextMap.cpp" />
     <ClCompile Include="ContextMap2.cpp" />
+    <ClCompile Include="ResidualMap.cpp" />
     <ClCompile Include="DummyMixer.cpp" />
     <ClCompile Include="Encoder.cpp" />
     <ClCompile Include="file\File.cpp" />
@@ -388,6 +389,7 @@
     <ClInclude Include="CharacterNames.hpp" />
     <ClInclude Include="ContextMap.hpp" />
     <ClInclude Include="ContextMap2.hpp" />
+    <ClInclude Include="ResidualMap.hpp" />
     <ClInclude Include="DivisionTable.hpp" />
     <ClInclude Include="DummyMixer.hpp" />
     <ClInclude Include="Encoder.hpp" />

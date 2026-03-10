@@ -417,6 +417,9 @@
     <ClCompile Include="Mixer_Neon.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ResidualMap.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -915,6 +918,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="OLS_factory.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ResidualMap.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
