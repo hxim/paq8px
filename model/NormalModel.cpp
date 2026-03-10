@@ -1,4 +1,4 @@
-#include "NormalModel.hpp"
+﻿#include "NormalModel.hpp"
 
 NormalModel::NormalModel(Shared* const sh, const uint64_t cmSize) :
   shared(sh), cm(sh, cmSize, nCM, 64),
@@ -15,6 +15,7 @@ void NormalModel::reset() {
 void NormalModel::updateHashes() {
   INJECT_SHARED_c1
   INJECT_SHARED_blockType
+  uint64_t base_context = c1;
   BlockType normalizedBlockType = blockType;
   /* todo: let blocktype represent simply the blocktype without any transformation used:
       blockType == BlockType::AUDIO_LE = BlockType::AUDIO
@@ -24,10 +25,13 @@ void NormalModel::updateHashes() {
     normalizedBlockType = BlockType::DEFAULT;
   else if (blockType == BlockType::AUDIO_LE)
     normalizedBlockType = BlockType::AUDIO;
-  const uint64_t blocktype_c1 = normalizedBlockType << 8 | c1;
+  else if (blockType == BlockType::IMAGE24 || blockType == BlockType::IMAGE32) {
+    base_context = base_context << 2 | shared->State.Image.plane;
+  }
+  base_context = (base_context * (uint64_t)BlockType::Count) + (uint64_t)normalizedBlockType;
   uint64_t* cxt = shared->State.NormalModel.cxt;
   for( uint64_t i = 14; i > 0; --i ) {
-    cxt[i] = (cxt[i - 1] + blocktype_c1 + i) * PHI64;
+    cxt[i] = (cxt[i - 1] + base_context + i) * PHI64;
   }
 }
 
