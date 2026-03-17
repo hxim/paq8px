@@ -2,9 +2,13 @@
 # prepare with:
 # sudo apt update
 # sudo apt install clang
+#------------------------
+# if you're on arch, use these instead:
+# sudo pacman -Syu
+# sudo pacman -S clang
 
 clang -c -DNDEBUG -I../zlib/ -O3 -fno-fast-math -ffp-contract=off -flto -funroll-loops -ftree-vectorize -fexceptions -include unistd.h ../zlib/adler32.c ../zlib/crc32.c ../zlib/deflate.c ../zlib/gzlib.c ../zlib/inffast.c ../zlib/inflate.c ../zlib/inftrees.c ../zlib/trees.c ../zlib/zutil.c 
 
-clang++ -DNDEBUG -I../zlib/ -O3 -fno-fast-math -ffp-contract=off -flto -funroll-loops -ftree-vectorize -s -static -fno-rtti -std=gnu++17 adler32.o crc32.o deflate.o gzlib.o inffast.o inflate.o inftrees.o trees.o zutil.o ../file/*.cpp ../filter/*.cpp ../model/*.cpp ../text/*.cpp ../lstm/*.cpp ../*.cpp -opaq8px.exe
+clang++ -DNDEBUG -I../zlib/ -O3 -fno-fast-math -ffp-contract=off -flto -funroll-loops -ftree-vectorize -s -static -fno-rtti -std=gnu++17 adler32.o crc32.o deflate.o gzlib.o inffast.o inflate.o inftrees.o trees.o zutil.o ../file/*.cpp ../filter/*.cpp ../model/*.cpp ../text/*.cpp ../lstm/*.cpp ../*.cpp -opaq8px
 
 rm -rf *.o
