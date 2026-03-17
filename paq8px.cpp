@@ -1,5 +1,5 @@
 ﻿/*
-  PAQ8PX file compressor/archiver
+  PAQ8PX – Experimental Lossless Data Compressor & Entropy Estimator
   see README.md for information
   see DOC for technical details
   see CHANGELOG for version history
@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "212"  //update version here before publishing your changes
+#define PROGVERSION  "213"  //update version here before publishing your changes
 #define PROGYEAR     "2026"
 
 
@@ -419,7 +419,7 @@ int processCommandLine(int argc, char **argv) {
   try {
 
     if( !shared.toScreen ) { //we need a minimal feedback when redirected
-      fprintf(stderr, PROGNAME " archiver v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
+      fprintf(stderr, PROGNAME " data compressor v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
     }
     printf(PROGNAME " archiver v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
 
