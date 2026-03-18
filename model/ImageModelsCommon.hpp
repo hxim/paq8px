@@ -1,11 +1,15 @@
-#ifndef PAQ8PX_IMAGEMODELSCOMMON_HPP
-#define PAQ8PX_IMAGEMODELSCOMMON_HPP
+﻿#pragma once
 
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+
+// PNG Paeth predictor from the World Wide Web Consortium / PNG Development Group spec.
 static inline uint8_t paeth(uint8_t const W, uint8_t const N, uint8_t const NW) {
   int p = W + N - NW;
-  int pW = abs(p - static_cast<int>(W));
-  int pN = abs(p - static_cast<int>(N));
-  int pNW = abs(p - static_cast<int>(NW));
+  int pW = abs(p - W);
+  int pN = abs(p - N);
+  int pNW = abs(p - NW);
   if (pW <= pN && pW <= pNW) {
     return W;
   }
@@ -15,4 +19,38 @@ static inline uint8_t paeth(uint8_t const W, uint8_t const N, uint8_t const NW) 
   return NW;
 }
 
-#endif
+
+// CALIC-style Gradient Adjusted Predictor (GAP).
+static inline int gap(
+  uint8_t const W, uint8_t const N,
+  uint8_t const NW, uint8_t const NE,
+  uint8_t const WW, uint8_t const NNE,
+  uint8_t const NN
+) {
+  int dH = abs(W - WW) + abs(N - NW) + abs(NE - N);
+  int dV = abs(W - NW) + abs(N - NN) + abs(NE - NNE);
+
+  if (dH > dV) {
+    return N;
+  }
+  if (dV > dH) {
+    return W;
+  }
+  return (N + W - NW);
+}
+
+//signed difference between two 8-bit pixel values, quantized
+//used by 8-bit and 24-bit image models
+ALWAYS_INLINE
+uint8_t DiffQt(const uint8_t a, const uint8_t b, const uint8_t limit = 7) {
+  //assert(limit <= 7);
+  uint32_t d = abs(a - b);
+  if (d <= 2)d = d;
+  else if (d <= 5)d = 3; //3..5
+  else if (d <= 9)d = 4; //6..9
+  else if (d <= 14)d = 5; //10..14
+  else if (d <= 23)d = 6; //15..23
+  else d = 7; //24..255
+  const uint8_t sign = a > b ? 8 : 0;
+  return sign | min(d, limit);
+}

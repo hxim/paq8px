@@ -67,7 +67,7 @@ void Models::trainText(const char* const dictionary, int iterations) {
           wordModel.mix(mDummy); //update (train) model
           mDummy.p();
           int y = (c1 >> (7 - bpos)) & 1;
-          shared->update(y, false);
+          shared->update(y, 2048, false);
         }
       }
       // emulate a space before and after each word/expression
@@ -80,7 +80,7 @@ void Models::trainText(const char* const dictionary, int iterations) {
           wordModel.mix(mDummy); //update (train) model
           mDummy.p();
           int y = (c1 >> (7 - bpos)) & 1;
-          shared->update(y, false);
+          shared->update(y, 2048, false);
         }
       }
     } while ((c = f.getchar()) != EOF);
@@ -109,7 +109,7 @@ void Models::trainExe() {
       exeModel.mix(mDummy); //update (train) model
       mDummy.p();
       int y = (c >> (7 - bpos)) & 1;
-      shared->update(y, false);
+      shared->update(y, 2048, false);
     }
   } while ((c = f.getchar()) != EOF);
   printf(" done [%d bytes]\n", trainingByteCount);

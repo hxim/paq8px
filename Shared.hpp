@@ -96,6 +96,7 @@ public:
     uint32_t c4 = 0; /**< Last 4 whole bytes (buf(4)..buf(1)), packed.  Last byte is bits 0-7. */
     uint32_t c8 = 0; /**< Another 4 bytes (buf(8)..buf(5)) */
     uint32_t misses{}; //updated by the Predictor, used by SSE stage
+    uint32_t loss{};
 
     //written by BlockModel, used by many models 
     //see PredictorMain, ContextModel
@@ -130,10 +131,11 @@ public:
     //image models
     struct {
       struct {
-        uint8_t WW, W, NN, N, Wp1, Np1;
+        uint8_t WW, W, NN, N;
       } pixels; //used by SSE stage
       uint8_t plane; //used by SSE stage
       uint8_t ctx; //used by SSE stage
+      uint32_t lossQ; //used by SSE stage
     } Image{};
 
     //AudioModel
@@ -186,7 +188,7 @@ public:
   Shared();
 
   void init(uint8_t level, uint32_t bufMem = 0);
-  void update(int y, bool isMissed);
+  void update(int y, uint32_t p, bool isMissed);
   void reset();
   UpdateBroadcaster *GetUpdateBroadcaster() const;
 

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include <cassert>
@@ -155,23 +155,3 @@ inline uint8_t clamp4(const int px, const uint8_t n1, const uint8_t n2, const ui
 }
 
 
-
-
-//distance (absolute difference) between two 8-bit pixel values, quantized
-//used by 8-bit and 24-bit image models
-inline uint8_t DiffQt(const uint8_t a, const uint8_t b, const uint8_t limit = 7) {
-  //assert(limit <= 7);
-  uint32_t d = abs(a - b);
-  if (d <= 2)d = d;
-  else if (d <= 5)d = 3; //3..5
-  else if (d <= 9)d = 4; //6..9
-  else if (d <= 14)d = 5; //10..14
-  else if (d <= 23)d = 6; //15..23
-  else d = 7; //24..255
-  const uint8_t sign = a > b ? 8 : 0;
-  return sign | min(d, limit);
-}
-
-inline uint32_t logQt(const uint8_t px, const uint8_t bits) {
-  return (uint32_t(0x100 | px)) >> max(0, static_cast<int>(ilog2(px) - bits));
-}

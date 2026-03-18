@@ -117,7 +117,8 @@ void Mixer::update() {
     const int target = y << 12;
   for (size_t i = 0; i < numContexts; ++i) {
     const int err = target - pr[i];
-    if (err < -1 || err > 1) {
+    int lim = mp == nullptr ? 6 : 17;
+    if (err < -lim || err > lim) { // skip training when error is low
       rates[i] = updateLearningRate(isAdaptiveLearningRate, info[i], rates[i], err, lowerLimitOfLearningRate);
       train(&wx[cxt[i] * n], nx, (err * rates[i]) >> 16);
     }

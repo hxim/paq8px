@@ -13,7 +13,8 @@
 /**
  * Model for 8-bit image data (grayscale/indexed)
  */
-class Image8BitModel {
+class Image8BitModel
+{
 private:
   static constexpr int nSM0 = 2;
   static constexpr int nSM1 = 55;
@@ -25,20 +26,20 @@ private:
 
 public:
   static constexpr int MIXERINPUTS =
-    nSM * StationaryMap::MIXERINPUTS + 
-    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) + 
+    nSM * StationaryMap::MIXERINPUTS +
+    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
     nIM * IndirectMap::MIXERINPUTS; //464
   static constexpr int MIXERCONTEXTS = 512 + 16 + 32 + 255 + 1024 + 64 + 128 + 256; /**< 2286 */
   static constexpr int MIXERCONTEXTSETS = 8;
 
-  Shared * const shared;
+  Shared* const shared;
   ContextMap2 cm;
   StationaryMap map[nSM];
   SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
   IndirectMap sceneMap[nIM];
   IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */
-  Array<short> jumps {0x8000};
+  Array<short> jumps{ 0x8000 };
   //pixel neighborhood
   uint8_t WWWWWW = 0, WWWWW = 0, WWWW = 0, WWW = 0, WW = 0, W = 0;
   uint8_t NWWWW = 0, NWWW = 0, NWW = 0, NW = 0, N = 0, NE = 0, NEE = 0, NEEE = 0, NEEEE = 0;
@@ -63,26 +64,26 @@ public:
   int frameWidth = 0;
   int prevFrameWidth = 0;
   bool filterOn = false;
-  int columns[2] = {1, 1}, column[2] {};
-  uint8_t mapContexts[nSM1] = {0};
-  uint8_t pOLS[nOLS] = {0};
+  int columns[2] = { 1, 1 }, column[2]{};
+  uint8_t mapContexts[nSM1] = { 0 };
+  uint8_t pOLS[nOLS] = { 0 };
 
-  static constexpr float lambda[nOLS] = {0.996f, 0.87f, 0.93f, 0.8f, 0.9f};
-  static constexpr int num[nOLS] = {32, 12, 15, 10, 14};
+  static constexpr float lambda[nOLS] = { 0.996f, 0.87f, 0.93f, 0.8f, 0.9f };
+  static constexpr int num[nOLS] = { 32, 12, 15, 10, 14 };
   static constexpr float nu = 0.001f;
   std::unique_ptr<OLS_float> ols[nOLS];
   std::unique_ptr<OLS_float> sceneOls;
 
-  const uint8_t *olsCtx1[32] = {&WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
+  const uint8_t* olsCtx1[32] = { &WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
                                 &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
-                                &NNNNNN};
-  const uint8_t *olsCtx2[12] = {&WWW, &WW, &W, &NWW, &NW, &N, &NE, &NEE, &NNW, &NN, &NNE, &NNN};
-  const uint8_t *olsCtx3[15] = {&N, &NE, &NEE, &NEEE, &NEEEE, &NN, &NNE, &NNEE, &NNEEE, &NNN, &NNNE, &NNNEE, &NNNN, &NNNNE, &NNNNN};
-  const uint8_t *olsCtx4[10] = {&N, &NE, &NEE, &NEEE, &NN, &NNE, &NNEE, &NNN, &NNNE, &NNNN};
-  const uint8_t *olsCtx5[14] = {&WWWW, &WWW, &WW, &W, &NWWW, &NWW, &NW, &N, &NNWW, &NNW, &NN, &NNNW, &NNN, &NNNN};
-  const uint8_t **olsCtxs[nOLS] = {&olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0]};
+                                &NNNNNN };
+  const uint8_t* olsCtx2[12] = { &WWW, &WW, &W, &NWW, &NW, &N, &NE, &NEE, &NNW, &NN, &NNE, &NNN };
+  const uint8_t* olsCtx3[15] = { &N, &NE, &NEE, &NEEE, &NEEEE, &NN, &NNE, &NNEE, &NNEEE, &NNN, &NNNE, &NNNEE, &NNNN, &NNNNE, &NNNNN };
+  const uint8_t* olsCtx4[10] = { &N, &NE, &NEE, &NEEE, &NN, &NNE, &NNEE, &NNN, &NNNE, &NNNN };
+  const uint8_t* olsCtx5[14] = { &WWWW, &WWW, &WW, &W, &NWWW, &NWW, &NW, &N, &NNWW, &NNW, &NN, &NNNW, &NNN, &NNNN };
+  const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0] };
 
   Image8BitModel(Shared* const sh, uint64_t size);
   void setParam(int info0, uint32_t gray0);
-  void mix(Mixer &m);
+  void mix(Mixer& m);
 };

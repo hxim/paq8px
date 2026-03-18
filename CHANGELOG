@@ -2079,3 +2079,17 @@ paq8px_v212 by Zoltán Gotthardt
 - Cosmetics:
   - Don't log optimization param to the logfile when it's not specified.
   - Cosmetics in Hash and in Arithmetic encoder.
+
+
+paq8px_v213 by Zoltán Gotthardt
+2026.03.17
+- Speed improvement:
+  - Mixer: skip training when error is low (thank you, Kaitz!)
+- Model improvements:
+  - Improvements in the Image24BitModel. New probability map: ResidualMap.
+  - Use color component as context in NormalModel for the 24-bit image model.
+  - Slightly tuned contexts in Audio16BitModel.
+- Cosmetics:
+  - Fixed some typos (thanks Dark1510!)
+  - Enhanced build on linux / arch (thanks Dark1510!)
+  - Fix ARM64 build (thanks rafael2k!)
