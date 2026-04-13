@@ -33,7 +33,7 @@ public:
 
   void encode(File *in, File *out, uint64_t size, int width, int & /*headerSize*/) override {
     uint32_t r = 0;
-    uint32_t g = 0;
+    uint32_t g = 0; // green is always the middle channel in both RGB and BGR images, the transform is symmetric in r and b
     uint32_t b = 0;
     for( int i = 0; i < static_cast<int>(size / width); i++ ) {
       for( int j = 0; j < width / stride; j++ ) {
@@ -52,9 +52,13 @@ public:
           }
           isPossibleRgb565 = rgb565Run > 0;
         }
+        if (!skipRgb) {
+          r = g - r;
+          b = g - b;
+        }
         out->putChar(g);
-        out->putChar(skipRgb ? r : g - r);
-        out->putChar(skipRgb ? b : g - b);
+        out->putChar(r);
+        out->putChar(b);
         if (stride == 4) {
           out->putChar(in->getchar());
         }
@@ -84,7 +88,8 @@ public:
           a = encoder->decompressByte(encoder->predictorMain);
         }
         if( !skipRgb ) {
-          r = g - r, b = g - b;
+          r = g - r;
+          b = g - b;
         }
         if( isPossibleRgb565 ) {
           if( rgb565Run >= rgb565MinRun ) {

@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 
-struct HashElementForMatchPositions { // sizeof(HashElementForMatchPositions) = 3*4 = 12
+struct HashElementForMatchPositions {
   static constexpr size_t N = 3;
   uint32_t matchPositions[N];
   void Add(uint32_t pos) {
@@ -12,3 +12,5 @@ struct HashElementForMatchPositions { // sizeof(HashElementForMatchPositions) = 
     matchPositions[0] = pos;
   }
 };
+
+static_assert(sizeof(HashElementForMatchPositions) == 3 * 4);

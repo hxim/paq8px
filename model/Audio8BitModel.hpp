@@ -4,7 +4,7 @@
 #include "../Ilog.hpp"
 #include "../LMS.hpp"
 #include "../OLS_factory.hpp"
-#include "../SmallStationaryContextMap.hpp"
+#include "../ResidualMap.hpp"
 #include <cmath>
 #include <cstdint>
 
@@ -13,8 +13,19 @@ private:
   static constexpr int nOLS = 8;
   static constexpr int nLMS = 3;
   static constexpr int nSSM = nOLS + nLMS + 3;
-  static constexpr int nCtx = 3;
-  SmallStationaryContextMap sMap1B[nSSM][nCtx];
+  static constexpr int nCtx = 4; //mapR1..mapR4
+
+  ResidualMap mapR1;
+  ResidualMap mapR2;
+  ResidualMap mapR3;
+  ResidualMap mapR4;
+
+  uint32_t loss = 255; // decoding cost for the current byte, accumulated bit by bit (0..255 over 8 bits)
+  uint32_t lossQ = 0; // exponential average of loss
+  // measures local audio complexity: low = smooth region, high = noisy/detailed region
+
+  int predErrBuf0[nSSM]{};
+  int predErrBuf1[nSSM]{};
 
   std::unique_ptr<LMS> lms[nLMS][2]; // 2: channels
 
@@ -32,7 +43,7 @@ private:
   uint32_t mxCtx = 0;
 
 public:
-  static constexpr int MIXERINPUTS = nCtx * nSSM * SmallStationaryContextMap::MIXERINPUTS; // 84
+  static constexpr int MIXERINPUTS = nCtx * nSSM * ResidualMap::MIXERINPUTS; // 112
   static constexpr int MIXERCONTEXTS = 4096 + 2048 + 2048 + 256 + 10; // 8458
   static constexpr int MIXERCONTEXTSETS = 5;
 

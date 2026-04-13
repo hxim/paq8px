@@ -14,10 +14,9 @@
  */
 class Image24BitModel {
 private:
-  static constexpr int nDM = 102;
+  static constexpr int nDM = 117;
   static constexpr int nOLS = 6;
-  static constexpr int nSM = nOLS;
-  static constexpr int nLSM = 43;
+  static constexpr int nLSM = 40;
   static constexpr int nCM = 30;
   Ilog *ilog = &Ilog::getInstance();
 
@@ -25,28 +24,29 @@ public:
   static constexpr int MIXERINPUTS =
     nLSM * LargeStationaryMap::MIXERINPUTS +
     (nDM * 3) * ResidualMap::MIXERINPUTS +
-    nSM * StationaryMap::MIXERINPUTS +
-    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); // 909
-  static constexpr int MIXERCONTEXTS = (1 + 4 * 8) + (16 * 4) + 256 + 256 + 512 + 2048 + (8 * 32) + (6 * 64) + 1024 + 8192 + 256; // 13281
-  static constexpr int MIXERCONTEXTSETS = 11;
+    (nOLS * 2) * ResidualMap::MIXERINPUTS +
+    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); // 996
+  static constexpr int MIXERCONTEXTS =
+    (1 + 8) + 8 + (8 * 8) + (8 * 8) + 16 + 512 + 256 + (16 * 8) + (8 * 4) + 1024 + (4 * 8) + 256
+    + (nDM + nOLS) + (nDM + nOLS) + 32 * 32 + 32 * 32 + 512 + 64 * 8 + 64 * 4 + 8 * 8 * 4; // 6231
+  static constexpr int MIXERCONTEXTSETS = 20; 
 
   Shared * const shared;
 
   // probability maps
   ContextMap2 cm;
-  ResidualMap mapR1, mapR2, mapR3;
+  ResidualMap mapR1, mapR2, mapR3, mapOLS1, mapOLS2;
   LargeStationaryMap mapL;
-  StationaryMap map[nSM];
 
-  // Per-predictor signed prediction error for each decoded pixel.
-  // Stores int8 (prediction - actual) for all nDM predictors at every pixel position.
+  // Per-predictor prediction error for each decoded pixel.
+  // Stores uint8 rabs(prediction - actual) for all nDM and nOLS predictors at every pixel position.
   // Read back via PredErr(ctxIndex, relX, relY) to estimate how well each predictor
-  // performed on causal neighbors (W, N, NW, NE of the current pixel, same color plane).
+  // performed on causal neighbors (W, N, NW, NE, WW, NN of the current pixel, same color plane).
   // The averaged absolute error across those neighbors feeds mapR1's histogram selection,
   // giving it a spatially-local, per-predictor confidence signal:
   // low value = predictor was accurate nearby.
   // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nDM).
-  static constexpr size_t PRED_ERR_BUF_ROWS = 2; // two rows (including the current row) - we need to reach the predistion error of N, NW, NE
+  static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
   RingBuffer<uint8_t> predErrBuf{ 0 };
 
   // Per-pixel accumulated decoding cost (loss), one byte per pixel per color plane.
@@ -56,12 +56,16 @@ public:
   // lossQ feeds mapR2's histogram selection,
   // allowing statistical maps to adapt to smooth vs. noisy/high-frequency regions.
   // Sized in init() to cover LOSS_BUF_ROWS rows: nextPowerOf2(LOSS_BUF_ROWS * w).
-  static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the predistion error of NN
+  static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of NN
   RingBuffer<uint8_t> lossBuf{ 0 };
 
-  uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..255 over 8 bits)
+  static constexpr size_t BEST_PRED_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N and W+1, N+1
+  RingBuffer<uint8_t> bestPredictorIndexes { 0 };
+
+  uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..1023 over 8 bits)
   uint32_t lossQ = 0; // sum of lossBuf[] over 6 causal neighbors (W, N, WW, NN, NW, NE), capped at 639;
                       // measures local image complexity: low = smooth region, high = noisy/detailed region
+  uint8_t lossQ4 = 0; // lossQ quantized to 3 bits
 
   // pixel neighborhood
   uint8_t WWWWWW = 0, WWWWW = 0, WWWW = 0, WWW = 0, WW = 0, W = 0;
@@ -80,9 +84,14 @@ public:
   int stride = 3;
   uint32_t ctx[2]{}, padding = 0, x = 0, w = 0, line = 0;
   uint32_t lastPos = 0;
-  int columns[2] = {1, 1}, column[2]{};
-  uint32_t predictions[nDM] = { 0 };
-  uint8_t pOLS[nOLS] = {0}; // Clipped OLS predictions (one per OLS predictor), used as input to StationaryMap.
+  uint32_t predictions[nDM + nOLS] = { 0 };
+
+  uint8_t ctx_best_direction{};
+  uint8_t ctx_best_residual{};
+  uint8_t ctx_best_direction_p1{};
+  uint8_t ctx_best_direction_p2{};
+
+  // OLS
 
   static constexpr float lambda[nOLS] = {0.98f, 0.87f, 0.9f, 0.8f, 0.9f, 0.7f};
   static constexpr int num[nOLS] = {32, 12, 15, 10, 14, 8};
@@ -100,13 +109,14 @@ public:
   const uint8_t **olsCtxs[nOLS] = {&olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0], &olsCtx6[0]};
 
   Image24BitModel(Shared* const sh, uint64_t size);
-  void update();
 
   ALWAYS_INLINE uint8_t Px(int relX, int relY, int colorShift) const;
   ALWAYS_INLINE uint8_t Ls(int relX, int relY) const;
   ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
+  ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
   ALWAYS_INLINE void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
   ALWAYS_INLINE void MakePredictionC(int i, int prediction);
+  ALWAYS_INLINE void MakePredictionAvg(int i, int base1, int base2);
   ALWAYS_INLINE void MakePredictionTrend(int i, int base1, int other1, int base2);
   ALWAYS_INLINE void MakePredictionSmooth(int i, int base1, int other1, int base2);
 
@@ -115,5 +125,6 @@ public:
    */
   void init();
   void setParam(int width, uint32_t alpha0);
+  void update();
   void mix(Mixer &m);
 };

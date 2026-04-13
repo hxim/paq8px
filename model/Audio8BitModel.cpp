@@ -2,12 +2,12 @@
 #include "../BitCount.hpp"
 
 Audio8BitModel::Audio8BitModel(Shared* const sh) : AudioModel(sh),
-sMap1B{ /* SmallStationaryContextMap : BitsOfContext, InputBits, Rate, Scale */
-  /*nOLS: 0-3*/ {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}},
-  /*nOLS: 4-7*/ {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}}, {{sh,11,1,6,128}, {sh,11,1,9,128}, {sh,11,1,7,86}},
-  /*nLMS: 0-2*/ {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}},
-  /*nSSM: 0-2*/ {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}, {{sh,11,1,6,86}, {sh,11,1,9,86}, {sh,11,1,7,86}}
-} {
+/* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR1{ sh, nSSM, 1 << 6, 64 }, 
+  mapR2{ sh, nSSM, 1 << 6, 64 },
+  mapR3{ sh, nSSM, 1 << 6, 96 },
+  mapR4{ sh, nSSM, 1 << 6, 96 }
+{
   /* s, d, sameChannelRate, otherChannelRate */
   lms[0][0] = LMS::create(sh->chosenSimd, 1280, 640, 3e-5f, 2e-5f);
   lms[0][1] = LMS::create(sh->chosenSimd, 1280, 640, 3e-5f, 2e-5f);
@@ -42,10 +42,29 @@ void Audio8BitModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
   INJECT_SHARED_blockPos
   INJECT_SHARED_c1
+
+  loss += shared->State.loss; // += 0..255
+
   if( bpos == 0 ) {
+
     ch = (stereo) != 0 ? blockPos & 1 : 0;
     const int8_t s = static_cast<int32_t>(((wMode & 4) > 0) ? c1 ^ 128 : c1) - 128;
     const int pCh = ch ^ stereo;
+
+    for (int i = 0; i < nSSM; i++) {
+      int prediction0 = prd[i][pCh][0] + 128;
+      uint8_t err0 = abs(c1 - prediction0); // 0..255
+      predErrBuf0[i] = ((predErrBuf0[i] * 15) >> 4) + err0; // -> 4065
+
+      int prediction1 = prd[i][pCh][1] + 128;
+      uint8_t err1 = abs(c1 - prediction1); // 0..255
+      predErrBuf1[i] = ((predErrBuf1[i] * 15) >> 4) + err1; // -> 4065
+    }
+
+    lossQ = (lossQ * 15) >> 4;
+    lossQ += loss;  // +0..2040 -> max: 32625, typical: ~ 4000s
+    loss = 0;
+
     int i = 0;
     for( errLog = 0; i < nOLS; i++ ) {
       ols[i][pCh].get()->update(s);
@@ -150,18 +169,24 @@ void Audio8BitModel::mix(Mixer &m) {
     for( i = 0; i < nSSM; i++ ) {
       prd[i][ch][1] = signedClip8(prd[i][ch][0] + residuals[i][pCh]);
     }
+
+    auto lossQ5bit = min(lossQ / 384, 31);
+    for (int i = 0; i < nSSM; i++) {
+      mapR1.set(prd[i][ch][0] + 128, lossQ5bit << 1 | ch);
+      mapR2.set(prd[i][ch][1] + 128, lossQ5bit << 1 | ch);
+      mapR3.set(prd[i][ch][0] + 128, min(predErrBuf0[i] >> 4, 31) << 1 | ch);
+      mapR4.set(prd[i][ch][1] + 128, min(predErrBuf1[i] >> 4, 31) << 1 | ch);
+    }
   }
+
+  // for every bit
+
+  mapR1.mix(m);
+  mapR2.mix(m);
+  mapR3.mix(m);
+  mapR4.mix(m);
+
   INJECT_SHARED_c0
-  const int8_t b = c0 << (8 - bpos);
-  for( int i = 0; i < nSSM; i++ ) {
-    const uint32_t ctx = (prd[i][ch][0] - b) * 8 + bpos;
-    sMap1B[i][0].set(ctx);
-    sMap1B[i][1].set(ctx);
-    sMap1B[i][2].set((prd[i][ch][1] - b) * 8 + bpos);
-    sMap1B[i][0].mix(m);
-    sMap1B[i][1].mix(m);
-    sMap1B[i][2].mix(m);
-  }
   m.set((errLog << 8) | c0, 4096);
   m.set((uint8_t(mask) << 3) | (ch << 2) | (bpos >> 1), 2048);
   m.set((mxCtx << 7) | (c1 >> 1), 1280);

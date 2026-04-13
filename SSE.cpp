@@ -75,7 +75,6 @@ uint32_t SSE::p(const uint32_t pr_orig) {
 
   assert(shared->State.Image.plane <= 3);
   assert(shared->State.Image.lossQ <= 639);
-  assert(shared->State.loss <= 255);
 
   //uint32_t misses4 = shared->State.misses & 15u;
   uint32_t misses = shared->State.misses << ((8 - bpos) & 7); //byte-aligned

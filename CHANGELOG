@@ -2093,3 +2093,13 @@ paq8px_v213 by Zoltán Gotthardt
   - Fixed some typos (thanks Dark1510!)
   - Enhanced build on linux / arch (thanks Dark1510!)
   - Fix ARM64 build (thanks rafael2k!)
+
+
+paq8px_v214 by Zoltán Gotthardt
+2026.04.13
+- Audio8BitModel: use ResidualMap instead of SmallStationaryContextMap.
+- Image24BitModel: 
+  - Use independent mixers per color channel.
+  - Tuned mixer scaling factor and lower limit of learning rate, removed bias.
+  - Use ResidualMap instead of StationaryMap for OLS.
+  - Added and optimized contexts and mixer contexts.

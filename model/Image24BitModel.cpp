@@ -5,11 +5,10 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
   cm(sh, size, nCM, 64),
   mapL{ sh, nLSM, 23, 74 },     /* LargeStationaryMap : Contexts, HashBits, Scale=64, Rate=16 */
   mapR1{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  mapR2{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR2{ sh, nDM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapR3{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  map{ /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
-    /*nOLS: 0- 5*/ {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}, {sh,11,1,74}
-  }
+  mapOLS1{ sh, nOLS, 1 << 7, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapOLS2{ sh, nOLS, 1 << 5, 74 }   /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
 {
   for (int i = 0; i < nOLS; i++) {
     for (int j = 0; j < 4; j++) { // RGBA color components
@@ -54,7 +53,8 @@ ALWAYS_INLINE uint8_t Image24BitModel::Ls(int relX, int relY) const {
   if (x - relX >= w)
     return 255;
   int offset = relY * w + relX;
-  return lossBuf(offset);
+  const uint32_t valuesPerByte = 1;
+  return lossBuf((offset - 1) * valuesPerByte + 1);
 }
 
 ALWAYS_INLINE uint8_t Image24BitModel::GetPredErr(const uint32_t ctxIndex, int relX, int relY) const {
@@ -65,12 +65,42 @@ ALWAYS_INLINE uint8_t Image24BitModel::GetPredErr(const uint32_t ctxIndex, int r
     return 255;
   if (x - relX >= w)
     return 255;
-  int offset = relY * w + relX - 1;
-  return predErrBuf(offset * nDM + ctxIndex + 1);
+  int offset = relY * w + relX;
+  const uint32_t valuesPerByte = (nDM + nOLS);
+  return predErrBuf((offset - 1) * valuesPerByte + ctxIndex + 1);
 }
 
-ALWAYS_INLINE int avg(int x, int y) {
+ALWAYS_INLINE uint32_t Image24BitModel::GetPredErrAvg(const uint32_t predictorIndex) const {
+  // Current pixel's prediction confidence is based on the already known error at neighboring pixel predictions
+  uint32_t predErrW = GetPredErr(predictorIndex, 1, 0);
+  uint32_t predErrN = GetPredErr(predictorIndex, 0, 1);
+  uint32_t predErrNW = GetPredErr(predictorIndex, 1, 1);
+  uint32_t predErrNE = GetPredErr(predictorIndex, -1, 1);
+  uint32_t predErrWW = GetPredErr(predictorIndex, 2, 0);
+  uint32_t predErrNN = GetPredErr(predictorIndex, 0, 2);
+  uint32_t predErrAvg = (2 * predErrW + 2 * predErrN + predErrNE + predErrNW + predErrWW + predErrNN) >> 3; // 0..255
+  return predErrAvg;
+}
+
+
+ALWAYS_INLINE static int avg(int x, int y) {
   return (x + y + 1) >> 1;  //note: rounding here works properly only when x+y is non-negative, but we don't really need the function to be aware of negative values as they are rare
+}
+
+// abs(int8_t((c1 - prediction) & 255)): circular/wraparound distance on a 256-value ring
+// int8_t cast recovers the sign from the modular difference, and abs then makes it symmetric.
+// that is:
+// (10 - 3) & 255 = 7   → int8_t(7)   = 7  → abs = 7
+// (3 - 10) & 255 = 249 → int8_t(249) = -7 → abs = 7
+// however with a large distance:
+// (2 - 200) & 255 = 58  → int8_t(58)  = 58  → abs = 58
+// (200 - 2) & 255 = 198 → int8_t(198) = -58 → abs = 58
+// ... but the true linear distance is 198. Distances above 128 are thus
+// reflected back — (200-2) and (2-200) both return 58 instead of 58 and 198.
+// This ambiguity for large differences has negligible impact compared to
+// the cost of using uint16_t to store the full 0..255 range.
+ALWAYS_INLINE static int rabs(int x1, int x2) {
+  return abs(int8_t((x1 - x2) & 255)); // 0..128
 }
 
 // Stores a prediction with a spread signal based on the distance between two reference pixels.
@@ -79,30 +109,36 @@ ALWAYS_INLINE int avg(int x, int y) {
 // Use when the prediction value is computed externally (e.g. a complex algebraic expression)
 // but a natural pair of reference pixels still exists to supply the spread signal.
 ALWAYS_INLINE void Image24BitModel::MakePrediction(int i, uint8_t ref1, uint8_t ref2, int prediction) {
-  uint32_t absdiff = abs(ref1 - ref2);
+  uint32_t absdiff = rabs(ref1, ref2);
   predictions[i] = absdiff << 16 | ((prediction) & 65535);
 }
 
 // Trend extrapolation: continues the gradient observed from pxFar to px,
 // starting from the spatial origin.
 // prediction = origin + (px - pxFar)
-// spread = abs(px - pxFar): larger gradient = more uncertain prediction.
+// spread = rabs(px - pxFar): larger gradient = more uncertain prediction.
 // Use when pixels are expected to follow a consistent directional trend
 // (e.g. continuing a horizontal, vertical, or diagonal gradient).
 ALWAYS_INLINE void Image24BitModel::MakePredictionTrend(int i, int px, int pxFar, int origin) {
-  uint32_t absdiff = abs(px - pxFar);
+  uint32_t absdiff = rabs(px, pxFar);
   int prediction = origin + px - pxFar;
   predictions[i] = absdiff << 16 | (prediction & 65535);
 }
 
 // Smoothed trend: applies the gradient at half strength instead of full extrapolation.
 // prediction = avg(origin, origin + (px - pxFar))
-// spread = abs(px - pxFar): same signal as Trend.
+// spread = rabs(px - pxFar): same signal as Trend.
 // Use in smoother regions where a full trend extrapolation would overshoot,
 // or when the gradient is expected to taper rather than continue linearly.
 ALWAYS_INLINE void Image24BitModel::MakePredictionSmooth(int i, int px, int pxFar, int origin) {
-  uint32_t absdiff = abs(px - pxFar);
+  uint32_t absdiff = rabs(px, pxFar);
   int prediction = avg(origin, origin + px - pxFar);
+  predictions[i] = absdiff << 16 | (prediction & 65535);
+}
+
+ALWAYS_INLINE void Image24BitModel::MakePredictionAvg(int i, int px1, int px2) {
+  uint32_t absdiff = rabs(px1, px2);
+  int prediction = avg(px1, px2);
   predictions[i] = absdiff << 16 | (prediction & 65535);
 }
 
@@ -117,11 +153,24 @@ void Image24BitModel::update() {
   INJECT_SHARED_bpos
   INJECT_SHARED_c1
 
-  if (color != 4) // no need to accumulate loss from the padding zone
-    loss += shared->State.loss; // += 0..255
+  if (color < 4) // no need to accumulate loss from the padding zone
+    loss += shared->State.loss; // += 0..1023
 
   // for every byte
   if (bpos == 0) {
+
+    INJECT_SHARED_pos
+    if (pos - lastPos != 1) {
+      init();
+    }
+    else {
+      x++;
+      if (x >= w) {
+        x = 0;
+        line++;
+      }
+    }
+    lastPos = pos;
 
     INJECT_SHARED_buf
     if (x == 0) {
@@ -136,14 +185,10 @@ void Image24BitModel::update() {
       color = 4; // flag for padding zone
     }
 
-    if (color != 4) { // we are in the pixel area
+    if (color < 4) { // we are in the pixel area
 
-      assert((loss >> 3) <= 255);
-      lossBuf.add(static_cast<uint8_t>(loss >> 3));  // 0..31
+      lossBuf.add(static_cast<uint8_t>(min(loss >> 2, 255)));  // 0..255
       loss = 0;
-
-      column[0] = x / columns[0];
-      column[1] = x / columns[1];
 
       WWWWWW = Px(6, 0, 0); //buf(6*stride)
       WWWWW = Px(5, 0, 0); //buf(5*stride)
@@ -242,7 +287,42 @@ void Image24BitModel::update() {
       uint8_t NNNNWWWW = Px(4, 4, 0); //buf(4*stride + 4*w)
       uint8_t NNNNEEEE = Px(-4, 4, 0); //buf(-4*stride + 4*w)
       uint8_t NEEEEEE = Px(-6, 1, 0); //buf(-6*stride + 1*w)
-      uint8_t NNNNWWW = Px(4, 3, 0); //buf(4*stride + 3*w)
+      uint8_t NNNWWWW = Px(4, 3, 0); //buf(4*stride + 3*w)
+      uint8_t NNNEEEE = Px(-4, 3, 0); //buf(-4*stride + 3*w)
+
+      // mixer context: edge detection
+
+      // Vertical ↓ (0)
+      int r_N_vert = rabs(N, (NN * 2 - NNN));
+      int r_W_vert = rabs(W, (NW * 2 - NNW));
+      int r_NE_vert = rabs(NE, (NNE * 2 - NNNE));
+      int score_vert = (2 * r_N_vert + r_W_vert + r_NE_vert) / 4;
+
+      // Horizontal → (1)
+      int r_W_horiz = rabs(W, (WW * 2 - WWW));
+      int r_N_horiz = rabs(N, (NW * 2 - NWW));
+      int score_horiz = (2 * r_W_horiz + r_N_horiz) / 3;
+
+      // Diagonal ↘ (2)
+      int r_NW_diag1 = rabs(NW, (NNWW * 2 - NNNWWW));
+      int r_N_diag1 = rabs(N, (NNW * 2 - NNNWW));
+      int r_W_diag1 = rabs(W, (NWW * 2 - NNWWW));
+      int score_diag1 = (2 * r_NW_diag1 + r_N_diag1 + r_W_diag1) / 4;
+
+      // Diagonal ↙ (3)
+      int r_NE_diag2 = rabs(NE, (NNEE * 2 - NNNEEE));
+      int r_N_diag2 = rabs(N, (NNE * 2 - NNNEE));
+      int r_NEE_diag2 = rabs(NEE, (NNEEE * 2 - NNNEEEE));
+      int score_diag2 = (2 * r_NE_diag2 + r_N_diag2 + r_NEE_diag2) / 4;
+
+      ctx_best_direction = 0; // 0..3
+
+      int ctx_best_score = score_vert;
+      if (score_horiz < ctx_best_score) { ctx_best_score = score_horiz; ctx_best_direction = 1; }
+      if (score_diag1 < ctx_best_score) { ctx_best_score = score_diag1; ctx_best_direction = 2; }
+      if (score_diag2 < ctx_best_score) { ctx_best_score = score_diag2; ctx_best_direction = 3; }
+
+      ctx_best_residual = DiffQt(0, ctx_best_score); // 0..7
 
       //what was the total cost at the neighboring pixes of this same channel
       lossQ = //0 x 6 .. 255 x 6 = 0 .. 1530
@@ -255,21 +335,33 @@ void Image24BitModel::update() {
 
       // let's trim the higher part (640-1530) - it is almost always completely empty OR such high values indicate that we are off frame
       // cap at 639 = 16*40 - 1, so lossQ4 = lossQ/40 fits in [0..15]
-      lossQ = min(lossQ, 639); 
+      lossQ = min(lossQ, 639);
       shared->State.Image.lossQ = lossQ; //0..639
 
-      // Written in reverse order (nDM-1 down to 0) so that GetPredErr()'s
-      // read formula  predErr(offset * nDM + ctxIndex + 1)  resolves correctly:
+      // Written in reverse order (nDM+nOLS-1 down to 0) so that GetPredErr()'s
+      // read formula  predErr((offset-1) * (nDM+nOLS) + ctxIndex + 1)  resolves correctly:
       // after writing nDM values, predictor ctxIndex sits at ring offset -(ctxIndex+1).
-      for (int i = nDM - 1; i >= 0; i--) {
+
+
+      uint32_t lowestErr = 255;
+      uint8_t bestPredictorIndex = 0;
+      static_assert(nDM + nOLS <= 255); // the index need to fit to a byte
+      for (int i = nDM + nOLS - 1; i >= 0; i--) {
         short prediction = predictions[i] & 65535;
         uint8_t err;
         if (prediction == INT16_MAX) // currently never happens, todo
           err = 255;
         else
-          err = abs(int8_t((c1 - prediction) & 255));
+          err = rabs(c1, prediction); // 0..128
         predErrBuf.add(err); //0..63 or 255
+
+        uint32_t linearError = abs(c1 - prediction);
+        if (linearError < lowestErr) {
+          lowestErr = linearError;
+          bestPredictorIndex = i;
+        }
       }
+      bestPredictorIndexes.add(bestPredictorIndex);
 
       // these contexts are best for photographic images
 
@@ -277,10 +369,8 @@ void Image24BitModel::update() {
 
       //for tuning:
       //int z = 0;
-      //int toadd = shared->tuning_param - 1 + z;
-      //if (toskip != z) MakePredictionC(contextIdx++, p1); z++;
-      //if (toadd == z) MakePredictionC(contextIdx++, p1); z++;
-
+      //int toskip = shared->tuning_param + z;
+      //z++; if (toskip != z) MakePredictionC(contextIdx++, p1);
 
       // note about p1 and p2:
       // their semantics change depending on 'color':
@@ -290,18 +380,28 @@ void Image24BitModel::update() {
       //  color = 2 (B) -> p1 =  current pixel's G, p2 =  current pixel's R <- this is the intention
 
       // p1-based predictors
-      
+
       MakePredictionC(contextIdx++, p1); // very strong
+
       MakePredictionTrend(contextIdx++, p1, Np1, N); // strong
       MakePredictionSmooth(contextIdx++, p1, Np1, N); // strong
+      MakePrediction(contextIdx++, p1, Np1, N);
+
       MakePredictionTrend(contextIdx++, p1, Wp1, W);
       MakePredictionSmooth(contextIdx++, p1, Wp1, W);
+      MakePrediction(contextIdx++, p1, Wp1, W);
+
       MakePredictionTrend(contextIdx++, p1, NEp1, NE); // very strong
+      MakePrediction(contextIdx++, p1, NEp1, NE);
       MakePredictionTrend(contextIdx++, p1, NNp1, NN); // very strong
+      MakePrediction(contextIdx++, p1, NNp1, NN);
 
       MakePredictionTrend(contextIdx++, p1, NWp1, NW);
       MakePredictionSmooth(contextIdx++, p1, NWp1, NW);
+      MakePrediction(contextIdx++, p1, NWp1, NW);
+
       MakePredictionTrend(contextIdx++, p1, WWp1, WW);
+      MakePrediction(contextIdx++, p1, WWp1, WW);
 //    MakePredictionSmooth(contextIdx++, p1, WWp1, WW); // weak
 
       MakePredictionSmooth(contextIdx++, p1, NNEEp1, NE);
@@ -330,10 +430,13 @@ void Image24BitModel::update() {
       // p2-based predictors
 
       MakePredictionC(contextIdx++, p2); // very strong
+
       MakePredictionTrend(contextIdx++, p2, Np2, N);
       MakePredictionSmooth(contextIdx++, p2, Np2, N);
+
       MakePredictionTrend(contextIdx++, p2, Wp2, W);
       MakePredictionSmooth(contextIdx++, p2, Wp2, W);
+
       MakePredictionTrend(contextIdx++, p2, NEp2, NE);
       MakePredictionTrend(contextIdx++, p2, NNp2, NN);
       MakePredictionSmooth(contextIdx++, p2, NWp2, NW); 
@@ -363,13 +466,10 @@ void Image24BitModel::update() {
       
       // predictors using only the current color plane
       
-      MakePredictionC(contextIdx++,(N * 3 + W * 3 - NN - WW + 2) >> 2);
-      MakePrediction(contextIdx++, W, NEE, avg(W, NEE));
-      MakePredictionC(contextIdx++, ((WWW - 4 * WW + 6 * W + (NE * 4 - NNE * 6 + NNNE * 4 - NNNNE)) / 4));
-      MakePredictionC(contextIdx++, ((-WWWW + 5 * WWW - 10 * WW + 10 * W + (NE * 4 - NNE * 6 + NNNE * 4 - NNNNE)) / 5));
-      MakePredictionC(contextIdx++, ((-4 * WW + 15 * W + 10 * (NE * 3 - NNE * 3 + NNNE) - (NEEE * 3 - NNEEE * 3 + NNNEEE)) / 20));
-      MakePredictionC(contextIdx++, ((-3 * WW + 8 * W + (NEE * 3 - NNEE * 3 + NNNEE)) / 6));
-      
+      MakePredictionC(contextIdx++, (N * 3 + W * 3 - NN - WW + 2) >> 2);
+      MakePredictionAvg(contextIdx++, W, NEE);
+
+
       MakePredictionTrend(contextIdx++, W, NW, N); // very strong
       MakePredictionTrend(contextIdx++, WW, NNWW, NN); //strong?
       MakePredictionTrend(contextIdx++, WWW, NNNWWW, NNN); //strong?
@@ -404,23 +504,23 @@ void Image24BitModel::update() {
       MakePredictionC(contextIdx++, clamp4(N * 3 - NN * 3 + NNN, N, W, NE, NW)); // very strong
       MakePredictionC(contextIdx++, clamp4(W * 3 - WW * 3 + WWW, N, W, NE, NW)); // strong
       
-      MakePredictionC(contextIdx++, ((NNNNN - 6 * NNNN + 15 * NNN - 20 * NN + 15 * N + clamp4(W * 4 - NWW * 6 + NNWWW * 4 - NNNNWWW, W, NW, N, NN)) / 6)); // very strong
-      MakePredictionC(contextIdx++, ((NNNEEE - 4 * NNEE + 6 * NE + (W * 4 - NW * 6 + NNW * 4 - NNNW)) / 4));
+      MakePredictionC(contextIdx++, ((15 * N - 20 * NN + 15 * NNN - 6 * NNNN + NNNNN + clamp4(4 * W - 6 * NWW + 4 * NNWWW - NNNWWWW, W, NW, N, NN)) / 6)); // very strong
+      MakePredictionC(contextIdx++, ((6 * NE - 4 * NNEE + NNNEEE + (4 * W - 6 * NW + 4 * NNW - NNNW)) / 4));
       MakePredictionC(contextIdx++, (((N + 3 * NW) / 4) * 3 - avg(NNW, NNWW) * 3 + (NNNWW * 3 + NNNWWW) / 4));
       MakePredictionC(contextIdx++, ((W * 2 + NW) - (WW + 2 * NWW) + NWWW)); // strong
 //    MakePredictionC(contextIdx++, ((W * 2 - NW) + (W * 2 - NWW) + N + NE) / 4);  // weak
 //    MakePredictionSmooth(contextIdx++, avg(N, W), N, W);  // weak
-      MakePredictionC(contextIdx++, avg(NEEEE, NEEEEEE)); // strong
-      MakePredictionC(contextIdx++, avg(WWWWWW, WWWW));
-      MakePredictionC(contextIdx++, avg(NNNN, NNNNNN));// strong
+      MakePredictionAvg(contextIdx++, NEEEE, NEEEEEE); // strong
+      MakePredictionAvg(contextIdx++, WWWW, WWWWWW);
+      MakePredictionAvg(contextIdx++, NNNN, NNNNNN);// strong
 //    MakePredictionTrend(contextIdx++, NNNN, NNNNNN, NN); // weak
 //    MakePredictionC(contextIdx++, avg(NNNNWWWW, NNWW)); // weak
 //    MakePredictionC(contextIdx++, avg(NNNNEEEE, NNEE)); // weak
-      MakePredictionC(contextIdx++, avg(NNNNWW, NNWW));
-      MakePredictionC(contextIdx++, avg(NNNNEE, NNEE));
+      MakePredictionAvg(contextIdx++, NNNNWW, NNWW);
+      MakePredictionAvg(contextIdx++, NNNNEE, NNEE);
 //    MakePredictionTrend(contextIdx++, NNEE, NNNNEEEE, NNEE); // weak
 //    MakePredictionTrend(contextIdx++, NNEE, NNNNEE, NE); // weak
-      MakePredictionC(contextIdx++, avg(WWWWWW, WWW));
+      MakePredictionAvg(contextIdx++, WWW, WWWWWW);
 //    MakePredictionTrend(contextIdx++, WWW, WWWWWW, W);
 //    MakePredictionTrend(contextIdx++, WWWW, WWWWWW, WW); // weak
       MakePredictionC(contextIdx++, W);
@@ -431,22 +531,91 @@ void Image24BitModel::update() {
       MakePredictionTrend(contextIdx++, WW, WWWW, WW); // strong?
       MakePredictionTrend(contextIdx++, N, NN, N); // strong
       MakePredictionTrend(contextIdx++, NN, NNNN, NN);
-      MakePredictionTrend(contextIdx++, NW, NNWW, NW); 
+      MakePredictionTrend(contextIdx++, NW, NNWW, NW);
       MakePredictionTrend(contextIdx++, NNWW, NNNNWWWW, NNWW);
       MakePredictionTrend(contextIdx++, NE, NNEE, NE);
       MakePredictionTrend(contextIdx++, NNEEE, NNNNEEEE, NNEEE);
 
-      MakePredictionC(contextIdx++, avg(2 * N - NN, 2 * W - WW));
-      MakePredictionC(contextIdx++, avg(2 * W - WW, 2 * NW - NNWW));
+      MakePredictionAvg(contextIdx++, 2 * N - NN, 2 * W - WW);
+      MakePredictionAvg(contextIdx++, 2 * W - WW, 2 * NW - NNWW);
 
       MakePredictionC(contextIdx++, paeth(W, N, NW));
       MakePredictionC(contextIdx++, gap(W, N, NW, NE, WW, NNE, NN));
+
+      // 3rd-order horizontal + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (6 * W - 4 * WW + WWW + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 4);
+      // average of 1st- through 4th-order horizontal + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (10 * W - 10 * WW + 5 * WWW - WWWW + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 5);
+      // 2nd-order H + weighted blend of 3rd-order NE and 3rd-order NEEE diagonals
+      MakePredictionC(contextIdx++, (15 * W - 4 * WW + 10 * (3 * NE - 3 * NNE + NNNE) - (3 * NEEE - 3 * NNEEE + NNNEEE)) / 20); //strong
+      // 2× 1st-order + 3× 2nd-order horizontal + 3rd-order NEE diagonal
+      MakePredictionC(contextIdx++, (8 * W - 3 * WW + (3 * NEE - 3 * NNEE + NNNEE)) / 6); // very strong
+
+      // 2nd-order H + 2nd-order V, interaction-corrected
+      MakePredictionC(contextIdx++, (2 * W - WW) + (2 * N - NN) - (2 * NW - NNWW));
+
+      // 3rd-order horizontal + 4th-order NW diagonal
+//    MakePredictionC(contextIdx++, (6 * W - 4 * WW + WWW + 4 * NW - 6 * NNW + 4 * NNNW - NNNNW) / 4); // weak
+      // 4th-order horizontal + 4th-order NW diagonal
+//    MakePredictionC(contextIdx++, (10 * W - 10 * WW + 5 * WWW - WWWW + 4 * NW - 6 * NNW + 4 * NNNW - NNNNW) / 5); // weak
+
+      // 3rd-order vertical + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (6 * N - 4 * NN + NNN + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 4);
+      // 4th-order vertical + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, ((10 * N - 10 * NN + 5 * NNN - NNNN) + (4 * NE - 6 * NNE + 4 * NNNE - NNNNE)) / 5);
+
+      // 3rd-order vertical + 4th-order NW diagonal
+      MakePredictionC(contextIdx++, (6 * N - 4 * NN + NNN + 4 * NW - 6 * NNW + 4 * NNNW - NNNNW) / 4);
+      // 4th-order vertical + 4th-order NW diagonal
+      MakePredictionC(contextIdx++, ((10 * N - 10 * NN + 5 * NNN - NNNN) + (4 * NW - 6 * NNW + 4 * NNNW - NNNNW)) / 5);
+
+      // 3rd-order NE diagonal alone
+      MakePredictionC(contextIdx++, (6 * NE - 4 * NNEE + NNNEEE) / 3);
+      // 3rd-order NW diagonal alone
+//    MakePredictionC(contextIdx++, (6 * NW - 4 * NNWW + NNNWWW) / 3); // weak
+
+      // 3rd-order H + 3rd-order V, interaction-corrected
+      MakePredictionC(contextIdx++, ((6 * W - 4 * WW + WWW) + (6 * N - 4 * NN + NNN) - (6 * NW - 4 * NNWW + NNNWWW)) / 3);
+
+      // 5th-order horizontal
+      MakePredictionC(contextIdx++, (15 * W - 20 * WW + 15 * WWW - 6 * WWWW + WWWWW) / 5); // strong
+
+      // symmetric NE+NW blend, N-corrected
+      MakePredictionC(contextIdx++, (2 * NE - NNEE) + (2 * NW - NNWW) - (2 * N - NN));
+
+      // 2nd-order H + 2nd-order V + 2nd-order NE + 2nd-order NW, fully interaction-corrected
+//    MakePredictionC(contextIdx++, (2 * W - WW) + (2 * N - NN) - (2 * NE - NNEE));
+
+      // 4th-order horizontal
+//    MakePredictionC(contextIdx++, (10 * W - 10 * WW + 5 * WWW - WWWW) / 4);
+
+      // 3rd-order vertical
+//    MakePredictionC(contextIdx++, (6 * N - 4 * NN + NNN) / 3);
+
+      // 4th-order vertical
+//    MakePredictionC(contextIdx++, (10 * N - 10 * NN + 5 * NNN - NNNN) / 4);
+      // 5th-order vertical
+//    MakePredictionC(contextIdx++, (15 * N - 20 * NN + 15 * NNN - 6 * NNNN + NNNNN) / 5);
+
+      // 2nd-order NE diagonal
+//    MakePredictionC(contextIdx++, (2 * NE - NNEE));
+
+      // 2nd-order NW diagonal
+//    MakePredictionC(contextIdx++, (2 * NW - NNWW));
+
 
       MakePredictionC(contextIdx++, 0);
 
       assert(contextIdx == nDM);
 
-      uint32_t lossQ4 = (lossQ / 40u);  //0..15 (4 bits)
+      //quality metric: quantized past loss in the pixel neighborhood 
+      lossQ4 =
+        color == 2 ? (lossQ < 1 ? lossQ : min(1 + ((lossQ - 1) / 40u), 7)) :
+        color == 1 ? (lossQ < 8 ? (lossQ >> 2) : min(2 + ((lossQ - 8) / 40u), 7)) :
+        min(lossQ / 40u, 7); //0..7 (3 bits)
+
+      // map the predictions to histograms
+
       for (int i = 0; i < nDM; i++) {
         uint32_t spread = predictions[i] >> 16;
         short prediction = predictions[i] & 65535;
@@ -456,37 +625,34 @@ void Image24BitModel::update() {
           mapR3.skip();
         }
         else {
-          // Curent pixel's prediction confidence is based on the already known error at neighboring pixel predictions
-          uint8_t predErrW = GetPredErr(i, 1, 0); //W
-          uint8_t predErrN = GetPredErr(i, 0, 1); //N
-          uint8_t predErrNW = GetPredErr(i, 1, 1); //NW
-          uint8_t predErrNE = GetPredErr(i, -1, 1); //NE
-          uint32_t predErrAvg = (predErrW + predErrN + predErrNE + predErrNW + 2) >> 2; //0..255
-          mapR1.set(prediction, min(predErrAvg, 31) << 2 | color); //5+2 bits
-          mapR2.set(prediction, lossQ4 << 2 | color); //0..31, 0..3 (5+2 bits)
-          mapR3.set(prediction, min(spread, 31) << 2 | color); //5+2 bits
+          uint32_t predErrAvg = GetPredErrAvg(i);
+          mapR1.set(prediction, min(predErrAvg, 31) << 2 | color); // 0..31, 0..3 (5+2 bits)
+          mapR2.set(prediction, lossQ4 << 2 | color); // 0..7, 0..3 (3+2 bits)
+          mapR3.set(prediction, min(spread, 31) << 2 | color); // 5+2 bits
         }
       }
 
-      int k = (color > 0) ? color - 1 : stride - 1; //previous color index
+      // OLS predictors
+
+      int k = (color > 0) ? color - 1 : stride - 1; // previous color index
       for (int j = 0; j < nOLS; j++) {
+        ols[j][k]->update(p1);
         auto ols_j_color = ols[j][color].get();
         auto ols_ctx_j = olsCtxs[j];
         for (int ctx_idx = 0; ctx_idx < num[j]; ctx_idx++) {
           float val = *ols_ctx_j[ctx_idx];
           ols_j_color->add(val);
         }
-        float prediction = ols_j_color->predict();
-        pOLS[j] = clip(int(roundf(prediction)));
-        ols[j][k]->update(p1);
+        float pred = ols_j_color->predict();
+        short prediction = short(roundf(pred));
+        MakePredictionC(contextIdx++, prediction);
+
+        uint32_t predErrAvg = GetPredErrAvg(j + nDM);
+        mapOLS1.set(prediction, min(predErrAvg, 31) << 2 | color); // 0..31, 0..3 (5+2 bits)
+        mapOLS2.set(prediction, lossQ4 << 2 | color); // 0..7, 0..3 (3+2 bits)
       }
 
-      int mean = (W + NW + N + NE + 2) >> 2;
-      int diff4 =
-        DiffQt(W, N, 4) << 12 |
-        DiffQt(NW, NE, 4) << 8 |
-        DiffQt(NW, N, 4) << 4 |
-        DiffQt(W, NE, 4);
+      assert(contextIdx == nDM + nOLS);
 
       // these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
       // todo: review and optimize these contexts
@@ -502,14 +668,17 @@ void Image24BitModel::update() {
       cm.set(R_, hash(++i, W, p2));
       cm.set(R_, hash(++i, N, p1));
       cm.set(R_, hash(++i, N, p2));
+      cm.set(R_, hash(++i, p1, p2));
       cm.set(R_, hash(++i, N, NN, p1));
       cm.set(R_, hash(++i, N, NN, p2));
       cm.set(R_, hash(++i, W, WW, p1));
       cm.set(R_, hash(++i, W, WW, p2));
       cm.set(R_, hash(++i, N, W, p1, p2));
+
+      cm.set(R_, hash(++i, W, WW, N, NN));
+      cm.set(R_, hash(++i, W, N, NE, NW));
       
       cm.set(R_, hash(++i, (NNN + N + 4) >> 3, (N * 3 - NN * 3 + NNN) >> 1));
-      cm.set(R_, hash(++i, ((-WWWW + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + NNNE * 4 - NNNNE, N, NE, NEE, NEEE)) / 5) / 4));
       cm.set(R_, hash(++i, (W + N - NW) >>1, (W + p1 - Wp1) >>1));
       cm.set(R_, hash(++i, W >> 2, DiffQt(W, p1), DiffQt(W, p2)));
       cm.set(R_, hash(++i, N >> 2, DiffQt(N, p1), DiffQt(N, p2)));
@@ -523,38 +692,41 @@ void Image24BitModel::update() {
       cm.set(R_, hash(++i, (W * 2 - WW), DiffQt(N, (NW * 2 - NWW))));
       cm.set(R_, hash(++i, (W + NEE + 1) >> 1, DiffQt(W, (WW + NE + 1) >> 1)));
       cm.set(R_, hash(++i, (W + NEE - NE), DiffQt(W, (WW + NE - N))));
-      cm.set(R_, hash(++i, (clamp4((W * 2 - WW) + (N * 2 - NN) - (NW * 2 - NNWW), W, NW, N, NE))));
-      cm.set(R_, hash(++i, (W + N - NW), column[0]));
       cm.set(R_, hash(++i, N, NN, NNN));
       cm.set(R_, hash(++i, W, WW, WWW));
-      cm.set(R_, hash(++i, N, column[0]));
-      cm.set(R_, hash(++i, column[1]));
-      cm.set(R_, hash(++i, mean, diff4));
+
+      int div7 = max((x / stride) >> 10, 7);
+      int div17 = max((x / stride) >> 9, 17);
+      int div29 = max((x / stride) >> 8, 29);
+
+      cm.set(R_, hash(++i, w, x / stride / div7));
+      cm.set(R_, hash(++i, w, x / stride / div17, line / 17));
+      cm.set(R_, hash(++i, w, x / stride / div29, uint8_t(W + N - NW) >> 1));
 
       assert(i - color * 1024 == nCM);
 
-      // todo: review and optimize these contexts
+      ctx[0] =  // 9 bits
+        (static_cast<int>(rabs(W, NW) > 3) << 8) |
+        (static_cast<int>(rabs(NW, N) > 3) << 7) |
+        (static_cast<int>(rabs(N, NE) > 3) << 6) |
+        (static_cast<int>(N > NW) << 5) |
+        (static_cast<int>(N > NE) << 4) |
+        (static_cast<int>(N > NN) >> 3) |
+        (static_cast<int>(W > N) << 2) |
+        (static_cast<int>(W > NW) << 1) |
+        (static_cast<int>(W > WW) << 0);
 
-      ctx[0] = (min(color,stride - 1) << 9) |
-        (static_cast<int>(abs(W - N) > 3) << 8) |
-        (static_cast<int>(W > N) << 7) |
-        (static_cast<int>(W > NW) << 6) |
-        (static_cast<int>(abs(N - NW) > 3) << 5) |
-        (static_cast<int>(N > NW) << 4) |
-        (static_cast<int>(abs(N - NE) > 3) << 3) |
-        (static_cast<int>(N > NE) << 2) |
-        (static_cast<int>(W > WW) << 1) |
-        static_cast<int>(N > NN);
-      ctx[1] = ((DiffQt(p1, (Np1 + NEp1 - buf(w * 2 - stride + 1))) >> 1) << 5) |
-        ((DiffQt((N + NE - NNE), (N + NW - NNW)) >> 1) << 2) |
-        min(color, stride - 1);
 
-      shared->State.Image.plane = min(color, stride - 1);
+      ctx[1] =  // 8 bits
+        (DiffQt(p1, (Np1 + NEp1 - NNEp1))) << 4 |
+        (DiffQt((N + NE - NNE), (N + NW - NNW)));
+
+      shared->State.Image.plane = color;
       shared->State.Image.pixels.W = W;
       shared->State.Image.pixels.N = N;
       shared->State.Image.pixels.NN = NN;
       shared->State.Image.pixels.WW = WW;
-      shared->State.Image.ctx = ctx[0] >> 3;
+      shared->State.Image.ctx = ((color << 9) | ctx[0]) >> 3; // 8 bits
     }
   }
 
@@ -563,26 +735,30 @@ void Image24BitModel::update() {
   if (color != 4) {
     INJECT_SHARED_c0
 
-    //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
-    //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
+      //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
+      //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
 
-    int i = (c0 << 2 | color) * 256;
+      int i = (c0 << 2 | color) * 256;
 
-    mapL.set(hash(++i, p2)); // strong
+    //for tuning:
+    //int toskip = shared->tuning_param - 1 + i;
+    //if (toskip == i) mapL.skip(), i++; else 
+
+    mapL.set(hash(++i, p2)); // very strong
     mapL.set(hash(++i, p1, p2)); // strong
 
     // W
-    mapL.set(hash(++i, W, p1));
+//  mapL.set(hash(++i, W, p1)); // weak
     mapL.set(hash(++i, W, p2)); // strong
     mapL.set(hash(++i, W, p1, p2));
 
     // N
-    mapL.set(hash(++i, N, p1)); // strong
-    mapL.set(hash(++i, N, p2));
+//  mapL.set(hash(++i, N, p1)); // weak
+//  mapL.set(hash(++i, N, p2)); // weak
     mapL.set(hash(++i, N, Np1, Np2));
 
     // W + N
-    mapL.set(hash(++i, W, N, p1, p2));
+//  mapL.set(hash(++i, W, N, p1, p2));  // weak
     mapL.set(hash(++i, W, p1, p2, N, Np1));
     mapL.set(hash(++i, W, p1, p2, N, Np1, Np2));
 
@@ -593,18 +769,19 @@ void Image24BitModel::update() {
 
 
     // N + NW
-    mapL.set(hash(++i, N, NW, p2));
+//  mapL.set(hash(++i, N, NW, p2)); // weak
 
     // N + NE
     mapL.set(hash(++i, N, NE, p1));
-    mapL.set(hash(++i, N, NE, p2));
+//  mapL.set(hash(++i, N, NE, p2)); // weak
 
     //N + NN
-    mapL.set(hash(++i, N, NN, p1));
+//  mapL.set(hash(++i, N, NN, p1));  // weak
+//  mapL.set(hash(++i, N, NN, p2)); // weak
 
     // W + WW
-    mapL.set(hash(++i, W, WW, p1));
-    mapL.set(hash(++i, W, WW, p2));
+//  mapL.set(hash(++i, W, WW, p1)); // weak
+//  mapL.set(hash(++i, W, WW, p2)); // weak
 
     // NW + NE (cross-diagonal)
     mapL.set(hash(++i, NW, NE, p1));
@@ -618,40 +795,63 @@ void Image24BitModel::update() {
 
     // W + N + NW
     mapL.set(hash(++i, W, N, NW, p1));
-    mapL.set(hash(++i, W, p1, p2, N, NW, NWp1));
+//  mapL.set(hash(++i, W, p1, p2, N, NW, NWp1)); //weak
 
     // N + NE + NW
     mapL.set(hash(++i, N, Np1, NE, NW, p1));
 
-    mapL.set(hash(++i, NE, NEE, p1));
+    mapL.set(hash(++i, NE, NEE, p1)); // strong
     mapL.set(hash(++i, NE, NEE, p2));
-    mapL.set(hash(++i, NE, NEp1, NEp2, NEE));
+    mapL.set(hash(++i, NE, NEp1, NEp2, NEE)); // strong
 
     mapL.set(hash(++i, NN, NNN, p1));
     mapL.set(hash(++i, NN, NNN, p2));
     mapL.set(hash(++i, NN, NNp1, NNp2, NNN));
 
-    mapL.set(hash(++i, WW, WWW, p1));
-    mapL.set(hash(++i, WW, WWW, p2));
+//  mapL.set(hash(++i, WW, WWW, p1)); // weak
+//  mapL.set(hash(++i, WW, WWW, p2)); // weak
     mapL.set(hash(++i, WW, WWp1, WWp2, WWW));
 
-    mapL.set(hash(++i, Np1, Np2, Wp1, Wp2));  // neighbor cross-plane
+    mapL.set(hash(++i, Np1, Np2, Wp1, Wp2));
     mapL.set(hash(++i, NWp1, NWp2, NEp1, NEp2));
 
-    mapL.set(hash(++i, (W + N - NW) >> 1, p1));  // strong         // gradient corrector
-    mapL.set(hash(++i, (W + N - NW) >> 1, p1, p2)); // strong
-    mapL.set(hash(++i, (N + NE - NNE) >> 1, p1)); // very strong    horizontal extrapolation error 
-    mapL.set(hash(++i, (W * 2 - WW) >> 1, p1)); // W trend
-    mapL.set(hash(++i, (N * 2 - NN) >> 1, p1)); // N trend
+    mapL.set(hash(++i, (W + N - NW) >> 1, p1));  // very strong
+    mapL.set(hash(++i, (W + N - NW) >> 1, p1, p2)); // very strong
+    mapL.set(hash(++i, (N + NE - NNE) >> 1, p1)); // strong
+    mapL.set(hash(++i, (N + NE - NNE) >> 1, p1, p2));
+    mapL.set(hash(++i, (W * 2 - WW) >> 1, p1));
+    mapL.set(hash(++i, (N * 2 - NN) >> 1, p1));
+    mapL.set(hash(++i, (W * 2 - WW) >> 1, p1, p2));
+    mapL.set(hash(++i, (N * 2 - NN) >> 1, p1, p2));
 
+    mapL.set(hash(++i, (NW + W - NWW) >> 1, p1));
+    mapL.set(hash(++i, (NW + W - NWW) >> 1, p1, p2));
+    mapL.set(hash(++i, (NW + N - NNW) >> 1, p1));
+    mapL.set(hash(++i, (NW + N - NNW) >> 1, p1, p2));
+
+//  mapL.set(hash(++i, (NE * 2 - NNEE) >> 1, p1)); 
+//  mapL.set(hash(++i, (NE * 2 - NNEE) >> 1, p1, p2));
+//  mapL.set(hash(++i, (NW * 2 - NNWW) >> 1, p1));
+//  mapL.set(hash(++i, (NW * 2 - NNWW) >> 1, p1, p2)); // weak
+
+//  mapL.set(hash(++i, ((W * 2 - WW) + (N * 2 - NN) - (NW * 2 - NNWW)) >> 1, p1)); // weak
+//  mapL.set(hash(++i, ((W * 2 - WW) + (N * 2 - NN) - (NW * 2 - NNWW)) >> 1, p1, p2)); // weak
+
+//  mapL.set(hash(++i, (N * 3 - NN * 3 + NNN) >> 1, p1));
+//  mapL.set(hash(++i, (W * 3 - WW * 3 + WWW) >> 1, p1));
+//  mapL.set(hash(++i, (N * 3 - NN * 3 + NNN) >> 1, p1, p2)); // weak
+//  mapL.set(hash(++i, (W * 3 - WW * 3 + WWW) >> 1, p1, p2)); // weak
+
+//  mapL.set(hash(++i, ((NE * 2 - NNEE) + (NW * 2 - NNWW) - (N * 2 - NN)) >> 1, p1)); // weak
+//  mapL.set(hash(++i, ((NE * 2 - NNEE) + (NW * 2 - NNWW) - (N * 2 - NN)) >> 1, p1, p2));
+
+    mapL.set(hash(++i, paeth(W, N, NW) >> 1, p1));
+    mapL.set(hash(++i, paeth(W, N, NW) >> 1, p1, p2)); // strong
+//  mapL.set(hash(++i, gap(W, N, NW, NE, WW, NNE, NN) >> 1, p1)); // weak
 
     assert(i - ((c0 << 2 | color) * 256) == nLSM);
 
 
-    uint8_t b = (c0 << (8 - bpos));
-    for (int i = 0; i < nSM; i++) {
-      map[i].set(static_cast<uint8_t>(pOLS[i] - b) << 3 | bpos);
-    }
   }
 }
 
@@ -659,21 +859,18 @@ void Image24BitModel::init() {
   stride = 3 + alpha;
   padding = w % stride;
   x = color = line = 0;
-  columns[0] = max(1, w / max(1, ilog2(w) * 3));
-  columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
   if( lastPos > 0 && false ) { // todo: when shall we reset?
     for (int i = 0; i < nLSM; i++) {
       mapL.reset();
-    }
-    for( int i = 0; i < nSM; i++ ) {
-      map[i].reset();
     }
   }
   lossBuf.setSize(nextPowerOf2(LOSS_BUF_ROWS * w));
   lossBuf.fill(255);
 
-  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * nDM));
+  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nDM + nOLS)));
   predErrBuf.fill(255);
+
+  bestPredictorIndexes.setSize(nextPowerOf2(BEST_PRED_ROWS * w));
 }
 
 void Image24BitModel::setParam(int width, uint32_t alpha0) {
@@ -682,66 +879,90 @@ void Image24BitModel::setParam(int width, uint32_t alpha0) {
 }
 
 void Image24BitModel::mix(Mixer &m) {
-  INJECT_SHARED_bpos
-  if( bpos == 0 ) {
-    INJECT_SHARED_pos
-    if(pos - lastPos != 1) {
-      init();
-    } else {
-      x++;
-      if( x >= w ) {
-        x = 0;
-        line++;
-      }
-    }
-    lastPos = pos;
-  }
-
-  update();
 
   // predict next bit
-  if (color != 4) {
+  if (color < 4) { // pixel area
     cm.mix(m);
 
     mapR1.mix(m);
     mapR2.mix(m);
     mapR3.mix(m);
-
+    mapOLS1.mix(m);
+    mapOLS2.mix(m);
     mapL.mix(m);
-
-    for( int i = 0; i < nSM; i++ ) {
-      map[i].mix(m);
-    }
-
-    // todo: use 3 separate mixers instead
-
-    if (color == 0)
-      m.setScaleFactor(670, 100);  // 650-680
-    else if (color == 1)
-      m.setScaleFactor(820, 100); // 760-880
-    else if (color == 2)
-      m.setScaleFactor(920, 100); // 650-690 for others 880-960
-
-
-    // todo: review and optimize these mixer contexts
 
     INJECT_SHARED_bpos
     INJECT_SHARED_c0
     assert(color < 4);
-    uint32_t colorbpos = color << 3 | bpos; // 0..23 or 0..31
-    m.set(1 + colorbpos, 1 + 4 * 8);   // 1: account for padding zone
 
-    m.set(((lossQ / 40u) /*0..15*/) << 2 | color, 16 * 4);
-    m.set(((line & 7) << 5) | colorbpos, 256);
-    m.set(min(63, column[0]) + ((ctx[0] >> 3) & 0xC0), 256);
-    m.set(min(127, column[1]) + ((ctx[0] >> 2) & 0x180), 512);
-    m.set((ctx[0] & 0x7FC) | (bpos >> 1), 2048);
-    m.set(colorbpos + (static_cast<int>(c0 == ((0x100 | ((N + W + 1) >> 1)) >> (8 - bpos)))) * 32, 8 * 32);
-    m.set(min(color, stride - 1) * 64 + (x % stride) * 16 + (bpos >> 1), 6 * 64);
-    m.set((ctx[1] << 2) | (bpos >> 1), 1024);
+    const int bp = (UINT32_C(0x33322210) >> (bpos << 2)) & 0xF; // {bpos:0}->0  {bpos:1}->1  {bpos:2,3,4}->2  {bpos:5,6,7}->3
 
-    m.set(finalize64(hash(ctx[0], column[0] >> 3), 13), 8192);
-    m.set(min(255, (x + line) >> 5), 256);
+    m.set(1 + bpos, 1 + 8);   // 1: account for padding zone
+
+    m.set(lossQ4 /*0..7*/, 8);
+    m.set(((line & 7) << 3) | bpos, 8 * 8);
+
+    m.set(((x / stride) & 7) << 3 | (line & 7), 8 * 8);
+    m.set(((x / stride) & 15), 16);
+
+    int div3 = max((x / stride) >> 9, 3);
+    int div19 = max((x / stride) >> 8, 19);
+    m.set((x / stride / div3) & 511, 512);
+    m.set((x / stride / div19) & 255, 256);
+
+    int pred1 = 0x100 | ((N + W + 1) >> 1);
+    int pred2 = 0x100 | int8_t(N + W - NW);
+    int pred3 = 0x100 | int8_t(2 * N - NN);
+    int pred4 = 0x100 | int8_t(2 * W - WW);
+    m.set(
+      (c0 == (pred1 >> (8 - bpos))) << 6 |
+      (c0 == (pred2 >> (8 - bpos))) << 5 |
+      (c0 == (pred3 >> (8 - bpos))) << 4 |
+      (c0 == (pred4 >> (8 - bpos))) << 3 |
+      bpos, 16 * 8);
+    m.set(lossQ4 << 2 | bp, 8 * 4);
+    m.set((ctx[1] << 2) | bp, 1024);
+    m.set(ctx_best_direction << 3 | ctx_best_residual, 4 * 8);
+
+    m.set(((x / stride + line) >> 5) & 255, 256);
+
+    auto bestPredictorIndexW =
+      color == 0 ? bestPredictorIndexes(stride) : // W, same channel
+      bestPredictorIndexes(1);                    // current pixel, prev channel (co-located i.e. within the same pixel as what we predict)
+    auto bestPredictorIndexN = bestPredictorIndexes(w);                    // N, same channel
+
+    m.set(bestPredictorIndexW, (nDM + nOLS));
+    m.set(bestPredictorIndexN, (nDM + nOLS));
+
+    int bestErrN = GetPredErrAvg(bestPredictorIndexN);
+    int bestErrW = GetPredErrAvg(bestPredictorIndexW);
+    m.set(min(31, bestErrW) << 5 | min(31, bestErrN), 32 * 32);
+
+    auto bestPredictorIndexNE = bestPredictorIndexes(w + stride); // NW, same channel
+    auto bestPredictorIndexNW = bestPredictorIndexes(w - stride); // NE, same channel
+
+    int bestErrNE = GetPredErrAvg(bestPredictorIndexNE);
+    int bestErrNW = GetPredErrAvg(bestPredictorIndexNW);
+    m.set(min(31, bestErrNE) << 5 | min(31, bestErrNW), 32 * 32);
+
+    uint32_t rabsBits3 = ctx[0] >> 6; // the top 3 rabs bits
+    m.set(rabsBits3, 8);
+    uint32_t cmpBits6 = ctx[0] & 0x3F; // the 6 comparison bits
+    m.set(cmpBits6 << 3 | lossQ4, 64 * 8);
+
+    int trendN = 2 * N - NN;
+    int trendW = 2 * W - WW;
+    int trendNE = 2 * NE - NNEE;
+    int trendNW = 2 * NW - NNWW;
+
+    int trendMin = min(min(min(trendN, trendW), trendNE), trendNW);
+    int trendMax = max(max(max(trendN, trendW), trendNE), trendNW);
+
+    m.set((min(trendMax - trendMin, 255) >> 2) << 2 | (bpos >> 1), 64 * 4);
+
+    m.set(((p1 >> 5) << 5) | ((p2 >> 5) << 2) | (bpos >> 1), 8 * 8 * 4);
+
+
   }
   else {
     // padding zone

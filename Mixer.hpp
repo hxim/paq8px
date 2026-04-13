@@ -23,9 +23,9 @@ protected:
   const size_t n; /**< max inputs */
   const uint32_t m; /**< max contexts */
   const uint32_t s; /**< max context sets */
-  const int lowerLimitOfLearningRate; /**< for linear learning rate decay */
   const bool isAdaptiveLearningRate; /**< linked to command line option '-a' */
   int scaleFactor; /**< scale factor for dot product */
+  int lowerLimitOfLearningRate; /**< for linear learning rate decay */
   Array<short, 64> tx; /**< n inputs from add() */
   Array<short, 64> wx; /**< n*m weights */
   Array<uint32_t> cxt; /**< s contexts */
@@ -91,8 +91,9 @@ public:
     */
   virtual int p();
 
-  virtual void setScaleFactor(int sf0, int sf1);
-  virtual void promote(int x);
+  void setScaleFactor(int sf0, int sf1);
+  void setLowerLimitOfLearningRate(int lr0, int lr1);
+  void promote(int x);
 
   /**
     * Adjusts weights to minimize the coding cost of the last prediction.

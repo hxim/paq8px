@@ -106,6 +106,13 @@ void Mixer::setScaleFactor(const int sf0, const int sf1) {
   }
 }
 
+void Mixer::setLowerLimitOfLearningRate(const int lr0, const int lr1) {
+  lowerLimitOfLearningRate = lr0 * 65536;
+  if (mp != nullptr) {
+    mp->setLowerLimitOfLearningRate(lr1, 0);
+  }
+}
+
 void Mixer::promote(const int x) {
   if (mp != nullptr) {
     mp->add(x);

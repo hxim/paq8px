@@ -36,7 +36,7 @@ void ResidualMap::mix(Mixer& m) {
       shared->GetUpdateBroadcaster()->subscribe(this);
   assert(currentContextIndex == numContexts);
 
-  for (size_t i = 0; i < numContexts; i++) {
+  for (size_t i = 0; i < currentContextIndex; i++) {
     const uint32_t base = bases[i];
     if (base == UINT32_MAX) { // skipped context
       m.add(0);

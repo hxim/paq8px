@@ -1,8 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 
-struct HashElementForStationaryMap { // sizeof(HashElemetForStationaryMap) = 4
+struct HashElementForStationaryMap {
 
   uint32_t value;
 
@@ -12,3 +12,5 @@ struct HashElementForStationaryMap { // sizeof(HashElemetForStationaryMap) = 4
   }
 
 };
+
+static_assert(sizeof(HashElementForStationaryMap) == 4);

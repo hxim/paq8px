@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include "StateTable.hpp"
 
-struct HashElementForBitHistoryState { // sizeof(HashElemetForContextMap) = 1
+struct HashElementForBitHistoryState {
   uint8_t bitState;
 
   // priority for hash replacement strategy
@@ -11,3 +11,5 @@ struct HashElementForBitHistoryState { // sizeof(HashElemetForContextMap) = 1
     return StateTable::prio(bitState);
   }
 };
+
+static_assert (sizeof(HashElementForBitHistoryState) == 1);

@@ -1,9 +1,9 @@
-#pragma once
+﻿#pragma once
 
 #include <cstdint>
 #include "StateTable.hpp"
 
-struct HashElementForContextMap { // sizeof(HashElemetForContextMap) = 7
+struct HashElementForContextMap {
   union {
 
     uint8_t states[7];
@@ -37,3 +37,6 @@ struct HashElementForContextMap { // sizeof(HashElemetForContextMap) = 7
     return StateTable::prio(priority);
   }
 };
+
+static_assert (sizeof(HashElementForContextMap) == 7);
+

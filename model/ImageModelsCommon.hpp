@@ -42,15 +42,14 @@ static inline int gap(
 //signed difference between two 8-bit pixel values, quantized
 //used by 8-bit and 24-bit image models
 ALWAYS_INLINE
-uint8_t DiffQt(const uint8_t a, const uint8_t b, const uint8_t limit = 7) {
-  //assert(limit <= 7);
-  uint32_t d = abs(a - b);
+int DiffQt(const uint8_t a, const uint8_t b) {
+  int d = (a > b) ? (a - b) : (b - a);
   if (d <= 2)d = d;
   else if (d <= 5)d = 3; //3..5
   else if (d <= 9)d = 4; //6..9
   else if (d <= 14)d = 5; //10..14
   else if (d <= 23)d = 6; //15..23
   else d = 7; //24..255
-  const uint8_t sign = a > b ? 8 : 0;
-  return sign | min(d, limit);
+  const int sign = a > b ? 8 : 0;
+  return (sign | d);
 }
