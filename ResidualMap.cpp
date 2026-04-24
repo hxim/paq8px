@@ -31,9 +31,9 @@ void ResidualMap::skip() {
 
 void ResidualMap::mix(Mixer& m) {
   INJECT_SHARED_bpos
-    INJECT_SHARED_c0
-    if (bpos == 7)
-      shared->GetUpdateBroadcaster()->subscribe(this);
+  INJECT_SHARED_c0
+  if (bpos == 7)
+    shared->GetUpdateBroadcaster()->subscribe(this);
   assert(currentContextIndex == numContexts);
 
   for (size_t i = 0; i < currentContextIndex; i++) {
