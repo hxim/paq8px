@@ -72,7 +72,7 @@ static void printHelp() {
     "Misc options:\n"
     "  -v                   | Verbose output\n"
     "  -log FILE            | Append compression results to log file\n"
-    "  -simd MODE           | Override SIMD detection - expert only (NONE|SSE2|AVX2|AVX512|NEON)\n"
+    "  -simd MODE           | Override SIMD detection - expert only (NONE|SSE2|SSE3|SSE41|AVX2|AVX512|NEON)\n"
     "\n"
     "Notes:\n"
     "  INPUT may be FILE, PATH/FILE, or @FILELIST\n"
@@ -307,12 +307,13 @@ static void printHelpVerbose() {
     "\n"
     "    - for the CM mixer - supported: SSE2, AVX2, AVX512, ARM NEON\n"
     "    - for neural network operations in the LSTM model - supported: SSE2, AVX2\n"
-    "    - for the LSM and OLS predictors (used mainly in image and audio models) - supported: SSE2.\n"
-    "\n"
+    "    - for the LSM and OLS predictors (used mainly in image and audio models) - supported: SSE3.\n"
+      "  - for the SimilarityModel: AVX2, SSE41.\n"
+      "\n"
     "    This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.\n"
     "    Supported values (case-insensitive):\n"
     "       NONE\n"
-    "       SSE2, AVX2, AVX512 (on x64)\n"
+    "       SSE2, SSE3, SSE41, AVX2, AVX512 (on x64)\n"
     "       NEON (on ARM)\n"
     "\n"
     "    Note that when paq8px is compiled for a specific CPU architecture, the compiler may automatically\n"
@@ -372,6 +373,10 @@ static void printSimdInfo(int simdIset, int detectedSimdIset) {
     printf("AVX512");
   } else if( simdIset >= 9 ) {
     printf("AVX2");
+  } else if( simdIset >= 6 ) {
+    printf("SSE3");
+  } else if( simdIset >= 4 ) {
+    printf("SSE3");
   } else if( simdIset >= 3 ) {
     printf("SSE2");
   } else {
@@ -590,16 +595,18 @@ int processCommandLine(int argc, char **argv) {
             simdIset = 0;
           } else if( strcasecmp(argv[i], "SSE2") == 0 ) {
             simdIset = 3;
-          } else if( strcasecmp(argv[i], "SSSE3") == 0 ) {
-            simdIset = 5;
-         } else if( strcasecmp(argv[i], "AVX2") == 0 ) {
+          } else if( strcasecmp(argv[i], "SSE3") == 0 ) {
+            simdIset = 4;
+          } else if( strcasecmp(argv[i], "SSE41") == 0 ) {
+            simdIset = 6;
+          } else if( strcasecmp(argv[i], "AVX2") == 0 ) {
             simdIset = 9;
-         } else if( strcasecmp(argv[i], "AVX512") == 0 ) {
+          } else if( strcasecmp(argv[i], "AVX512") == 0 ) {
             simdIset = 10;
-         } else if (strcasecmp(argv[i], "NEON") == 0) {
+          } else if (strcasecmp(argv[i], "NEON") == 0) {
             simdIset = 11;
           } else {
-            quit("Invalid -simd option. Use -simd NONE, -simd SSE2, -simd AVX2, -simd AVX512 or -simd NEON.");
+            quit("Invalid -simd option. Use -simd NONE, -simd SSE2, -simd SSE3, -simd SSE41, -simd AVX2, -simd AVX512 or -simd NEON.");
           }
         } else {
           printf("Invalid command: %s", argv[i]);
@@ -640,6 +647,10 @@ int processCommandLine(int argc, char **argv) {
       shared.chosenSimd = SIMDType::SIMD_AVX512;
     } else if (simdIset >= 9) {
       shared.chosenSimd = SIMDType::SIMD_AVX2;
+    } else if (simdIset >= 6) {
+      shared.chosenSimd = SIMDType::SIMD_SSE41;
+    } else if (simdIset >= 4) {
+      shared.chosenSimd = SIMDType::SIMD_SSE3;
     } else if( simdIset >= 3 ) {
       shared.chosenSimd = SIMDType::SIMD_SSE2;
     } else {
@@ -651,6 +662,8 @@ int processCommandLine(int argc, char **argv) {
     }
     if (!IS_X64_SIMD_AVAILABLE && (
       shared.chosenSimd == SIMDType::SIMD_SSE2 ||
+      shared.chosenSimd == SIMDType::SIMD_SSE3 ||
+      shared.chosenSimd == SIMDType::SIMD_SSE41 ||
       shared.chosenSimd == SIMDType::SIMD_AVX2 ||
       shared.chosenSimd == SIMDType::SIMD_AVX512
       )) {
