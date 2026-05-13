@@ -420,6 +420,24 @@
     <ClCompile Include="ResidualMap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="model\SimilarityModel.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\SimilarityEmaFunctions_Scalar.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\SimilarityEmaFunctions_AVX2.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\SimilarityEmaFunctions_SSE41.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\SimilarityEmaFunctionsFactory.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
+    <ClCompile Include="model\SimilarityModelPair.cpp">
+      <Filter>model</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -922,6 +940,24 @@
     </ClInclude>
     <ClInclude Include="ResidualMap.hpp">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityModel.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityEmaFunctions_Scalar.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityEmaFunctions_AVX2.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityEmaFunctions_SSE41.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityEmaFunctionsFactory.hpp">
+      <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="model\SimilarityModelPair.hpp">
+      <Filter>model</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -78,4 +78,11 @@ public:
   uint32_t size() {
     return (uint32_t) b.size();
   }
+
+  // leak internals for high-performance access
+  void leakInternals(T* &buffer_ptr, size_t& buffer_mask, size_t& head_pos) {
+    buffer_ptr = &b[0];
+    buffer_mask = mask;
+    head_pos = offset;
+  }
 };
