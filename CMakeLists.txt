@@ -111,12 +111,12 @@ set(PAQ_SOURCES "")
 
 # Directories to scan for cpp files
 set(SOURCE_DIRS
-    "${CMAKE_CURRENT_SOURCE_DIR}"
-    "${CMAKE_CURRENT_SOURCE_DIR}/file"
-    "${CMAKE_CURRENT_SOURCE_DIR}/filter"
-    "${CMAKE_CURRENT_SOURCE_DIR}/model"
-    "${CMAKE_CURRENT_SOURCE_DIR}/text"
-    "${CMAKE_CURRENT_SOURCE_DIR}/lstm"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/file"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/filter"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/model"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/text"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/lstm"
 )
 
 foreach(DIR ${SOURCE_DIRS})
