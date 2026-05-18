@@ -8,10 +8,6 @@ LinearPredictionModel::LinearPredictionModel(const Shared* const sh) : shared(sh
   }
 }
 
-ALWAYS_INLINE static int rabs(int x1, int x2) {
-  return abs(int8_t((x1 - x2) & 255)); // 0..128
-}
-
 void LinearPredictionModel::mix(Mixer &m) {
   INJECT_SHARED_bpos
   if( bpos == 0 ) {

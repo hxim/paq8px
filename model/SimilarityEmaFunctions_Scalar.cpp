@@ -1,11 +1,6 @@
 ﻿#include "SimilarityEmaFunctions_Scalar.hpp"
 #include "../Utils.hpp"
 
-ALWAYS_INLINE static int rabs(int x1, int x2) {
-  int d = int8_t(x1 - x2); // -128..127
-  return d >= 0 ? d : -d; // abs(d) → 0..128
-}
-
 // Scalar EMA update with ring-buffer index masking (warmup and rare wrap case).
 // Fixed-point note: diff (0..128) is shifted left 8 to form the 8.8 fixed-point current sample (0..32768).
 // Overflow check: max intermediate = 32768 * 64 = 2'097'152 < 2^21, fits in uint32.

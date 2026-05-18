@@ -21,11 +21,6 @@ SimilarityModel::SimilarityModel(Shared* const sh, const uint64_t size, size_t m
   }
 }
 
-ALWAYS_INLINE static int rabs(int x1, int x2) {
-  int d = int8_t(x1 - x2); // -128..127
-  return d >= 0 ? d : -d; // abs(d) → 0..128
-}
-
 void SimilarityModel::update(uint32_t warmup) {
 
   // Find best record period
