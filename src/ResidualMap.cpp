@@ -8,7 +8,7 @@ ResidualMap::ResidualMap(const Shared* const sh, const int numContexts, const in
   currentContextIndex(0),
   predictions(numContexts),
   bases(numContexts),
-  sums(BINS * numContexts * histogramsPerContext) {
+  sums(BINS* numContexts* histogramsPerContext) {
 }
 
 void ResidualMap::setscale(const int scale) {
@@ -31,9 +31,9 @@ void ResidualMap::skip() {
 
 void ResidualMap::mix(Mixer& m) {
   INJECT_SHARED_bpos
-  INJECT_SHARED_c0
-  if (bpos == 7)
-    shared->GetUpdateBroadcaster()->subscribe(this);
+    INJECT_SHARED_c0
+    if (bpos == 7)
+      shared->GetUpdateBroadcaster()->subscribe(this);
   assert(currentContextIndex == numContexts);
 
   for (size_t i = 0; i < currentContextIndex; i++) {
@@ -63,15 +63,15 @@ void ResidualMap::mix(Mixer& m) {
     uint64_t n0, n1;
     // n0
     if (bin0_offset + range <= BINS)
-      n0 = (bin0_offset + range == 0 ? 0 : s[bin0_offset + range - 1]) - (bin0_offset == 0 ? 0 : s[bin0_offset - 1]);
+      n0 = (s[bin0_offset + range - 1]) - (bin0_offset == 0 ? 0 : s[bin0_offset - 1]);
     else
-      n0 = s[BINS - 1] - (bin0_offset == 0 ? 0 : s[bin0_offset - 1]) + s[bin0_offset + range - BINS - 1];
+      n0 = s[BINS - 1] - (s[bin0_offset - 1]) + s[bin0_offset + range - BINS - 1];
 
     // n1
     if (bin1_offset + range <= BINS)
-      n1 = (bin1_offset + range == 0 ? 0 : s[bin1_offset + range - 1]) - (bin1_offset == 0 ? 0 : s[bin1_offset - 1]);
+      n1 = (s[bin1_offset + range - 1]) - (bin1_offset == 0 ? 0 : s[bin1_offset - 1]);
     else
-      n1 = s[BINS - 1] - (bin1_offset == 0 ? 0 : s[bin1_offset - 1]) + s[bin1_offset + range - BINS - 1];
+      n1 = s[BINS - 1] - (s[bin1_offset - 1]) + s[bin1_offset + range - BINS - 1];
 
     n0 = n0 * 2 + 1;
     n1 = n1 * 2 + 1;
@@ -93,7 +93,7 @@ void ResidualMap::update() {
       continue;
 
     INJECT_SHARED_c1
-    const int bin = (192 + c1 - predictions[currentContextIndex]) & 255; // moving the center to bin #192 gives better cache locality on read and on updates
+      const int bin = (192 + c1 - predictions[currentContextIndex]) & 255; // moving the center to bin #192 gives better cache locality on read and on updates
 
     // Increment all prefix entries after bin: sums[bin .. BINS-1] += 1.
     uint16_t* s = &sums[base];
