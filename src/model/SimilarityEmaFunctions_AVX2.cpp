@@ -6,7 +6,7 @@
 
 // Process 16 uint16 EMA values per iteration using AVX2.
 //
-// Fixed-point layout: 8.8 — see SSE4.1 file for full derivation.
+// Fixed-point layout: 8.8 - see SSE4.1 file for full derivation.
 //   current = diff << 8,  blend computed in 32-bit lanes, packed back to uint16.
 //
 // Strategy: load 16 x uint16 from ema_buf, widen into two groups of 8 x uint32
@@ -14,7 +14,7 @@
 // then pack back to uint16 with _mm256_packus_epi32.
 //
 // AVX2 lane-crossing note: _mm256_packus_epi32(lo, hi) does not produce sequential
-// output — it interleaves results from the two 128-bit lanes. A subsequent
+// output - it interleaves results from the two 128-bit lanes. A subsequent
 // _mm256_permute4x64_epi64(..., 0b11011000) is required to restore sequential order.
 
 #if (defined(__GNUC__) || defined(__clang__))
@@ -68,7 +68,7 @@ void SimilarityEmaFunctions_AVX2::update_and_find(
   for (size_t i = 0; i < count; i += 16) {
     // --- Load predictors and compute rabs ---
     // sub_epi8 wraps into int8 range naturally; abs_epi8 gives absolute value (0..128).
-    // _mm256_abs_epi8 on 0x80 (-128) yields 128 unsigned — correct for our 0..128 range.
+    // _mm256_abs_epi8 on 0x80 (-128) yields 128 unsigned - correct for our 0..128 range.
     __m128i pred_bytes = _mm_loadu_si128((const __m128i*)(history_buffer_ptr + i));
     __m256i pred_bytes256 = _mm256_broadcastsi128_si256(pred_bytes);
     __m256i abs256 = _mm256_abs_epi8(_mm256_sub_epi8(pred_bytes256, vc1_bytes));

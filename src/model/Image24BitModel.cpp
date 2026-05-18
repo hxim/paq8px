@@ -89,7 +89,7 @@ ALWAYS_INLINE static int avg(int x, int y) {
 
 
 // Stores a prediction with a spread signal based on the distance between two reference pixels.
-// ref1 and ref2 are spatial reference pixels; their difference measures local variation —
+// ref1 and ref2 are spatial reference pixels; their difference measures local variation -
 // higher difference = less confident = used as a context component in the probability map.
 // Use when the prediction value is computed externally (e.g. a complex algebraic expression)
 // but a natural pair of reference pixels still exists to supply the spread signal.
@@ -720,10 +720,10 @@ void Image24BitModel::update() {
   if (color != 4) {
     INJECT_SHARED_c0
 
-      //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
-      //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
+    //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
+    //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
 
-      int i = (c0 << 2 | color) * 256;
+    int i = (c0 << 2 | color) * 256;
 
     //for tuning:
     //int toskip = shared->tuning_param - 1 + i;

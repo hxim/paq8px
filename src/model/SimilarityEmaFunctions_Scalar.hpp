@@ -7,9 +7,9 @@
  * Scalar (non-SIMD) EMA update implementations.
  *
  * Provides two update paths:
- *   update_with_wrapping  — warmup and ring-buffer wrap cases; processes a single EMA buffer
+ *   update_with_wrapping  - warmup and ring-buffer wrap cases; processes a single EMA buffer
  *                           with index masking for non-contiguous access.
- *   update_and_find       — steady-state path; processes two EMA buffers (slow and fast) over a contiguous
+ *   update_and_find       - steady-state path; processes two EMA buffers (slow and fast) over a contiguous
  *                           block (no ring-buffer wrap).
  *
  * Fixed-point layout: 8.8 (uint16_t), denominator 256.

@@ -66,7 +66,7 @@ void SimilarityEmaFunctions_SSE41::update_and_find(
   for (size_t i = 0; i < count; i += 8) {
     // --- Load predictors and compute rabs ---
     // sub_epi8 wraps into int8 range naturally; abs_epi8 gives absolute value (0..128).
-    // _mm_abs_epi8 on 0x80 (-128) yields 128 unsigned — correct for our 0..128 range.
+    // _mm_abs_epi8 on 0x80 (-128) yields 128 unsigned - correct for our 0..128 range.
     __m128i pred_bytes = _mm_loadl_epi64((const __m128i*)(history_buffer_ptr + i));
     __m128i abs_bytes = _mm_abs_epi8(_mm_sub_epi8(pred_bytes, vc1_bytes));
 

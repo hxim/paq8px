@@ -51,7 +51,7 @@ void SimilarityModelPair::update() {
   //   2. vectorized: steady-state with no ring-buffer wrap
   const size_t buf_start_physical = buf_base & buffer_mask; // physical start index in ring buffer
   if (byte_count == MAX_MATCH_DISTANCE && (buf_start_physical + MAX_MATCH_DISTANCE) <= (buffer_mask + 1)) {
-    // Path 2: steady-state, no wrap — contiguous block, vectorized path
+    // Path 2: steady-state, no wrap - contiguous block, vectorized path
     emaUpdateFunction(
       ema_buf1,
       ema_buf2,
@@ -66,7 +66,7 @@ void SimilarityModelPair::update() {
       match_score2);
   }
   else {
-    // Path 1: warmup or rare ring-buffer wrap — scalar with masking
+    // Path 1: warmup or rare ring-buffer wrap - scalar with masking
     SimilarityEmaFunctions_Scalar::update_with_wrapping(
       ema_buf1,
       history_buffer_ptr,

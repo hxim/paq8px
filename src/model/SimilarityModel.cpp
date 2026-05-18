@@ -24,14 +24,14 @@ SimilarityModel::SimilarityModel(Shared* const sh, const uint64_t size, size_t m
 void SimilarityModel::update(uint32_t warmup) {
 
   // Find best record period
-  const size_t count1 = min(warmup, MAX_RECORD_LENGTH);
+  const size_t count = min(warmup, MAX_RECORD_LENGTH);
   record_score = UINT32_MAX;
 
   // if two periods have identical ema values, the one with the shorter period wins
   //   why: - shorter periods are usually the 'correct' ones when one detected period length is a multiple of the other
   //        - shorter periods are closer to the current byte position which is usually a somewhat stronger context
-  for (size_t i = 0; i < count1; i++) {
-    const size_t rec_len = count1 - i; // candidate period length, decreasing as i increases
+  for (size_t i = 0; i < count; i++) {
+    const size_t rec_len = count - i; // candidate period length, decreasing as i increases
     uint32_t r = (
       ema_buf[MAX_MATCH_DISTANCE - rec_len * 1] +
       ema_buf[MAX_MATCH_DISTANCE - rec_len * 2] +
