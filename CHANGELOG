@@ -2103,3 +2103,15 @@ paq8px_v214 by Zoltán Gotthardt
   - Tuned mixer scaling factor and lower limit of learning rate, removed bias.
   - Use ResidualMap instead of StationaryMap for OLS.
   - Added and optimized contexts and mixer contexts.
+
+
+paq8px_v215 by Zoltán Gotthardt
+2026.05.19
+- Model improvements:
+  - Improved LinearPredictionModel by replacing SmallStationaryContextMap with ResidualMap. Tuned contexts.
+  - New model: SimilarityModel with scalar, SSE4.1 and AVX2 code paths. Used only for binary files.
+- Platform:
+  - Introduced SSE3 and SSE41 command line parameters and support for such vectorized code paths. 
+- Cosmetics:
+  - Moved source files to ./src
+

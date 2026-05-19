@@ -8,7 +8,7 @@
 //////////////////////// Versioning ////////////////////////////////////////
 
 #define PROGNAME     "paq8px"
-#define PROGVERSION  "214"  //update version here before publishing your changes
+#define PROGVERSION  "215"  //update version here before publishing your changes
 #define PROGYEAR     "2026"
 
 
@@ -44,9 +44,9 @@ static void printHelp() {
     "  to list contents  ->   " PROGNAME " -l INPUT." PROGNAME PROGVERSION "\n"
     "\n"
     "LEVEL:\n"
-    "  -1 -2 -3 -4          | Compress using less memory (529, 543, 572, 630 MB)\n"
-    "  -5 -6 -7 -8          | Use more memory (747, 980, 1446, 2377 MB)\n"
-    "  -9 -10 -11 -12       | Use even more memory (4241, 7968, 15421, 29305 MB)\n"
+    "  -1 -2 -3 -4          | Compress using less memory (558, 572, 602, 660 MB)\n"
+    "  -5 -6 -7 -8          | Use more memory (776, 1010, 1476, 2408 MB)\n"
+    "  -9 -10 -11 -12       | Use even more memory (4273, 8003, 15463, 29358 MB)\n"
     "  -0                   | Segment and transform only, no compression\n"
     "  -0L                  | Segment and transform then LSTM-only compression (alternative: -lstmonly)\n"
     "\n"
@@ -98,7 +98,7 @@ static void printHelpVerbose() {
     "  Specifying the compression level is needed only for compression - no need to specify it for decompression.\n"
     "  Approximately the same amount of memory will be used during compression and decompression.\n"
     "\n"
-    "  The listed memory usage for each LEVEL (-1 = 529 MB .. -12 = 29305 MB) is typical/indicative for compressing binary\n"
+    "  The listed memory usage for each LEVEL (-1 = 558 MB .. -12 = 29358 MB) is typical/indicative for compressing binary\n"
     "  files with no preprocessing. Actual memory use is lower for text files and higher when a preprocessing step\n"
     "  (segmentation and transformations) requires temporary memory. When special file types are detected, special models\n"
     "  (image, jpg, audio) will be used and thus will require extra RAM.\n"
@@ -112,7 +112,7 @@ static void printHelpVerbose() {
     "       This mode is similar to a preprocessing-only tool like precomp.\n"
     "       Uses approximately 3-7 MB total.\n"
     "\n"
-    "  -0L  Uses only a single LSTM model for prediction which is shared across all block types.\n"
+    "  -0L  Uses only a single LSTM model for prediction, which is shared across all block types.\n"
     "       Uses approximately 20-24 MB total RAM.\n"
     "       Alternative: -lstmonly\n"
     "\n"
@@ -127,7 +127,7 @@ static void printHelpVerbose() {
     "      Uses a fixed-size model, independent of compression level.\n"
     "\n"
     "      At level -0L (also: -lstmonly) a single LSTM model is used for prediction for all detected block types.\n"
-    "      Block detection and segmentation are still performed, but no context mixing or Secondary Symbol\n"
+    "      Block detection and segmentation are still performed, but no Context Mixing or Secondary Symbol\n"
     "      Estimation (SSE) stage is used.\n"
     "\n"
     "      At higher levels (-1L .. -12L) the LSTM model is included as a submodel in Context Mixing and its predictions\n"
@@ -218,7 +218,7 @@ static void printHelpVerbose() {
     "      " PROGNAME " -t file.txt." PROGNAME PROGVERSION "\n"
     "\n"
     "  -l  List archive contents.\n"
-    "      Extracts the embedded @FILELIST (if present) and prints it.\n"
+    "      Extracts and prints the embedded @FILELIST (if present).\n"
     "      Applicable only to multi-file archives.\n"
     "\n"
     "      Example: to list the file list (when the archive was created using @files):\n"
@@ -308,8 +308,8 @@ static void printHelpVerbose() {
     "    - for the CM mixer - supported: SSE2, AVX2, AVX512, ARM NEON\n"
     "    - for neural network operations in the LSTM model - supported: SSE2, AVX2\n"
     "    - for the LSM and OLS predictors (used mainly in image and audio models) - supported: SSE3.\n"
-      "  - for the SimilarityModel: AVX2, SSE41.\n"
-      "\n"
+    "    - for the SimilarityModel: AVX2, SSE41.\n"
+    "\n"
     "    This option overrides the detected SIMD instruction set. Intended for expert use and benchmarking.\n"
     "    Supported values (case-insensitive):\n"
     "       NONE\n"
@@ -426,7 +426,7 @@ int processCommandLine(int argc, char **argv) {
     if( !shared.toScreen ) { //we need a minimal feedback when redirected
       fprintf(stderr, PROGNAME " data compressor v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
     }
-    printf(PROGNAME " archiver v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
+    printf(PROGNAME " v" PROGVERSION " (c) " PROGYEAR ", Matt Mahoney et al.\n");
 
     // Print help message
     if( argc < 2 ) {
