@@ -33,9 +33,9 @@ std::unique_ptr<LMS> LMS::create(
   float otherChannelRate
 ) {
 #ifdef X64_SIMD_AVAILABLE
-  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+  if (simd >= SIMDType::SIMD_AVX2)
     return std::make_unique<LMS_AVX>(s, d, sameChannelRate, otherChannelRate);
-  else if (simd == SIMDType::SIMD_SSE2)
+  else if (simd >= SIMDType::SIMD_SSE2)
     return std::make_unique<LMS_SSE2>(s, d, sameChannelRate, otherChannelRate);
   else
 #endif

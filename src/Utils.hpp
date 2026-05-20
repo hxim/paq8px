@@ -154,4 +154,21 @@ inline uint8_t clamp4(const int px, const uint8_t n1, const uint8_t n2, const ui
   return px;
 }
 
-
+// Circular/wraparound distance on a 256-value ring
+// that is: what is the shortest distance between two byte values in any direction (up or down) when we allow a wrap-around at 255 → 0?
+//
+// Examples:
+//  - Distance between 3 and 10 (or 10 and 3) is 7
+//  - Distance between 2 and 200 (or 200 and 2) is 58
+// For the latter the true linear distance is 198, but the wraparound distance is only 58
+// why: starting from 2 down to 0 then to 255 then further down to 200 takes 58 steps
+//
+// Where such wrap-around distances are useful:
+// For image compression (pixel prediction):
+//   images with color-channel transform (b, g, r) -> (g, g-r, g-b): the 2nd and 3rd transformed components experience a wrap-around.
+// For multi-byte numeric data prediction:
+//   less significant bytes wrap around when the whole multi-byte value is increased/decreased sequentially.
+ALWAYS_INLINE static int rabs(int x1, int x2) {
+  int d = int8_t(x1 - x2); // -128..127
+  return d >= 0 ? d : -d; // abs(d) → 0..128
+}

@@ -87,24 +87,9 @@ ALWAYS_INLINE static int avg(int x, int y) {
   return (x + y + 1) >> 1;  //note: rounding here works properly only when x+y is non-negative, but we don't really need the function to be aware of negative values as they are rare
 }
 
-// abs(int8_t((c1 - prediction) & 255)): circular/wraparound distance on a 256-value ring
-// int8_t cast recovers the sign from the modular difference, and abs then makes it symmetric.
-// that is:
-// (10 - 3) & 255 = 7   → int8_t(7)   = 7  → abs = 7
-// (3 - 10) & 255 = 249 → int8_t(249) = -7 → abs = 7
-// however with a large distance:
-// (2 - 200) & 255 = 58  → int8_t(58)  = 58  → abs = 58
-// (200 - 2) & 255 = 198 → int8_t(198) = -58 → abs = 58
-// ... but the true linear distance is 198. Distances above 128 are thus
-// reflected back — (200-2) and (2-200) both return 58 instead of 58 and 198.
-// This ambiguity for large differences has negligible impact compared to
-// the cost of using uint16_t to store the full 0..255 range.
-ALWAYS_INLINE static int rabs(int x1, int x2) {
-  return abs(int8_t((x1 - x2) & 255)); // 0..128
-}
 
 // Stores a prediction with a spread signal based on the distance between two reference pixels.
-// ref1 and ref2 are spatial reference pixels; their difference measures local variation —
+// ref1 and ref2 are spatial reference pixels; their difference measures local variation -
 // higher difference = less confident = used as a context component in the probability map.
 // Use when the prediction value is computed externally (e.g. a complex algebraic expression)
 // but a natural pair of reference pixels still exists to supply the spread signal.
@@ -735,10 +720,10 @@ void Image24BitModel::update() {
   if (color != 4) {
     INJECT_SHARED_c0
 
-      //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
-      //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
+    //these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
+    //but they also work well for modelling with the direct pixel neigborhood in not-too-noisy photographic images
 
-      int i = (c0 << 2 | color) * 256;
+    int i = (c0 << 2 | color) * 256;
 
     //for tuning:
     //int toskip = shared->tuning_param - 1 + i;

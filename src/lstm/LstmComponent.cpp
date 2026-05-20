@@ -7,9 +7,9 @@ float LstmLayer_Rand(float const range) {
 
 std::unique_ptr<VectorFunctions> CreateVectorFunctions(SIMDType simd) {
 #ifdef X64_SIMD_AVAILABLE
-  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+  if (simd >= SIMDType::SIMD_AVX2)
     return std::make_unique<VectorFunctions_AVX2>();
-  else if (simd == SIMDType::SIMD_SSE2)
+  else if (simd >= SIMDType::SIMD_SSE2)
     return std::make_unique<VectorFunctions_SSE2>();
   else
 #endif
@@ -24,9 +24,9 @@ std::unique_ptr<Adam> CreateOptimizer(
   float base_lr)
 {
 #ifdef X64_SIMD_AVAILABLE
-  if (simd == SIMDType::SIMD_AVX2 || simd == SIMDType::SIMD_AVX512)
+  if (simd >= SIMDType::SIMD_AVX2)
     return std::make_unique<Adam_AVX>(length, w, g, base_lr);
-  else if (simd == SIMDType::SIMD_SSE2)
+  else if (simd >= SIMDType::SIMD_SSE2)
     return std::make_unique<Adam_SSE2>(length, w, g, base_lr);
   else
 #endif

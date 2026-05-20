@@ -6,6 +6,7 @@
 #include "model/CharGroupModel.hpp"
 #include "model/ChartModel.hpp"
 #include "model/DmcForest.hpp"
+#include "model/SimilarityModelPair.hpp"
 #include "model/ExeModel.hpp"
 #include "model/Image1BitModel.hpp"
 #include "model/Image24BitModel.hpp"
@@ -43,6 +44,7 @@ public:
   void trainModelsWhenNeeded();
   auto normalModel() -> NormalModel&;
   auto dmcForest() -> DmcForest&;
+  auto similarityModelPair() -> SimilarityModelPair&;
   auto charGroupModel() -> CharGroupModel&;
   auto chartModel() -> ChartModel&;
   auto recordModel() -> RecordModel&;

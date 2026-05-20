@@ -99,7 +99,7 @@ public:
     * Adjusts weights to minimize the coding cost of the last prediction.
     * Trains the network where the expected output is the last bit (shared y).
     */
-  virtual void update();
+  virtual void update() override;
 
   /**
     * Inputs x (call up to n times).

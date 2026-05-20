@@ -127,6 +127,11 @@ auto Models::dmcForest() -> DmcForest & {
   return instance;
 }
 
+auto Models::similarityModelPair() -> SimilarityModelPair& {
+  static SimilarityModelPair instance{ shared, shared->mem };
+  return instance;
+}
+
 auto Models::charGroupModel() -> CharGroupModel & {
   static CharGroupModel instance {shared, shared->mem / 2};
   return instance;

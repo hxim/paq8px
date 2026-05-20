@@ -18,7 +18,7 @@ public:
       RecordModel::MIXERINPUTS + CharGroupModel::MIXERINPUTS +
       TextModel::MIXERINPUTS + WordModel::MIXERINPUTS_BIN + IndirectModel::MIXERINPUTS +
       DmcForest::MIXERINPUTS + NestModel::MIXERINPUTS + XMLModel::MIXERINPUTS +
-      LinearPredictionModel::MIXERINPUTS + ExeModel::MIXERINPUTS +
+      LinearPredictionModel::MIXERINPUTS + 2 * SimilarityModel::MIXERINPUTS + ExeModel::MIXERINPUTS +
       (useLSTM ? LstmModelContainer::MIXERINPUTS : 0)
       ,
       MatchModel::MIXERCONTEXTS + NormalModel::MIXERCONTEXTS_PRE + NormalModel::MIXERCONTEXTS_POST + SparseMatchModel::MIXERCONTEXTS +
@@ -26,7 +26,7 @@ public:
       RecordModel::MIXERCONTEXTS + CharGroupModel::MIXERCONTEXTS +
       TextModel::MIXERCONTEXTS + WordModel::MIXERCONTEXTS + IndirectModel::MIXERCONTEXTS +
       DmcForest::MIXERCONTEXTS + NestModel::MIXERCONTEXTS + XMLModel::MIXERCONTEXTS +
-      LinearPredictionModel::MIXERCONTEXTS + ExeModel::MIXERCONTEXTS +
+      LinearPredictionModel::MIXERCONTEXTS + 2 * SimilarityModel::MIXERCONTEXTS + ExeModel::MIXERCONTEXTS +
       (useLSTM ? LstmModelContainer::MIXERCONTEXTS : 0)
       ,
       MatchModel::MIXERCONTEXTSETS + NormalModel::MIXERCONTEXTSETS_PRE + NormalModel::MIXERCONTEXTSETS_POST + SparseMatchModel::MIXERCONTEXTSETS +
@@ -34,7 +34,7 @@ public:
       RecordModel::MIXERCONTEXTSETS + CharGroupModel::MIXERCONTEXTSETS +
       TextModel::MIXERCONTEXTSETS + WordModel::MIXERCONTEXTSETS + IndirectModel::MIXERCONTEXTSETS +
       DmcForest::MIXERCONTEXTSETS + NestModel::MIXERCONTEXTSETS + XMLModel::MIXERCONTEXTSETS +
-      LinearPredictionModel::MIXERCONTEXTSETS + ExeModel::MIXERCONTEXTSETS + 
+      LinearPredictionModel::MIXERCONTEXTSETS + 2 * SimilarityModel::MIXERCONTEXTSETS + ExeModel::MIXERCONTEXTSETS +
       (useLSTM ? LstmModelContainer::MIXERCONTEXTSETS : 0)
       ,
       (useLSTM ? 1 : 0)
@@ -86,6 +86,9 @@ public:
 
     LinearPredictionModel& linearPredictionModel = models->linearPredictionModel();
     linearPredictionModel.mix(*m);
+
+    SimilarityModelPair& similarityModelPair = models->similarityModelPair();
+    similarityModelPair.mix(*m);
 
     //exemodel must be the last
     ExeModel& exeModel = models->exeModel();

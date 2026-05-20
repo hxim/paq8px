@@ -22,9 +22,9 @@
  * the suffix increment loop [bin, BINS) is shorter on average when the center is near the high end of the array.
  * It also reduces how often a query window wraps around, keeping lookups cache-friendly.
  *
- * Read  (mix):    O(numContexts); O(1) per context — four array lookups and two subtractions per window.
- * Write (update): O(BINS) — increment all suffix entries by 1. Sequential, cache-friendly.
- * Halve (aging):  O(BINS) — halve all entries when the total count would not fit in 16 bits.
+ * Read  (mix):    O(numContexts); O(1) per context - four array lookups and two subtractions per window.
+ * Write (update): O(BINS) - increment all suffix entries by 1. Sequential, cache-friendly.
+ * Halve (aging):  O(BINS) - halve all entries when the total count would not fit in 16 bits.
  *
  * Layout: sums[base+k] = count[0]+...+count[k], k=0..BINS-1.
  *         sums[base+BINS-1] = total.

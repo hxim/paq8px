@@ -39,7 +39,7 @@ private:
   // Optimized:
   // Implementation: iterate over compile-time indices (N-1 down to 0).
   // Each copy is guarded at runtime by `count`, but the loop itself is
-  // fully unrolled by the compiler — no branch on the loop counter.
+  // fully unrolled by the compiler - no branch on the loop counter.
   // It translates to a series of (fully unrolled) 'mov' intructions.
   //
   // Is = { 0, 1, ..., ElementsInBucket-2 }
