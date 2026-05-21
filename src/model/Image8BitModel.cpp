@@ -49,7 +49,6 @@ void Image8BitModel::mix(Mixer& m) {
     INJECT_SHARED_pos
     if (pos != lastPos + 1) {
       x = line = jump = 0;
-      filterOn = false;
       columns[0] = max(1, w / max(1, ilog2(w) * 2));
       columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
       if (isGray) {

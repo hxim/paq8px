@@ -63,7 +63,6 @@ public:
   int prevFramePos = 0;
   int frameWidth = 0;
   int prevFrameWidth = 0;
-  bool filterOn = false;
   int columns[2] = { 1, 1 }, column[2]{};
   uint8_t mapContexts[nSM1] = { 0 };
   uint8_t pOLS[nOLS] = { 0 };

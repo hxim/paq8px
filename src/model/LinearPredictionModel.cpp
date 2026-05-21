@@ -1,7 +1,7 @@
 ﻿#include "LinearPredictionModel.hpp"
 
 LinearPredictionModel::LinearPredictionModel(const Shared* const sh) : shared(sh),
-  mapR { sh, nDM, 32, 128 } /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR { sh, nRM, 32, 128 } /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
 {
   for (int i = 0; i < nOLS; i++) {
     ols[i] = create_OLS_float(sh->chosenSimd, num[i], solveInterval[i], lambda[i], nu);
@@ -15,7 +15,7 @@ void LinearPredictionModel::mix(Mixer &m) {
     //for every byte
 
     INJECT_SHARED_c1
-    for (int i = 0; i < nDM; i++) {
+    for (int i = 0; i < nRM; i++) {
       int prediction = prd[i];
       uint8_t err = rabs(c1, prediction); // 0..128
       predErrBuf[i] = ((predErrBuf[i] * 15) >> 4) + err; // -> 2033 absolute max
@@ -46,7 +46,7 @@ void LinearPredictionModel::mix(Mixer &m) {
     prd[i++] = WWW * 2 - buf(6); // for rgb images
 
     INJECT_SHARED_blockPos
-    for (int i = 0; i < nDM; i++) {
+    for (int i = 0; i < nRM; i++) {
       mapR.set(prd[i], min(predErrBuf[i] >> 4, 15) << 1 | (blockPos & 1));
     }
   }

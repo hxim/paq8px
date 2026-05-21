@@ -2,9 +2,7 @@
 
 #include "../ContextMap2.hpp"
 #include "../OLS_factory.hpp"
-#include "../SmallStationaryContextMap.hpp"
 #include "../LargeStationaryMap.hpp"
-#include "../StationaryMap.hpp"
 #include "../ResidualMap.hpp"
 #include "ImageModelsCommon.hpp"
 #include <cmath>
@@ -14,7 +12,7 @@
  */
 class Image24BitModel {
 private:
-  static constexpr int nDM = 117;
+  static constexpr int nRM = 117;
   static constexpr int nOLS = 6;
   static constexpr int nLSM = 40;
   static constexpr int nCM = 30;
@@ -23,12 +21,12 @@ private:
 public:
   static constexpr int MIXERINPUTS =
     nLSM * LargeStationaryMap::MIXERINPUTS +
-    (nDM * 3) * ResidualMap::MIXERINPUTS +
+    (nRM * 3) * ResidualMap::MIXERINPUTS +
     (nOLS * 2) * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); // 996
   static constexpr int MIXERCONTEXTS =
     (1 + 8) + 8 + (8 * 8) + (8 * 8) + 16 + 512 + 256 + (16 * 8) + (8 * 4) + 1024 + (4 * 8) + 256
-    + (nDM + nOLS) + (nDM + nOLS) + 32 * 32 + 32 * 32 + 512 + 64 * 8 + 64 * 4 + 8 * 8 * 4; // 6231
+    + (nRM + nOLS) + (nRM + nOLS) + 32 * 32 + 32 * 32 + 512 + 64 * 8 + 64 * 4 + 8 * 8 * 4; // 6231
   static constexpr int MIXERCONTEXTSETS = 20; 
 
   Shared * const shared;
@@ -39,13 +37,13 @@ public:
   LargeStationaryMap mapL;
 
   // Per-predictor prediction error for each decoded pixel.
-  // Stores uint8 rabs(prediction - actual) for all nDM and nOLS predictors at every pixel position.
+  // Stores uint8 rabs(prediction - actual) for all nRM and nOLS predictors at every pixel position.
   // Read back via PredErr(ctxIndex, relX, relY) to estimate how well each predictor
   // performed on causal neighbors (W, N, NW, NE, WW, NN of the current pixel, same color plane).
   // The averaged absolute error across those neighbors feeds mapR1's histogram selection,
   // giving it a spatially-local, per-predictor confidence signal:
   // low value = predictor was accurate nearby.
-  // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nDM).
+  // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nRM).
   static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
   RingBuffer<uint8_t> predErrBuf{ 0 };
 
@@ -84,7 +82,7 @@ public:
   int stride = 3;
   uint32_t ctx[2]{}, padding = 0, x = 0, w = 0, line = 0;
   uint32_t lastPos = 0;
-  uint32_t predictions[nDM + nOLS] = { 0 };
+  uint32_t predictions[nRM + nOLS] = { 0 };
 
   uint8_t ctx_best_direction{};
   uint8_t ctx_best_residual{};

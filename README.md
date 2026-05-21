@@ -915,41 +915,41 @@ This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
 ## Works referencing PAQ8PX
 
-- **2026** *Data Compression in LoRa Networks: Performance and Energy Trade-Offs of Classical and Cutting-Edge Compression Algorithms*
+- **2026** *Data Compression in LoRa Networks: Performance and Energy Trade-Offs of Classical and Cutting-Edge Compression Algorithms*  
 Link: https://pmc.ncbi.nlm.nih.gov/articles/PMC12987361/  
 
-- **2026** *Micro-Diffusion Compression: Binary Tree Tweedie Denoising for Online Probability Estimation*
+- **2026** *Micro-Diffusion Compression: Binary Tree Tweedie Denoising for Online Probability Estimation*  
 Link: https://arxiv.org/html/2603.08771v3  
 
-- **2026** *StateSMix: Online Lossless Compression via Mamba State Space Models and Sparse N-gram Context Mixing*
+- **2026** *StateSMix: Online Lossless Compression via Mamba State Space Models and Sparse N-gram Context Mixing*  
 Link: https://arxiv.org/html/2605.02904v1  
 
-- **2026** *Nacrith: Neural Lossless Compression via Ensemble Context Modeling and High-Precision CDF Coding*
+- **2026** *Nacrith: Neural Lossless Compression via Ensemble Context Modeling and High-Precision CDF Coding*  
 Link: https://arxiv.org/html/2602.19626v1  
 Link: https://arxiv.org/pdf/2602.19626  
 
-- **2025** *A study of the cutting-edge general-purpose compressors’ performance on the normalized genome sequence*
+- **2025** *A study of the cutting-edge general-purpose compressors’ performance on the normalized genome sequence*  
 Link: https://www.sciencedirect.com/science/article/abs/pii/S2452014425002316  
 
-- **2024** *Mutual information as a measure of mixing efficiency in viscous fluids*
+- **2024** *Mutual information as a measure of mixing efficiency in viscous fluids*  
 Link: https://inis.iaea.org/records/psfex-kh184/files/10.1103_PhysRevResearch.6.L022050.pdf  
 Link: https://journals.aps.org/prresearch/abstract/10.1103/PhysRevResearch.6.L022050  
 
-- **2023** *Benchmarking Lossless Still Image Codecs: Perspectives on Selected Compression Standards From 1992 Through 2022*
+- **2023** *Benchmarking Lossless Still Image Codecs: Perspectives on Selected Compression Standards From 1992 Through 2022*  
 Link: https://www.researchgate.net/publication/373567286_Benchmarking_Lossless_Still_Image_Codecs_Perspectives_on_Selected_Compression_Standards_From_1992_through_2022  
 
-- **2020** *Multi-modal medical image registration using normalized compression distance*
+- **2020** *Multi-modal medical image registration using normalized compression distance*  
 Link: https://www.iadisportal.org/ijcsis/papers/2012140104.pdf  
 
-- **2019** *Improving Lossless Image Compression with Contextual Memory*
+- **2019** *Improving Lossless Image Compression with Contextual Memory*  
 Link: https://www.mdpi.com/2076-3417/9/13/2681  
 Link: https://www.researchgate.net/publication/334136036_Improving_Lossless_Image_Compression_with_Contextual_Memory  
 
-- **2012** *Using Normalized Compression Distance for image similarity measurement: an experimental study*
+- **2012** *Using Normalized Compression Distance for image similarity measurement: an experimental study*  
 Link: https://link.springer.com/article/10.1007/s00371-011-0651-2  
 (not open access)  
 
-- **2010** *A Unique Perspective on Data Coding and Decoding*
+- **2010** *A Unique Perspective on Data Coding and Decoding*  
 Link: https://www.mdpi.com/1099-4300/13/1/53  
 Link: https://www.researchgate.net/publication/49596054_A_Unique_Perspective_on_Data_Coding_and_Decoding  
 

@@ -4,9 +4,9 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
   shared(sh),
   cm(sh, size, nCM, 64),
   mapL{ sh, nLSM, 23, 74 },     /* LargeStationaryMap : Contexts, HashBits, Scale=64, Rate=16 */
-  mapR1{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  mapR2{ sh, nDM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  mapR3{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR1{ sh, nRM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR2{ sh, nRM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR3{ sh, nRM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS1{ sh, nOLS, 1 << 7, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS2{ sh, nOLS, 1 << 5, 74 }   /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
 {
@@ -66,7 +66,7 @@ ALWAYS_INLINE uint8_t Image24BitModel::GetPredErr(const uint32_t ctxIndex, int r
   if (x - relX >= w)
     return 255;
   int offset = relY * w + relX;
-  const uint32_t valuesPerByte = (nDM + nOLS);
+  const uint32_t valuesPerByte = (nRM + nOLS);
   return predErrBuf((offset - 1) * valuesPerByte + ctxIndex + 1);
 }
 
@@ -323,15 +323,15 @@ void Image24BitModel::update() {
       lossQ = min(lossQ, 639);
       shared->State.Image.lossQ = lossQ; //0..639
 
-      // Written in reverse order (nDM+nOLS-1 down to 0) so that GetPredErr()'s
-      // read formula  predErr((offset-1) * (nDM+nOLS) + ctxIndex + 1)  resolves correctly:
-      // after writing nDM values, predictor ctxIndex sits at ring offset -(ctxIndex+1).
+      // Written in reverse order (nRM+nOLS-1 down to 0) so that GetPredErr()'s
+      // read formula  predErr((offset-1) * (nRM+nOLS) + ctxIndex + 1)  resolves correctly:
+      // after writing nRM values, predictor ctxIndex sits at ring offset -(ctxIndex+1).
 
 
       uint32_t lowestErr = 255;
       uint8_t bestPredictorIndex = 0;
-      static_assert(nDM + nOLS <= 255); // the index need to fit to a byte
-      for (int i = nDM + nOLS - 1; i >= 0; i--) {
+      static_assert(nRM + nOLS <= 255); // the index need to fit to a byte
+      for (int i = nRM + nOLS - 1; i >= 0; i--) {
         short prediction = predictions[i] & 65535;
         uint8_t err;
         if (prediction == INT16_MAX) // currently never happens, todo
@@ -591,7 +591,7 @@ void Image24BitModel::update() {
 
       MakePredictionC(contextIdx++, 0);
 
-      assert(contextIdx == nDM);
+      assert(contextIdx == nRM);
 
       //quality metric: quantized past loss in the pixel neighborhood 
       lossQ4 =
@@ -601,7 +601,7 @@ void Image24BitModel::update() {
 
       // map the predictions to histograms
 
-      for (int i = 0; i < nDM; i++) {
+      for (int i = 0; i < nRM; i++) {
         uint32_t spread = predictions[i] >> 16;
         short prediction = predictions[i] & 65535;
         if (prediction == INT16_MAX) { // currently never happens, todo
@@ -632,12 +632,12 @@ void Image24BitModel::update() {
         short prediction = short(roundf(pred));
         MakePredictionC(contextIdx++, prediction);
 
-        uint32_t predErrAvg = GetPredErrAvg(j + nDM);
+        uint32_t predErrAvg = GetPredErrAvg(j + nRM);
         mapOLS1.set(prediction, min(predErrAvg, 31) << 2 | color); // 0..31, 0..3 (5+2 bits)
         mapOLS2.set(prediction, lossQ4 << 2 | color); // 0..7, 0..3 (3+2 bits)
       }
 
-      assert(contextIdx == nDM + nOLS);
+      assert(contextIdx == nRM + nOLS);
 
       // these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
       // todo: review and optimize these contexts
@@ -852,7 +852,7 @@ void Image24BitModel::init() {
   lossBuf.setSize(nextPowerOf2(LOSS_BUF_ROWS * w));
   lossBuf.fill(255);
 
-  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nDM + nOLS)));
+  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nRM + nOLS)));
   predErrBuf.fill(255);
 
   bestPredictorIndexes.setSize(nextPowerOf2(BEST_PRED_ROWS * w));
@@ -916,8 +916,8 @@ void Image24BitModel::mix(Mixer &m) {
       bestPredictorIndexes(1);                    // current pixel, prev channel (co-located i.e. within the same pixel as what we predict)
     auto bestPredictorIndexN = bestPredictorIndexes(w);                    // N, same channel
 
-    m.set(bestPredictorIndexW, (nDM + nOLS));
-    m.set(bestPredictorIndexN, (nDM + nOLS));
+    m.set(bestPredictorIndexW, (nRM + nOLS));
+    m.set(bestPredictorIndexN, (nRM + nOLS));
 
     int bestErrN = GetPredErrAvg(bestPredictorIndexN);
     int bestErrW = GetPredErrAvg(bestPredictorIndexW);
