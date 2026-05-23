@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Filter.hpp"
 
@@ -166,10 +166,11 @@ static uint64_t decodeLzw(File *in, File *out, FMode mode, uint64_t &diffFound) 
   }
   writeCode(out, mode, &buffer, &pos, &bitsUsed, bitsPerCode, LZW_EOF_CODE, &diffFound);
   if( bitsUsed > 0 ) { // flush buffer
+    const uint8_t b = uint8_t(buffer << (8 - bitsUsed));  // shift remaining bits to MSB
     pos++;
     if( mode == FMode::FDECOMPRESS ) {
-      out->putChar(uint8_t(buffer));
-    } else if( mode == FMode::FCOMPARE && uint8_t(buffer) != out->getchar()) {
+      out->putChar(b);
+    } else if( mode == FMode::FCOMPARE && b != out->getchar()) {
       diffFound = pos;
     }
   }
