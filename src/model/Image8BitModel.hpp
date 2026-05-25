@@ -7,6 +7,7 @@
 #include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../StationaryMap.hpp"
+#include "../ResidualMap.hpp"
 #include "ImageModelsCommon.hpp"
 #include <cstdint>
 
@@ -19,7 +20,7 @@ private:
   static constexpr int nSM0 = 2;
   static constexpr int nSM1 = 55;
   static constexpr int nOLS = 5;
-  static constexpr int nSM = nSM0 + nSM1 + nOLS;
+  static constexpr int nSM = nSM0 + nSM1;
   static constexpr int nPltMaps = 4;
   static constexpr int nCM = 48 + nPltMaps;
   static constexpr int nIM = 5;
@@ -27,6 +28,7 @@ private:
 public:
   static constexpr int MIXERINPUTS =
     nSM * StationaryMap::MIXERINPUTS +
+    nOLS * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
     nIM * IndirectMap::MIXERINPUTS; //464
@@ -36,6 +38,7 @@ public:
   Shared* const shared;
   ContextMap2 cm;
   StationaryMap map[nSM];
+  ResidualMap mapOLS;
   SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
   IndirectMap sceneMap[nIM];
   IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */

@@ -18,8 +18,8 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
     /*nSM1:40-44*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
     /*nSM1:45-49*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
     /*nSM1:50-54*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nOLS: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}
   },
+  mapOLS{ sh, nOLS, 1 << 7, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   pltMap{   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
     {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}
   },
@@ -314,8 +314,10 @@ void Image8BitModel::mix(Mixer& m) {
           ols_j->add(val);
         }
 
-        float prediction = ols_j->predict();
-        pOLS[j] = clip(int(roundf(prediction)));
+        float pred = ols_j->predict();
+        short prediction = short(roundf(pred));
+        pOLS[j] = clip(prediction);
+        mapOLS.set(prediction, 0);
       }
 
       cm.set(R_, 0);
@@ -367,10 +369,6 @@ void Image8BitModel::mix(Mixer& m) {
     for (int j = 0; j < nSM1; i++, j++) {
       map[i].set((mapContexts[j] - b) * 8 + bpos);
     }
-
-    for (int j = 0; i < nSM; i++, j++) {
-      map[i].set((pOLS[j] - b) * 8 + bpos);
-    }
   }
   sceneMap[2].setDirect(finalize64(hash(x, line), 19) * 8 + bpos);
   sceneMap[3].setDirect((prvFrmPx - b) * 8 + bpos);
@@ -382,6 +380,7 @@ void Image8BitModel::mix(Mixer& m) {
     for (int i = 0; i < nSM; i++) {
       map[i].mix(m);
     }
+    mapOLS.mix(m);
   }
   else {
     for (int i = 0; i < nPltMaps; i++) {
