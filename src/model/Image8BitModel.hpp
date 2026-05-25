@@ -28,7 +28,7 @@ private:
 public:
   static constexpr int MIXERINPUTS =
     nSM * StationaryMap::MIXERINPUTS +
-    nOLS * ResidualMap::MIXERINPUTS +
+    (nOLS * 2) * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
     nIM * IndirectMap::MIXERINPUTS; //464
@@ -38,7 +38,7 @@ public:
   Shared* const shared;
   ContextMap2 cm;
   StationaryMap map[nSM];
-  ResidualMap mapOLS;
+  ResidualMap mapOLS1, mapOLS2;
   SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
   IndirectMap sceneMap[nIM];
   IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */
@@ -67,8 +67,19 @@ public:
   int frameWidth = 0;
   int prevFrameWidth = 0;
   int columns[2] = { 1, 1 }, column[2]{};
-  uint8_t mapContexts[nSM1] = { 0 };
-  uint8_t pOLS[nOLS] = { 0 };
+
+  uint8_t predictions[nSM + nOLS] = { 0 };
+
+  // Per-predictor prediction error for each decoded pixel.
+  // Stores uint8 rabs(prediction - actual) for all nRM and nOLS predictors at every pixel position.
+  // Read back via PredErr(ctxIndex, relX, relY) to estimate how well each predictor
+  // performed on causal neighbors (W, N, NW, NE, WW, NN of the current pixel).
+  // The averaged absolute error across those neighbors feeds mapR1's histogram selection,
+  // giving it a spatially-local, per-predictor confidence signal:
+  // low value = predictor was accurate nearby.
+  // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nRM).
+  static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
+  RingBuffer<uint8_t> predErrBuf{ 0 };
 
   static constexpr float lambda[nOLS] = { 0.996f, 0.87f, 0.93f, 0.8f, 0.9f };
   static constexpr int num[nOLS] = { 32, 12, 15, 10, 14 };
@@ -86,6 +97,9 @@ public:
   const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0] };
 
   Image8BitModel(Shared* const sh, uint64_t size);
+  ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
+  ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
+  void init(int pos);
   void setParam(int info0, uint32_t gray0);
   void mix(Mixer& m);
 };

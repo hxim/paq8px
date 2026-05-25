@@ -19,7 +19,8 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
     /*nSM1:45-49*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
     /*nSM1:50-54*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
   },
-  mapOLS{ sh, nOLS, 1 << 7, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapOLS1{ sh, nOLS, 1 << 5, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapOLS2{ sh, nOLS, 1 << 3, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   pltMap{   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
     {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}, {sh,11,1,7,64}
   },
@@ -36,6 +37,56 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   sceneOls = create_OLS_float(sh->chosenSimd, 13, 1, 0.994f, nu);
 }
 
+ALWAYS_INLINE uint8_t Image8BitModel::GetPredErr(const uint32_t ctxIndex, int relX, int relY) const {
+  if (line - relY < 0)  //the predErrBuf buffer is pre-filled with 255 initially, so this check is not really necessary
+    return 255;
+  if (x - relX < 0)
+    return 255;
+  if (x - relX >= w)
+    return 255;
+  int offset = relY * w + relX;
+  const uint32_t valuesPerByte = (nSM + nOLS);
+  return predErrBuf((offset - 1) * valuesPerByte + ctxIndex + 1);
+}
+
+ALWAYS_INLINE uint32_t Image8BitModel::GetPredErrAvg(const uint32_t predictorIndex) const {
+  // Current pixel's prediction confidence is based on the already known error at neighboring pixel predictions
+  uint32_t predErrW = GetPredErr(predictorIndex, 1, 0);
+  uint32_t predErrN = GetPredErr(predictorIndex, 0, 1);
+  uint32_t predErrNW = GetPredErr(predictorIndex, 1, 1);
+  uint32_t predErrNE = GetPredErr(predictorIndex, -1, 1);
+  uint32_t predErrWW = GetPredErr(predictorIndex, 2, 0);
+  uint32_t predErrNN = GetPredErr(predictorIndex, 0, 2);
+  uint32_t predErrAvg = (2 * predErrW + 2 * predErrN + predErrNE + predErrNW + predErrWW + predErrNN) >> 3; // 0..255
+  return predErrAvg;
+}
+
+void Image8BitModel::init(int pos) {
+  x = line = jump = 0;
+  columns[0] = max(1, w / max(1, ilog2(w) * 2));
+  columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
+  if (isGray) {
+    if (lastPos != 0 && false) { // todo: when shall we reset ?
+      for (int i = 0; i < nSM; i++) {
+        map[i].reset();
+      }
+    }
+  }
+  else if (frameWidth != w) {
+    for (int i = 0; i < nPltMaps; i++) {
+      iCtx[i].reset();
+      pltMap[i].reset();
+    }
+  }
+  prevFramePos = framePos;
+  framePos = pos;
+  prevFrameWidth = frameWidth;
+  frameWidth = w;
+
+  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nSM1 + nOLS)));
+  predErrBuf.fill(255);
+}
+
 void Image8BitModel::setParam(int width, uint32_t isGray) {
   this->w = width;
   this->isGray = isGray;
@@ -45,29 +96,9 @@ void Image8BitModel::mix(Mixer& m) {
   // Select nearby pixels as context
   INJECT_SHARED_bpos
   if (bpos == 0) {
-    INJECT_SHARED_buf
     INJECT_SHARED_pos
     if (pos != lastPos + 1) {
-      x = line = jump = 0;
-      columns[0] = max(1, w / max(1, ilog2(w) * 2));
-      columns[1] = max(1, columns[0] / max(1, ilog2(columns[0])));
-      if (isGray) {
-        if (lastPos != 0 && false) { // todo: when shall we reset ?
-          for (int i = 0; i < nSM; i++) {
-            map[i].reset();
-          }
-        }
-      }
-      else if (frameWidth != w) {
-        for (int i = 0; i < nPltMaps; i++) {
-          iCtx[i].reset();
-          pltMap[i].reset();
-        }
-      }
-      prevFramePos = framePos;
-      framePos = pos;
-      prevFrameWidth = frameWidth;
-      frameWidth = w;
+      init(pos);
     }
     else {
       x++;
@@ -78,6 +109,7 @@ void Image8BitModel::mix(Mixer& m) {
     }
     lastPos = pos;
 
+    INJECT_SHARED_buf
     INJECT_SHARED_c1
     if (x == 0) {
       memset(&jumps[0], 0, sizeof(short) * jumps.size());
@@ -250,61 +282,75 @@ void Image8BitModel::mix(Mixer& m) {
       res = W;
     }
     else { // gray
-      mapContexts[j++] = clamp4(W + N - NW, W, NW, N, NE);
-      mapContexts[j++] = clip(W + N - NW);
-      mapContexts[j++] = clamp4(W + NE - N, W, NW, N, NE);
-      mapContexts[j++] = clip(W + NE - N);
-      mapContexts[j++] = clamp4(N + NW - NNW, W, NW, N, NE);
-      mapContexts[j++] = clip(N + NW - NNW);
-      mapContexts[j++] = clamp4(N + NE - NNE, W, N, NE, NEE);
-      mapContexts[j++] = clip(N + NE - NNE);
-      mapContexts[j++] = (W + NEE) / 2;
-      mapContexts[j++] = clip(N * 3 - NN * 3 + NNN);
-      mapContexts[j++] = clip(W * 3 - WW * 3 + WWW);
-      mapContexts[j++] = (W + clip(NE * 3 - NNE * 3 + buf(w * 3 - 1))) / 2;
-      mapContexts[j++] = (W + clip(NEE * 3 - buf(w * 2 - 3) * 3 + buf(w * 3 - 4))) / 2;
-      mapContexts[j++] = clip(NN + buf(w * 4) - buf(w * 6));
-      mapContexts[j++] = clip(WW + buf(4) - buf(6));
-      mapContexts[j++] = clip((buf(w * 5) - 6 * buf(w * 4) + 15 * NNN - 20 * NN + 15 * N + clamp4(W * 2 - NWW, W, NW, N, NN)) / 6);
-      mapContexts[j++] = clip((-3 * WW + 8 * W + clamp4(NEE * 3 - NNEE * 3 + buf(w * 3 - 2), NE, NEE, buf(w - 3), buf(w - 4))) / 6);
-      mapContexts[j++] = clip(NN + NW - buf(w * 3 + 1));
-      mapContexts[j++] = clip(NN + NE - buf(w * 3 - 1));
-      mapContexts[j++] = clip((W * 2 + NW) - (WW + 2 * NWW) + buf(w + 3));
-      mapContexts[j++] = clip(((NW + NWW) / 2) * 3 - buf(w * 2 + 3) * 3 + (buf(w * 3 + 4) + buf(w * 3 + 5)) / 2);
-      mapContexts[j++] = clip(NEE + NE - buf(w * 2 - 3));
-      mapContexts[j++] = clip(NWW + WW - buf(w + 4));
-      mapContexts[j++] = clip(((W + NW) * 3 - NWW * 6 + buf(w + 3) + buf(w * 2 + 3)) / 2);
-      mapContexts[j++] = clip((NE * 2 + NNE) - (NNEE + buf(w * 3 - 2) * 2) + buf(w * 4 - 3));
-      mapContexts[j++] = buf(w * 6);
-      mapContexts[j++] = (buf(w - 4) + buf(w - 6)) / 2;
-      mapContexts[j++] = (buf(4) + buf(6)) / 2;
-      mapContexts[j++] = (W + N + buf(w - 5) + buf(w - 7)) / 4;
-      mapContexts[j++] = clip(buf(w - 3) + W - NEE);
-      mapContexts[j++] = clip(4 * NNN - 3 * buf(w * 4));
-      mapContexts[j++] = clip(N + NN - NNN);
-      mapContexts[j++] = clip(W + WW - WWW);
-      mapContexts[j++] = clip(W + NEE - NE);
-      mapContexts[j++] = clip(WW + NEE - N);
-      mapContexts[j++] = (clip(W * 2 - NW) + clip(W * 2 - NWW) + N + NE) / 4;
-      mapContexts[j++] = clamp4(N * 2 - NN, W, N, NE, NEE);
-      mapContexts[j++] = (N + NNN) / 2;
-      mapContexts[j++] = clip(NN + W - NNW);
-      mapContexts[j++] = clip(NWW + N - NNWW);
-      mapContexts[j++] = clip((4 * WWW - 15 * WW + 20 * W + clip(NEE * 2 - NNEE)) / 10);
-      mapContexts[j++] = clip((buf(w * 3 - 3) - 4 * NNEE + 6 * NE + clip(W * 3 - NW * 3 + NNW)) / 4);
-      mapContexts[j++] = clip((N * 2 + NE) - (NN + 2 * NNE) + buf(w * 3 - 1));
-      mapContexts[j++] = clip((NW * 2 + NNW) - (NNWW + buf(w * 3 + 2) * 2) + buf(w * 4 + 3));
-      mapContexts[j++] = clip(NNWW + W - buf(w * 2 + 3));
-      mapContexts[j++] = clip((-buf(w * 4) + 5 * NNN - 10 * NN + 10 * N + clip(W * 4 - NWW * 6 + buf(w * 2 + 3) * 4 - buf(w * 3 + 4))) / 5);
-      mapContexts[j++] = clip(NEE + clip(buf(w - 3) * 2 - buf(w * 2 - 4)) - buf(w - 4));
-      mapContexts[j++] = clip(NW + W - NWW);
-      mapContexts[j++] = clip((N * 2 + NW) - (NN + 2 * NNW) + buf(w * 3 + 1));
-      mapContexts[j++] = clip(NN + clip(NEE * 2 - buf(w * 2 - 3)) - NNE);
-      mapContexts[j++] = clip((-buf(4) + 5 * WWW - 10 * WW + 10 * W + clip(NE * 2 - NNE)) / 5);
-      mapContexts[j++] = clip((-buf(5) + 4 * buf(4) - 5 * WWW + 5 * W + clip(NE * 2 - NNE)) / 4);
-      mapContexts[j++] = clip((WWW - 4 * WW + 6 * W + clip(NE * 3 - NNE * 3 + buf(w * 3 - 1))) / 4);
-      mapContexts[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
-      mapContexts[j++] = ((W + N) * 3 - NW * 2) / 4;
+
+      for (int i = nSM1 + nOLS - 1; i >= 0; i--) {
+        short prediction = predictions[i] & 65535;
+        uint8_t err;
+        if (prediction == INT16_MAX) // currently never happens, todo
+          err = 255;
+        else
+          err = rabs(c1, prediction); // 0..128
+        predErrBuf.add(err); //0..63 or 255
+      }
+
+      predictions[j++] = clamp4(W + N - NW, W, NW, N, NE);
+      predictions[j++] = clip(W + N - NW);
+      predictions[j++] = clamp4(W + NE - N, W, NW, N, NE);
+      predictions[j++] = clip(W + NE - N);
+      predictions[j++] = clamp4(N + NW - NNW, W, NW, N, NE);
+      predictions[j++] = clip(N + NW - NNW);
+      predictions[j++] = clamp4(N + NE - NNE, W, N, NE, NEE);
+      predictions[j++] = clip(N + NE - NNE);
+      predictions[j++] = (W + NEE) / 2;
+      predictions[j++] = clip(N * 3 - NN * 3 + NNN);
+      predictions[j++] = clip(W * 3 - WW * 3 + WWW);
+      predictions[j++] = (W + clip(NE * 3 - NNE * 3 + buf(w * 3 - 1))) / 2;
+      predictions[j++] = (W + clip(NEE * 3 - buf(w * 2 - 3) * 3 + buf(w * 3 - 4))) / 2;
+      predictions[j++] = clip(NN + buf(w * 4) - buf(w * 6));
+      predictions[j++] = clip(WW + buf(4) - buf(6));
+      predictions[j++] = clip((buf(w * 5) - 6 * buf(w * 4) + 15 * NNN - 20 * NN + 15 * N + clamp4(W * 2 - NWW, W, NW, N, NN)) / 6);
+      predictions[j++] = clip((-3 * WW + 8 * W + clamp4(NEE * 3 - NNEE * 3 + buf(w * 3 - 2), NE, NEE, buf(w - 3), buf(w - 4))) / 6);
+      predictions[j++] = clip(NN + NW - buf(w * 3 + 1));
+      predictions[j++] = clip(NN + NE - buf(w * 3 - 1));
+      predictions[j++] = clip((W * 2 + NW) - (WW + 2 * NWW) + buf(w + 3));
+      predictions[j++] = clip(((NW + NWW) / 2) * 3 - buf(w * 2 + 3) * 3 + (buf(w * 3 + 4) + buf(w * 3 + 5)) / 2);
+      predictions[j++] = clip(NEE + NE - buf(w * 2 - 3));
+      predictions[j++] = clip(NWW + WW - buf(w + 4));
+      predictions[j++] = clip(((W + NW) * 3 - NWW * 6 + buf(w + 3) + buf(w * 2 + 3)) / 2);
+      predictions[j++] = clip((NE * 2 + NNE) - (NNEE + buf(w * 3 - 2) * 2) + buf(w * 4 - 3));
+      predictions[j++] = buf(w * 6);
+      predictions[j++] = (buf(w - 4) + buf(w - 6)) / 2;
+      predictions[j++] = (buf(4) + buf(6)) / 2;
+      predictions[j++] = (W + N + buf(w - 5) + buf(w - 7)) / 4;
+      predictions[j++] = clip(buf(w - 3) + W - NEE);
+      predictions[j++] = clip(4 * NNN - 3 * buf(w * 4));
+      predictions[j++] = clip(N + NN - NNN);
+      predictions[j++] = clip(W + WW - WWW);
+      predictions[j++] = clip(W + NEE - NE);
+      predictions[j++] = clip(WW + NEE - N);
+      predictions[j++] = (clip(W * 2 - NW) + clip(W * 2 - NWW) + N + NE) / 4;
+      predictions[j++] = clamp4(N * 2 - NN, W, N, NE, NEE);
+      predictions[j++] = (N + NNN) / 2;
+      predictions[j++] = clip(NN + W - NNW);
+      predictions[j++] = clip(NWW + N - NNWW);
+      predictions[j++] = clip((4 * WWW - 15 * WW + 20 * W + clip(NEE * 2 - NNEE)) / 10);
+      predictions[j++] = clip((buf(w * 3 - 3) - 4 * NNEE + 6 * NE + clip(W * 3 - NW * 3 + NNW)) / 4);
+      predictions[j++] = clip((N * 2 + NE) - (NN + 2 * NNE) + buf(w * 3 - 1));
+      predictions[j++] = clip((NW * 2 + NNW) - (NNWW + buf(w * 3 + 2) * 2) + buf(w * 4 + 3));
+      predictions[j++] = clip(NNWW + W - buf(w * 2 + 3));
+      predictions[j++] = clip((-buf(w * 4) + 5 * NNN - 10 * NN + 10 * N + clip(W * 4 - NWW * 6 + buf(w * 2 + 3) * 4 - buf(w * 3 + 4))) / 5);
+      predictions[j++] = clip(NEE + clip(buf(w - 3) * 2 - buf(w * 2 - 4)) - buf(w - 4));
+      predictions[j++] = clip(NW + W - NWW);
+      predictions[j++] = clip((N * 2 + NW) - (NN + 2 * NNW) + buf(w * 3 + 1));
+      predictions[j++] = clip(NN + clip(NEE * 2 - buf(w * 2 - 3)) - NNE);
+      predictions[j++] = clip((-buf(4) + 5 * WWW - 10 * WW + 10 * W + clip(NE * 2 - NNE)) / 5);
+      predictions[j++] = clip((-buf(5) + 4 * buf(4) - 5 * WWW + 5 * W + clip(NE * 2 - NNE)) / 4);
+      predictions[j++] = clip((WWW - 4 * WW + 6 * W + clip(NE * 3 - NNE * 3 + buf(w * 3 - 1))) / 4);
+      predictions[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
+      predictions[j++] = ((W + N) * 3 - NW * 2) / 4;
+
+      assert(j == nSM1);
+
       for (j = 0; j < nOLS; j++) {
         auto ols_j = ols[j].get();
         ols_j->update((float)W);
@@ -316,8 +362,10 @@ void Image8BitModel::mix(Mixer& m) {
 
         float pred = ols_j->predict();
         short prediction = short(roundf(pred));
-        pOLS[j] = clip(prediction);
-        mapOLS.set(prediction, 0);
+        predictions[nSM1 + j] = clip(prediction);
+        uint32_t predErrAvg = GetPredErrAvg(nSM1 + j);
+        mapOLS1.set(prediction, min(predErrAvg, 31));
+        mapOLS2.set(prediction, 0/*lossQ4*/);
       }
 
       cm.set(R_, 0);
@@ -367,7 +415,7 @@ void Image8BitModel::mix(Mixer& m) {
       (DiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11));
 
     for (int j = 0; j < nSM1; i++, j++) {
-      map[i].set((mapContexts[j] - b) * 8 + bpos);
+      map[i].set((predictions[j] - b) * 8 + bpos);
     }
   }
   sceneMap[2].setDirect(finalize64(hash(x, line), 19) * 8 + bpos);
@@ -380,7 +428,8 @@ void Image8BitModel::mix(Mixer& m) {
     for (int i = 0; i < nSM; i++) {
       map[i].mix(m);
     }
-    mapOLS.mix(m);
+    mapOLS1.mix(m);
+    mapOLS2.mix(m);
   }
   else {
     for (int i = 0; i < nPltMaps; i++) {
