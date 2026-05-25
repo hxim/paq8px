@@ -7,18 +7,10 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   cm(sh, size, nCM, 64),
   map{ /* StationaryMap : BitsOfContext, InputBits, Scale=64, Rate=16  */
     /*nSM0: 0- 1*/ {sh, 0,8}, {sh,15,1},
-    /*nSM1: 0- 4*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1: 5- 9*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:10-14*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:15-19*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:20-24*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:25-29*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:30-34*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:35-39*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:40-44*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:45-49*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
-    /*nSM1:50-54*/ {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1}, {sh,11,1},
   },
+  mapR1{ sh, nRM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR2{ sh, nRM, 1 << 3, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR3{ sh, nRM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS1{ sh, nOLS, 1 << 5, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS2{ sh, nOLS, 1 << 3, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   pltMap{   /* SmallStationaryContextMap: BitsOfContext, InputBits, Rate, Scale */
@@ -57,7 +49,7 @@ ALWAYS_INLINE uint8_t Image8BitModel::GetPredErr(const uint32_t ctxIndex, int re
   if (x - relX >= w)
     return 255;
   int offset = relY * w + relX;
-  const uint32_t valuesPerByte = (nSM + nOLS);
+  const uint32_t valuesPerByte = (nRM + nOLS);
   return predErrBuf((offset - 1) * valuesPerByte + ctxIndex + 1);
 }
 
@@ -98,7 +90,7 @@ void Image8BitModel::init(int pos) {
   lossBuf.setSize(nextPowerOf2(LOSS_BUF_ROWS * w));
   lossBuf.fill(255);
 
-  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nSM1 + nOLS)));
+  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nRM + nOLS)));
   predErrBuf.fill(255);
 }
 
@@ -317,7 +309,7 @@ void Image8BitModel::mix(Mixer& m) {
       lossQ = min(lossQ, 639);
       shared->State.Image.lossQ = lossQ; //0..639
 
-      for (int i = nSM1 + nOLS - 1; i >= 0; i--) {
+      for (int i = nRM + nOLS - 1; i >= 0; i--) {
         short prediction = predictions[i] & 65535;
         uint8_t err;
         if (prediction == INT16_MAX) // currently never happens, todo
@@ -383,10 +375,26 @@ void Image8BitModel::mix(Mixer& m) {
       predictions[j++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - buf(w * 3 + 1))) / 3);
       predictions[j++] = ((W + N) * 3 - NW * 2) / 4;
 
-      assert(j == nSM1);
+      assert(j == nRM);
 
       //quality metric: quantized past loss in the pixel neighborhood 
       lossQ4 = min(lossQ / 40u, 7); //0..7 (3 bits)
+
+      for (int i = 0; i < nRM; i++) {
+        uint32_t spread = predictions[i] >> 16;
+        short prediction = predictions[i] & 65535;
+        if (prediction == INT16_MAX) { // currently never happens, todo
+          mapR1.skip();
+          mapR2.skip();
+          mapR3.skip();
+        }
+        else {
+          uint32_t predErrAvg = GetPredErrAvg(i);
+          mapR1.set(prediction, min(predErrAvg, 31)); // 0..31 (5 bits)
+          mapR2.set(prediction, lossQ4); // 0..7 (3 bits)
+          mapR3.set(prediction, min(spread, 31)); // 5 bits
+        }
+      }
 
       for (j = 0; j < nOLS; j++) {
         auto ols_j = ols[j].get();
@@ -399,8 +407,8 @@ void Image8BitModel::mix(Mixer& m) {
 
         float pred = ols_j->predict();
         short prediction = short(roundf(pred));
-        predictions[nSM1 + j] = clip(prediction);
-        uint32_t predErrAvg = GetPredErrAvg(nSM1 + j);
+        predictions[nRM + j] = clip(prediction);
+        uint32_t predErrAvg = GetPredErrAvg(nRM + j);
         mapOLS1.set(prediction, min(predErrAvg, 31));
         mapOLS2.set(prediction, lossQ4);
       }
@@ -450,10 +458,6 @@ void Image8BitModel::mix(Mixer& m) {
     map[i++].set(0);
     map[i++].set(((static_cast<uint8_t>(clip(W + N - NW) - b)) * 8 + bpos) |
       (DiffQt(clip(N + NE - NNE), clip(N + NW - NNW)) << 11));
-
-    for (int j = 0; j < nSM1; i++, j++) {
-      map[i].set((predictions[j] - b) * 8 + bpos);
-    }
   }
   sceneMap[2].setDirect(finalize64(hash(x, line), 19) * 8 + bpos);
   sceneMap[3].setDirect((prvFrmPx - b) * 8 + bpos);
@@ -465,6 +469,9 @@ void Image8BitModel::mix(Mixer& m) {
     for (int i = 0; i < nSM; i++) {
       map[i].mix(m);
     }
+    mapR1.mix(m);
+    mapR2.mix(m);
+    mapR3.mix(m);
     mapOLS1.mix(m);
     mapOLS2.mix(m);
   }

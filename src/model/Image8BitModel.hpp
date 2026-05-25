@@ -17,10 +17,9 @@
 class Image8BitModel
 {
 private:
-  static constexpr int nSM0 = 2;
-  static constexpr int nSM1 = 55;
+  static constexpr int nSM = 2;
+  static constexpr int nRM = 55;
   static constexpr int nOLS = 5;
-  static constexpr int nSM = nSM0 + nSM1;
   static constexpr int nPltMaps = 4;
   static constexpr int nCM = 48 + nPltMaps;
   static constexpr int nIM = 5;
@@ -28,6 +27,7 @@ private:
 public:
   static constexpr int MIXERINPUTS =
     nSM * StationaryMap::MIXERINPUTS +
+    (nRM * 3) * ResidualMap::MIXERINPUTS +
     (nOLS * 2) * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
@@ -38,7 +38,7 @@ public:
   Shared* const shared;
   ContextMap2 cm;
   StationaryMap map[nSM];
-  ResidualMap mapOLS1, mapOLS2;
+  ResidualMap mapR1, mapR2, mapR3, mapOLS1, mapOLS2;
   SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
   IndirectMap sceneMap[nIM];
   IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */
@@ -68,7 +68,7 @@ public:
   int prevFrameWidth = 0;
   int columns[2] = { 1, 1 }, column[2]{};
 
-  uint8_t predictions[nSM + nOLS] = { 0 };
+  uint32_t predictions[nRM + nOLS] = { 0 };
 
   // Per-predictor prediction error for each decoded pixel.
   // Stores uint8 rabs(prediction - actual) for all nRM and nOLS predictors at every pixel position.
