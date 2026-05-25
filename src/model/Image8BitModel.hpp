@@ -81,6 +81,21 @@ public:
   static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
   RingBuffer<uint8_t> predErrBuf{ 0 };
 
+  // Per-pixel accumulated decoding cost (loss), one byte per pixel.
+  // Stores (loss >> 3) after each decoded byte, reflecting how hard the last pixel was
+  // to compress. Read back via Ls(relX, relY); six causal neighbors (W, N, WW, NN, NW, NE)
+  // are summed into lossQ, capturing local image complexity.
+  // lossQ feeds mapR2's histogram selection,
+  // allowing statistical maps to adapt to smooth vs. noisy/high-frequency regions.
+  // Sized in init() to cover LOSS_BUF_ROWS rows: nextPowerOf2(LOSS_BUF_ROWS * w).
+  static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of NN
+  RingBuffer<uint8_t> lossBuf{ 0 };
+
+  uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..1023 over 8 bits)
+  uint32_t lossQ = 0; // sum of lossBuf[] over 6 causal neighbors (W, N, WW, NN, NW, NE), capped at 639;
+  // measures local image complexity: low = smooth region, high = noisy/detailed region
+  uint8_t lossQ4 = 0; // lossQ quantized to 3 bits
+
   static constexpr float lambda[nOLS] = { 0.996f, 0.87f, 0.93f, 0.8f, 0.9f };
   static constexpr int num[nOLS] = { 32, 12, 15, 10, 14 };
   static constexpr float nu = 0.001f;
@@ -97,6 +112,7 @@ public:
   const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0] };
 
   Image8BitModel(Shared* const sh, uint64_t size);
+  ALWAYS_INLINE uint8_t Ls(int relX, int relY) const;
   ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
   ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
   void init(int pos);

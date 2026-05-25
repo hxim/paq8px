@@ -37,6 +37,18 @@ Image8BitModel::Image8BitModel(Shared* const sh, const uint64_t size) :
   sceneOls = create_OLS_float(sh->chosenSimd, 13, 1, 0.994f, nu);
 }
 
+ALWAYS_INLINE uint8_t Image8BitModel::Ls(int relX, int relY) const {
+  if (line - relY < 0)  //the lossBuf buffer is pre-filled with 255 initially, so this check is not really necessary
+    return 255;
+  if (x - relX < 0)
+    return 255;
+  if (x - relX >= w)
+    return 255;
+  int offset = relY * w + relX;
+  const uint32_t valuesPerByte = 1;
+  return lossBuf((offset - 1) * valuesPerByte + 1);
+}
+
 ALWAYS_INLINE uint8_t Image8BitModel::GetPredErr(const uint32_t ctxIndex, int relX, int relY) const {
   if (line - relY < 0)  //the predErrBuf buffer is pre-filled with 255 initially, so this check is not really necessary
     return 255;
@@ -83,6 +95,9 @@ void Image8BitModel::init(int pos) {
   prevFrameWidth = frameWidth;
   frameWidth = w;
 
+  lossBuf.setSize(nextPowerOf2(LOSS_BUF_ROWS * w));
+  lossBuf.fill(255);
+
   predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nSM1 + nOLS)));
   predErrBuf.fill(255);
 }
@@ -93,7 +108,9 @@ void Image8BitModel::setParam(int width, uint32_t isGray) {
 }
 
 void Image8BitModel::mix(Mixer& m) {
-  // Select nearby pixels as context
+
+  loss += shared->State.loss; // += 0..1023
+
   INJECT_SHARED_bpos
   if (bpos == 0) {
     INJECT_SHARED_pos
@@ -283,6 +300,23 @@ void Image8BitModel::mix(Mixer& m) {
     }
     else { // gray
 
+      lossBuf.add(static_cast<uint8_t>(min(loss >> 2, 255)));  // 0..255
+      loss = 0;
+
+      //what was the total cost at the neighboring pixes
+      lossQ = //0 x 6 .. 255 x 6 = 0 .. 1530
+        Ls(1, 0) + // W
+        Ls(0, 1) + // N
+        Ls(2, 0) + // WW
+        Ls(0, 2) + // NN
+        Ls(1, 1) + // NW
+        Ls(-1, 1); // NE
+
+      // let's trim the higher part (640-1530) - it is almost always completely empty OR such high values indicate that we are off frame
+      // cap at 639 = 16*40 - 1, so lossQ4 = lossQ/40 fits in [0..15]
+      lossQ = min(lossQ, 639);
+      shared->State.Image.lossQ = lossQ; //0..639
+
       for (int i = nSM1 + nOLS - 1; i >= 0; i--) {
         short prediction = predictions[i] & 65535;
         uint8_t err;
@@ -351,6 +385,9 @@ void Image8BitModel::mix(Mixer& m) {
 
       assert(j == nSM1);
 
+      //quality metric: quantized past loss in the pixel neighborhood 
+      lossQ4 = min(lossQ / 40u, 7); //0..7 (3 bits)
+
       for (j = 0; j < nOLS; j++) {
         auto ols_j = ols[j].get();
         ols_j->update((float)W);
@@ -365,7 +402,7 @@ void Image8BitModel::mix(Mixer& m) {
         predictions[nSM1 + j] = clip(prediction);
         uint32_t predErrAvg = GetPredErrAvg(nSM1 + j);
         mapOLS1.set(prediction, min(predErrAvg, 31));
-        mapOLS2.set(prediction, 0/*lossQ4*/);
+        mapOLS2.set(prediction, lossQ4);
       }
 
       cm.set(R_, 0);
