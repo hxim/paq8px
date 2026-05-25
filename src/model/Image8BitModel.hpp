@@ -51,6 +51,7 @@ public:
   uint8_t NNNNW = 0, NNNN = 0, NNNNE = 0;
   uint8_t NNNNN = 0;
   uint8_t NNNNNN = 0;
+
   uint8_t res = 0; /**< expected residual */
   uint8_t prvFrmPx = 0; /**< corresponding pixel in previous frame */
   uint8_t prvFrmPrediction = 0; /**< prediction for corresponding pixel in previous frame */
@@ -115,6 +116,11 @@ public:
   ALWAYS_INLINE uint8_t Ls(int relX, int relY) const;
   ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
   ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
+  ALWAYS_INLINE void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
+  ALWAYS_INLINE void MakePredictionC(int i, int prediction);
+  ALWAYS_INLINE void MakePredictionAvg(int i, int base1, int base2);
+  ALWAYS_INLINE void MakePredictionTrend(int i, int base1, int other1, int base2);
+  ALWAYS_INLINE void MakePredictionSmooth(int i, int base1, int other1, int base2);
   void init(int pos);
   void setParam(int info0, uint32_t gray0);
   void mix(Mixer& m);
