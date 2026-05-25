@@ -122,15 +122,39 @@ void Image8BitModel::mix(Mixer& m) {
 
     column[0] = x / columns[0];
     column[1] = x / columns[1];
-    WWWWW = buf(5), WWWW = buf(4), WWW = buf(3), WW = buf(2), W = buf(1);
-    NWWWW = buf(w + 4), NWWW = buf(w + 3), NWW = buf(w + 2), NW = buf(w + 1), N = buf(w), NE = buf(w - 1), NEE = buf(
-      w - 2), NEEE = buf(w - 3), NEEEE = buf(w - 4);
-    NNWWW = buf(w * 2 + 3), NNWW = buf(w * 2 + 2), NNW = buf(w * 2 + 1), NN = buf(w * 2), NNE = buf(
-      w * 2 - 1), NNEE = buf(w * 2 - 2), NNEEE = buf(w * 2 - 3);
-    NNNWW = buf(w * 3 + 2), NNNW = buf(w * 3 + 1), NNN = buf(w * 3), NNNE = buf(w * 3 - 1), NNNEE = buf(w * 3 - 2);
-    NNNNW = buf(w * 4 + 1), NNNN = buf(w * 4), NNNNE = buf(w * 4 - 1);
+
+    WWWWW = buf(5);
+    WWWW = buf(4);
+    WWW = buf(3);
+    WW = buf(2);
+    W = buf(1);
+    NWWWW = buf(w + 4);
+    NWWW = buf(w + 3);
+    NWW = buf(w + 2);
+    NW = buf(w + 1);
+    N = buf(w);
+    NE = buf(w - 1);
+    NEE = buf(w - 2);
+    NEEE = buf(w - 3);
+    NEEEE = buf(w - 4);
+    NNWWW = buf(w * 2 + 3);
+    NNWW = buf(w * 2 + 2);
+    NNW = buf(w * 2 + 1);
+    NN = buf(w * 2);
+    NNE = buf(w * 2 - 1);
+    NNEE = buf(w * 2 - 2);
+    NNEEE = buf(w * 2 - 3);
+    NNNWW = buf(w * 3 + 2);
+    NNNW = buf(w * 3 + 1);
+    NNN = buf(w * 3);
+    NNNE = buf(w * 3 - 1);
+    NNNEE = buf(w * 3 - 2);
+    NNNNW = buf(w * 4 + 1);
+    NNNN = buf(w * 4);
+    NNNNE = buf(w * 4 - 1);
     NNNNN = buf(w * 5);
     NNNNNN = buf(w * 6);
+
     if (prevFramePos > 0 && prevFrameWidth == w) {
       int offset = prevFramePos + line * w + x;
       prvFrmPx = buf[offset];
