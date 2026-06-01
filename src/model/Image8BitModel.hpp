@@ -18,10 +18,10 @@ class Image8BitModel
 {
 private:
   static constexpr int nSM = 2;
-  static constexpr int nRM = 55;
+  static constexpr int nRM = 74;
   static constexpr int nOLS = 5;
   static constexpr int nPltMaps = 4;
-  static constexpr int nCM = 48 + nPltMaps;
+  static constexpr int nCM = 46 + nPltMaps;
   static constexpr int nIM = 5;
 
 public:
@@ -31,8 +31,8 @@ public:
     (nOLS * 2) * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
-    nIM * IndirectMap::MIXERINPUTS; //464
-  static constexpr int MIXERCONTEXTS = 512 + 16 + 32 + 255 + 1024 + 64 + 128 + 256; /**< 2286 */
+    nIM * IndirectMap::MIXERINPUTS; // 738
+  static constexpr int MIXERCONTEXTS = 512 + 16 + 32 + 255 + 1024 + 64 + 128 + 256; /**< 2287 */
   static constexpr int MIXERCONTEXTSETS = 8;
 
   Shared* const shared;

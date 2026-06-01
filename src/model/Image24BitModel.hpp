@@ -12,10 +12,10 @@
  */
 class Image24BitModel {
 private:
-  static constexpr int nRM = 117;
+  static constexpr int nRM = 122;
   static constexpr int nOLS = 6;
   static constexpr int nLSM = 40;
-  static constexpr int nCM = 30;
+  static constexpr int nCM = 31;
   Ilog *ilog = &Ilog::getInstance();
 
 public:
@@ -23,10 +23,10 @@ public:
     nLSM * LargeStationaryMap::MIXERINPUTS +
     (nRM * 3) * ResidualMap::MIXERINPUTS +
     (nOLS * 2) * ResidualMap::MIXERINPUTS +
-    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); // 996
+    nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS); // 1031
   static constexpr int MIXERCONTEXTS =
     (1 + 8) + 8 + (8 * 8) + (8 * 8) + 16 + 512 + 256 + (16 * 8) + (8 * 4) + 1024 + (4 * 8) + 256
-    + (nRM + nOLS) + (nRM + nOLS) + 32 * 32 + 32 * 32 + 512 + 64 * 8 + 64 * 4 + 8 * 8 * 4; // 6231
+    + (nRM + nOLS) + (nRM + nOLS) + 32 * 32 + 32 * 32 + 512 + 64 * 8 + 64 * 4 + 8 * 8 * 4; // 6241
   static constexpr int MIXERCONTEXTSETS = 20; 
 
   Shared * const shared;

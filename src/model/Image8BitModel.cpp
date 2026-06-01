@@ -65,6 +65,56 @@ ALWAYS_INLINE uint32_t Image8BitModel::GetPredErrAvg(const uint32_t predictorInd
   return predErrAvg;
 }
 
+ALWAYS_INLINE static int avg(int x, int y) {
+  return (x + y + 1) >> 1;  //note: rounding here works properly only when x+y is non-negative, but we don't really need the function to be aware of negative values as they are rare
+}
+
+// Stores a prediction with a spread signal based on the distance between two reference pixels.
+// ref1 and ref2 are spatial reference pixels; their difference measures local variation -
+// higher difference = less confident = used as a context component in the probability map.
+// Use when the prediction value is computed externally (e.g. a complex algebraic expression)
+// but a natural pair of reference pixels still exists to supply the spread signal.
+ALWAYS_INLINE void Image8BitModel::MakePrediction(int i, uint8_t ref1, uint8_t ref2, int prediction) {
+  uint32_t absdiff = rabs(ref1, ref2);
+  predictions[i] = absdiff << 16 | ((prediction) & 65535);
+}
+
+// Trend extrapolation: continues the gradient observed from pxFar to px,
+// starting from the spatial origin.
+// prediction = origin + (px - pxFar)
+// spread = rabs(px - pxFar): larger gradient = more uncertain prediction.
+// Use when pixels are expected to follow a consistent directional trend
+// (e.g. continuing a horizontal, vertical, or diagonal gradient).
+ALWAYS_INLINE void Image8BitModel::MakePredictionTrend(int i, int px, int pxFar, int origin) {
+  uint32_t absdiff = rabs(px, pxFar);
+  int prediction = origin + px - pxFar;
+  predictions[i] = absdiff << 16 | (prediction & 65535);
+}
+
+// Smoothed trend: applies the gradient at half strength instead of full extrapolation.
+// prediction = avg(origin, origin + (px - pxFar))
+// spread = rabs(px - pxFar): same signal as Trend.
+// Use in smoother regions where a full trend extrapolation would overshoot,
+// or when the gradient is expected to taper rather than continue linearly.
+ALWAYS_INLINE void Image8BitModel::MakePredictionSmooth(int i, int px, int pxFar, int origin) {
+  uint32_t absdiff = rabs(px, pxFar);
+  int prediction = avg(origin, origin + px - pxFar);
+  predictions[i] = absdiff << 16 | (prediction & 65535);
+}
+
+ALWAYS_INLINE void Image8BitModel::MakePredictionAvg(int i, int px1, int px2) {
+  uint32_t absdiff = rabs(px1, px2);
+  int prediction = avg(px1, px2);
+  predictions[i] = absdiff << 16 | (prediction & 65535);
+}
+
+// Stores only a prediction value; the spread signal is absent (upper 16 bits are zero).
+// Use for complex algebraic combinations of multiple pixels where no single
+// natural pair of reference pixels exists to derive a meaningful spread signal.
+ALWAYS_INLINE void Image8BitModel::MakePredictionC(int i, int prediction) {
+  predictions[i] = prediction & 65535;
+}
+
 void Image8BitModel::init(int pos) {
   x = line = jump = 0;
   columns[0] = max(1, w / max(1, ilog2(w) * 2));
@@ -254,7 +304,7 @@ void Image8BitModel::mix(Mixer& m) {
       iCtx[1] = W | (N << 8);
       iCtx[2] = W | (WW << 8);
       iCtx[3] = N | (NN << 8);
-      cm.set(R_, hash(++i, W));
+//    cm.set(R_, hash(++i, W)); // ineffective, covered by NormalModel
       cm.set(R_, hash(++i, W, column[0]));
       cm.set(R_, hash(++i, N));
       cm.set(R_, hash(++i, N, column[0]));
@@ -274,7 +324,7 @@ void Image8BitModel::mix(Mixer& m) {
       cm.set(R_, hash(++i, N, NW));
       cm.set(R_, hash(++i, N, NE));
       cm.set(R_, hash(++i, NW, NE));
-      cm.set(R_, hash(++i, W, WW));
+//    cm.set(R_, hash(++i, W, WW)); // ineffective, covered by NormalModel
       cm.set(R_, hash(++i, N, NN));
       cm.set(R_, hash(++i, NW, NNWW));
       cm.set(R_, hash(++i, NE, NNEE));
@@ -338,61 +388,120 @@ void Image8BitModel::mix(Mixer& m) {
       }
       int contextIdx = 0;
 
-      predictions[contextIdx++] = clamp4(W + N - NW, W, NW, N, NE);
-      predictions[contextIdx++] = clip(W + N - NW);
-      predictions[contextIdx++] = clamp4(W + NE - N, W, NW, N, NE);
-      predictions[contextIdx++] = clip(W + NE - N);
-      predictions[contextIdx++] = clamp4(N + NW - NNW, W, NW, N, NE);
-      predictions[contextIdx++] = clip(N + NW - NNW);
-      predictions[contextIdx++] = clamp4(N + NE - NNE, W, N, NE, NEE);
-      predictions[contextIdx++] = clip(N + NE - NNE);
-      predictions[contextIdx++] = (W + NEE) / 2;
-      predictions[contextIdx++] = clip(N * 3 - NN * 3 + NNN);
-      predictions[contextIdx++] = clip(W * 3 - WW * 3 + WWW);
-      predictions[contextIdx++] = (W + clip(NE * 3 - NNE * 3 + NNNE)) / 2;
-      predictions[contextIdx++] = (W + clip(NEE * 3 - NNEEE * 3 + NNNEEEE)) / 2;
-      predictions[contextIdx++] = clip(NN + NNNN - NNNNNN);
-      predictions[contextIdx++] = clip(WW + WWWW - WWWWWW);
-      predictions[contextIdx++] = clip((NNNNN - 6 * NNNN + 15 * NNN - 20 * NN + 15 * N + clamp4(W * 2 - NWW, W, NW, N, NN)) / 6);
-      predictions[contextIdx++] = clip((-3 * WW + 8 * W + clamp4(NEE * 3 - NNEE * 3 + NNNEE, NE, NEE, NEEE, NEEEE)) / 6);
-      predictions[contextIdx++] = clip(NN + NW - NNNW);
-      predictions[contextIdx++] = clip(NN + NE - NNNE);
-      predictions[contextIdx++] = clip((W * 2 + NW) - (WW + 2 * NWW) + NWWW);
-      predictions[contextIdx++] = clip(((NW + NWW) / 2) * 3 - NNWWW * 3 + (NNNWWWW + NNNWWWWW) / 2);
-      predictions[contextIdx++] = clip(NEE + NE - NNEEE);
-      predictions[contextIdx++] = clip(NWW + WW - NWWWW);
-      predictions[contextIdx++] = clip(((W + NW) * 3 - NWW * 6 + NWWW + NNWWW) / 2);
-      predictions[contextIdx++] = clip((NE * 2 + NNE) - (NNEE + NNNEE * 2) + NNNNEEE);
-      predictions[contextIdx++] = NNNNNN;
-      predictions[contextIdx++] = (NEEEE + NEEEEEE) / 2;
-      predictions[contextIdx++] = (WWWW + WWWWWW) / 2;
-      predictions[contextIdx++] = (W + N + NEEEEE + NEEEEEEE) / 4;
-      predictions[contextIdx++] = clip(NEEE + W - NEE);
-      predictions[contextIdx++] = clip(4 * NNN - 3 * NNNN);
-      predictions[contextIdx++] = clip(N + NN - NNN);
-      predictions[contextIdx++] = clip(W + WW - WWW);
-      predictions[contextIdx++] = clip(W + NEE - NE);
-      predictions[contextIdx++] = clip(WW + NEE - N);
-      predictions[contextIdx++] = (clip(W * 2 - NW) + clip(W * 2 - NWW) + N + NE) / 4;
-      predictions[contextIdx++] = clamp4(N * 2 - NN, W, N, NE, NEE);
-      predictions[contextIdx++] = (N + NNN) / 2;
-      predictions[contextIdx++] = clip(NN + W - NNW);
-      predictions[contextIdx++] = clip(NWW + N - NNWW);
-      predictions[contextIdx++] = clip((4 * WWW - 15 * WW + 20 * W + clip(NEE * 2 - NNEE)) / 10);
-      predictions[contextIdx++] = clip((NNNEEE - 4 * NNEE + 6 * NE + clip(W * 3 - NW * 3 + NNW)) / 4);
-      predictions[contextIdx++] = clip((N * 2 + NE) - (NN + 2 * NNE) + NNNE);
-      predictions[contextIdx++] = clip((NW * 2 + NNW) - (NNWW + NNNWW * 2) + NNNNWWW);
-      predictions[contextIdx++] = clip(NNWW + W - NNWWW);
-      predictions[contextIdx++] = clip((-NNNN + 5 * NNN - 10 * NN + 10 * N + clip(W * 4 - NWW * 6 + NNWWW * 4 - NNNWWWW)) / 5);
-      predictions[contextIdx++] = clip(NEE + clip(NEEE * 2 - NNEEEE) - NEEEE);
-      predictions[contextIdx++] = clip(NW + W - NWW);
-      predictions[contextIdx++] = clip((N * 2 + NW) - (NN + 2 * NNW) + NNNW);
-      predictions[contextIdx++] = clip(NN + clip(NEE * 2 - NNEEE) - NNE);
-      predictions[contextIdx++] = clip((-WWWW + 5 * WWW - 10 * WW + 10 * W + clip(NE * 2 - NNE)) / 5);
-      predictions[contextIdx++] = clip((-WWWWW + 4 * WWWW - 5 * WWW + 5 * W + clip(NE * 2 - NNE)) / 4);
-      predictions[contextIdx++] = clip((WWW - 4 * WW + 6 * W + clip(NE * 3 - NNE * 3 + NNNE)) / 4);
-      predictions[contextIdx++] = clip((-NNEE + 3 * NE + clip(W * 4 - NW * 6 + NNW * 4 - NNNW)) / 3);
-      predictions[contextIdx++] = ((W + N) * 3 - NW * 2) / 4;
+
+
+      MakePredictionC(contextIdx++, (N * 3 + W * 3 - NN - WW + 2) >> 2);
+      MakePredictionAvg(contextIdx++, W, NEE);
+
+      MakePredictionTrend(contextIdx++, W, NW, N); // very strong
+      MakePredictionTrend(contextIdx++, WW, NNWW, NN); //strong?
+      MakePredictionTrend(contextIdx++, WWW, NNNWWW, NNN); //strong?
+      MakePredictionTrend(contextIdx++, W, N, NE); // strong
+      MakePredictionTrend(contextIdx++, N, NNW, NW);
+      MakePredictionTrend(contextIdx++, N, NNE, NE);
+      MakePredictionTrend(contextIdx++, NN, NNNNEE, NNEE);
+      MakePredictionTrend(contextIdx++, N, NNN, NN);
+      MakePredictionTrend(contextIdx++, NN, NNNNNN, NNNN);
+      MakePredictionTrend(contextIdx++, W, WWW, WW); // strong
+      MakePredictionTrend(contextIdx++, WW, WWWWWW, WWWW);
+      MakePredictionTrend(contextIdx++, W, NE, NEE);
+      MakePredictionTrend(contextIdx++, WW, NNEE, NNEEEE); // strong
+      MakePredictionTrend(contextIdx++, NW, NWW, W); // very strong
+      MakePredictionTrend(contextIdx++, NNWW, NNWWWW, WW);
+      MakePredictionTrend(contextIdx++, NN, NNW, W);
+      MakePredictionTrend(contextIdx++, NNNN, NNNNNNEE, NNEE);
+      MakePredictionTrend(contextIdx++, NE, NN, NW); // strong
+
+      MakePredictionSmooth(contextIdx++, W, NNE, NE); // very strong
+      MakePredictionTrend(contextIdx++, NNE, NNNE, NE);
+      MakePredictionTrend(contextIdx++, NEE, NNEEE, NEE); // strong
+      MakePredictionTrend(contextIdx++, NEEE, NNNEEE, NEEE);
+      MakePredictionTrend(contextIdx++, NNE, NN, W);  // strong
+      MakePredictionTrend(contextIdx++, NNW, NNWW, W);  // strong
+
+      MakePredictionC(contextIdx++, (N * 3 - NN * 3 + NNN));
+      MakePredictionC(contextIdx++, (W * 3 - WW * 3 + WWW));
+      MakePredictionC(contextIdx++, clamp4(N * 3 - NN * 3 + NNN, N, W, NE, NW)); // very strong
+      MakePredictionC(contextIdx++, clamp4(W * 3 - WW * 3 + WWW, N, W, NE, NW)); // strong
+
+      MakePredictionC(contextIdx++, ((15 * N - 20 * NN + 15 * NNN - 6 * NNNN + NNNNN + clamp4(4 * W - 6 * NWW + 4 * NNWWW - NNNWWWW, W, NW, N, NN)) / 6)); // very strong
+      MakePredictionC(contextIdx++, ((6 * NE - 4 * NNEE + NNNEEE + (4 * W - 6 * NW + 4 * NNW - NNNW)) / 4));
+      MakePredictionC(contextIdx++, (((N + 3 * NW) / 4) * 3 - avg(NNW, NNWW) * 3 + (NNNWW * 3 + NNNWWW) / 4));
+      MakePredictionC(contextIdx++, ((W * 2 + NW) - (WW + 2 * NWW) + NWWW)); // strong
+      MakePredictionAvg(contextIdx++, NEEEE, NEEEEEE); // strong
+      MakePredictionAvg(contextIdx++, WWWW, WWWWWW);
+      MakePredictionAvg(contextIdx++, NNNN, NNNNNN);// strong
+      MakePredictionAvg(contextIdx++, NNNNWW, NNWW);
+      MakePredictionAvg(contextIdx++, NNNNEE, NNEE);
+      MakePredictionAvg(contextIdx++, WWW, WWWWWW);
+      MakePredictionC(contextIdx++, W);
+      MakePredictionC(contextIdx++, N);  // strong
+      MakePredictionC(contextIdx++, NN);
+
+      MakePredictionTrend(contextIdx++, W, WW, W); // strong
+      MakePredictionTrend(contextIdx++, WW, WWWW, WW); // strong?
+      MakePredictionTrend(contextIdx++, N, NN, N); // strong
+      MakePredictionTrend(contextIdx++, NN, NNNN, NN);
+      MakePredictionTrend(contextIdx++, NW, NNWW, NW);
+      MakePredictionTrend(contextIdx++, NNWW, NNNNWWWW, NNWW);
+      MakePredictionTrend(contextIdx++, NE, NNEE, NE);
+      MakePredictionTrend(contextIdx++, NNEEE, NNNNEEEE, NNEEE);
+
+      //MakePredictionTrend(contextIdx++, NN, NNNW, NW);
+      MakePredictionTrend(contextIdx++, W, NEE, NEEE);
+      //MakePredictionTrend(contextIdx++, NEE, NNEEE, NE);
+      MakePredictionTrend(contextIdx++, NWW, NWWWW, WW);
+      //MakePredictionC(contextIdx++, ((W + NW) * 3 - NWW * 6 + NWWW + NNWWW) / 2);
+      //MakePredictionTrend(contextIdx++, (NE * 2 + NNE), (NNEE + NNNEE * 2), NNNNEEE);
+      MakePredictionC(contextIdx++, (W + N + NEEEEE + NEEEEEEE) / 4);
+      MakePredictionTrend(contextIdx++, WW, N, NEE);
+      //MakePredictionAvg(contextIdx++, N, NNN);
+      MakePredictionTrend(contextIdx++, N, NNWW, NWW); //strong
+      //MakePredictionTrend(contextIdx++, (N * 2 + NE), (NN + 2 * NNE), NNNE);
+      //MakePredictionTrend(contextIdx++, (NW * 2 + NNW), (NNWW + NNNWW * 2), NNNNWWW);
+      //MakePredictionTrend(contextIdx++, (N * 2 + NW), (NN + 2 * NNW), NNNW);
+
+      MakePredictionAvg(contextIdx++, 2 * N - NN, 2 * W - WW);
+      MakePredictionAvg(contextIdx++, 2 * W - WW, 2 * NW - NNWW);
+
+      MakePredictionC(contextIdx++, paeth(W, N, NW));
+      MakePredictionC(contextIdx++, gap(W, N, NW, NE, WW, NNE, NN));
+
+      // 3rd-order horizontal + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (6 * W - 4 * WW + WWW + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 4);
+      // average of 1st- through 4th-order horizontal + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (10 * W - 10 * WW + 5 * WWW - WWWW + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 5);
+      // 2nd-order H + weighted blend of 3rd-order NE and 3rd-order NEEE diagonals
+      MakePredictionC(contextIdx++, (15 * W - 4 * WW + 10 * (3 * NE - 3 * NNE + NNNE) - (3 * NEEE - 3 * NNEEE + NNNEEE)) / 20); //strong
+      // 2× 1st-order + 3× 2nd-order horizontal + 3rd-order NEE diagonal
+      MakePredictionC(contextIdx++, (8 * W - 3 * WW + (3 * NEE - 3 * NNEE + NNNEE)) / 6); // very strong
+
+      // 2nd-order H + 2nd-order V, interaction-corrected
+      MakePredictionC(contextIdx++, (2 * W - WW) + (2 * N - NN) - (2 * NW - NNWW));
+
+      // 3rd-order vertical + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, (6 * N - 4 * NN + NNN + 4 * NE - 6 * NNE + 4 * NNNE - NNNNE) / 4);
+      // 4th-order vertical + 4th-order NE diagonal
+      MakePredictionC(contextIdx++, ((10 * N - 10 * NN + 5 * NNN - NNNN) + (4 * NE - 6 * NNE + 4 * NNNE - NNNNE)) / 5);
+
+      // 3rd-order vertical + 4th-order NW diagonal
+      MakePredictionC(contextIdx++, (6 * N - 4 * NN + NNN + 4 * NW - 6 * NNW + 4 * NNNW - NNNNW) / 4);
+      // 4th-order vertical + 4th-order NW diagonal
+      MakePredictionC(contextIdx++, ((10 * N - 10 * NN + 5 * NNN - NNNN) + (4 * NW - 6 * NNW + 4 * NNNW - NNNNW)) / 5);
+
+      // 3rd-order NE diagonal alone
+      MakePredictionC(contextIdx++, (6 * NE - 4 * NNEE + NNNEEE) / 3);
+
+      // 3rd-order H + 3rd-order V, interaction-corrected
+      MakePredictionC(contextIdx++, ((6 * W - 4 * WW + WWW) + (6 * N - 4 * NN + NNN) - (6 * NW - 4 * NNWW + NNNWWW)) / 3);
+
+      // 5th-order horizontal
+      MakePredictionC(contextIdx++, (15 * W - 20 * WW + 15 * WWW - 6 * WWWW + WWWWW) / 5); // strong
+
+      // symmetric NE+NW blend, N-corrected
+      MakePredictionC(contextIdx++, (2 * NE - NNEE) + (2 * NW - NNWW) - (2 * N - NN));
+
+      MakePredictionC(contextIdx++, 0);
 
       assert(contextIdx == nRM);
 
@@ -432,37 +541,48 @@ void Image8BitModel::mix(Mixer& m) {
         mapOLS2.set(prediction, lossQ4);
       }
 
-      cm.set(R_, 0);
-      cm.set(R_, hash(++i, N));
-      cm.set(R_, hash(++i, W));
+      //cm.set(R_, hash(++i, W)); // ineffective, covered by NormalModel
+      cm.set(R_, hash(++i, N)); 
       cm.set(R_, hash(++i, NW));
       cm.set(R_, hash(++i, NE));
+
       cm.set(R_, hash(++i, N, NN));
-      cm.set(R_, hash(++i, W, WW));
       cm.set(R_, hash(++i, NE, NNEE));
       cm.set(R_, hash(++i, NW, NNWW));
       cm.set(R_, hash(++i, W, NEE));
-      cm.set(R_, hash(++i, (clamp4(W + N - NW, W, NW, N, NE)) / 2, DiffQt(clip(N + NE - NNE), clip(N + NW - NNW))));
-      cm.set(R_, hash(++i, W / 4, NE / 4, column[0]));
-      cm.set(R_, hash(++i, (clip(W * 2 - WW)) / 4, (clip(N * 2 - NN)) / 4));
-      cm.set(R_, hash(++i, (clamp4(N + NE - NNE, W, N, NE, NEE)) / 4, column[0]));
-      cm.set(R_, hash(++i, (clamp4(N + NW - NNW, W, NW, N, NE)) / 4, column[0]));
-      cm.set(R_, hash(++i, (W + NEE) / 4, column[0]));
-      cm.set(R_, hash(++i, clip(W + N - NW), column[0]));
-      cm.set(R_, hash(++i, clamp4(N * 3 - NN * 3 + NNN, W, N, NN, NE), DiffQt(W, clip(NW * 2 - NNW))));
-      cm.set(R_, hash(++i, clamp4(W * 3 - WW * 3 + WWW, W, N, NE, NEE), DiffQt(N, clip(NW * 2 - NWW))));
-      cm.set(R_, hash(++i, (W + clamp4(NE * 3 - NNE * 3 + NNNE, W, N, NE, NEE)) / 2, DiffQt(N, (NW + NE) / 2)));
-      cm.set(R_, hash(++i, (N + NNN) / 8, clip(N * 3 - NN * 3 + NNN) / 4));
-      cm.set(R_, hash(++i, (W + WWW) / 8, clip(W * 3 - WW * 3 + WWW) / 4));
-      cm.set(R_, hash(++i, clip((-WWWW + 5 * WWW - 10 * WW + 10 * W + clamp4(NE * 4 - NNE * 6 + NNNE * 4 - NNNNE, N, NE, NEE, NEEE)) / 5)));
-      cm.set(R_, hash(++i, clip(N * 2 - NN), DiffQt(N, clip(NN * 2 - NNN))));
-      cm.set(R_, hash(++i, clip(W * 2 - WW), DiffQt(NE, clip(N * 2 - NW))));
+
+      cm.set(R_, hash(++i, N, NN, NNN));
+      //cm.set(R_, hash(++i, W, WW, WWW)); // ineffective, covered by NormalModel
+
+      cm.set(R_, hash(++i, W, WW, N, NN));
+      cm.set(R_, hash(++i, W, N, NE, NW));
+
+      cm.set(R_, hash(++i, (NNN + N + 4) >> 3, (N * 3 - NN * 3 + NNN) >> 1));
+
+      cm.set(R_, hash(++i, (N * 2 - NN) >> 1, DiffQt(N, (NN * 2 - NNN))));
+      cm.set(R_, hash(++i, (W * 2 - WW) >> 1, DiffQt(W, (WW * 2 - WWW))));
+      cm.set(R_, hash(++i, (N * 2 - NN), DiffQt(W, (NW * 2 - NNW))));
+      cm.set(R_, hash(++i, (W * 2 - WW), DiffQt(N, (NW * 2 - NWW))));
+      cm.set(R_, hash(++i, (W + NEE + 1) >> 1, DiffQt(W, (WW + NE + 1) >> 1)));
+      cm.set(R_, hash(++i, (W + NEE - NE), DiffQt(W, (WW + NE - N))));
+
+      int div7 = max((x) >> 10, 7);
+      int div17 = max((x) >> 9, 17);
+      int div29 = max((x) >> 8, 29);
+
+      cm.set(R_, hash(++i, w, x / div7));
+      cm.set(R_, hash(++i, w, x / div17, line / 17));
+      cm.set(R_, hash(++i, w, x / div29, uint8_t(W + N - NW) >> 1));
+
+      cm.set(R_, hash(++i, w, W >> 2, NE >> 2, x / div29));
 
       ctx = min(0x1F, x / max(1, w / min(32, columns[0]))) |
         (((static_cast<int>(abs(W - N) * 16 > W + N) << 1) | static_cast<int>(abs(N - NW) > 8)) << 5) | ((W + N) & 0x180);
 
       res = clamp4(W + N - NW, W, NW, N, NE);
     }
+
+    assert(i - isGray * 1024 <= nCM);
 
     shared->State.Image.pixels.W = W;
     shared->State.Image.pixels.N = N;
