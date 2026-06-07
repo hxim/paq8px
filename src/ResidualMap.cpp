@@ -1,4 +1,5 @@
-﻿#include "ResidualMap.hpp"
+﻿#include "clz.hpp"
+#include "ResidualMap.hpp"
 
 ResidualMap::ResidualMap(const Shared* const sh, const int numContexts, const int histogramsPerContext, const int scale) :
   shared(sh),
@@ -9,6 +10,7 @@ ResidualMap::ResidualMap(const Shared* const sh, const int numContexts, const in
   predictions(numContexts),
   bases(numContexts),
   sums(BINS* numContexts* histogramsPerContext) {
+  dt = DivisionTable::getDT();
 }
 
 void ResidualMap::setscale(const int scale) {
@@ -31,9 +33,9 @@ void ResidualMap::skip() {
 
 void ResidualMap::mix(Mixer& m) {
   INJECT_SHARED_bpos
-    INJECT_SHARED_c0
-    if (bpos == 7)
-      shared->GetUpdateBroadcaster()->subscribe(this);
+  INJECT_SHARED_c0
+  if (bpos == 7)
+    shared->GetUpdateBroadcaster()->subscribe(this);
   assert(currentContextIndex == numContexts);
 
   for (size_t i = 0; i < currentContextIndex; i++) {
@@ -46,7 +48,7 @@ void ResidualMap::mix(Mixer& m) {
 
     const uint16_t* s = &sums[base];
     const uint8_t  c1 = c0 << (8 - bpos);
-    const int   range = 1 << (7 - bpos);  // 128 down to 1
+    const int range = 1 << (7 - bpos);  // 128 down to 1
 
     // n0: bins [offset, offset+range) mod 256
     // n1: bins [mid,    mid+range)    mod 256
@@ -63,20 +65,42 @@ void ResidualMap::mix(Mixer& m) {
     uint64_t n0, n1;
     // n0
     if (bin0_offset + range <= BINS)
-      n0 = (s[bin0_offset + range - 1]) - (bin0_offset == 0 ? 0 : s[bin0_offset - 1]);
+      n0 = s[bin0_offset + range - 1] - (bin0_offset == 0 ? 0 : s[bin0_offset - 1]);
     else
-      n0 = s[BINS - 1] - (s[bin0_offset - 1]) + s[bin0_offset + range - BINS - 1];
+      n0 = s[BINS - 1] - s[bin0_offset - 1] + s[bin0_offset + range - BINS - 1];
 
     // n1
     if (bin1_offset + range <= BINS)
-      n1 = (s[bin1_offset + range - 1]) - (bin1_offset == 0 ? 0 : s[bin1_offset - 1]);
+      n1 = s[bin1_offset + range - 1] - (bin1_offset == 0 ? 0 : s[bin1_offset - 1]);
     else
-      n1 = s[BINS - 1] - (s[bin1_offset - 1]) + s[bin1_offset + range - BINS - 1];
+      n1 = s[BINS - 1] - s[bin1_offset - 1] + s[bin1_offset + range - BINS - 1];
 
-    n0 = n0 * 2 + 1;
-    n1 = n1 * 2 + 1;
-    const uint64_t sum = n0 + n1;
-    const int p1 = static_cast<int>((n1 << 12) / sum);
+    // we need p1 = 4096*(n1+1)/(n0+n1+2)
+    // to avoid the division:
+
+    const uint64_t raw_sum = n0 + n1; // [0..131070] where 131070 = two times UINT16_MAX
+
+    // to use dt, we need sum to be [0..1023] → we need to shift raw_sum by how much?
+    // 131070 >> 7 = 1023
+    //  65535 >> 6 = 1023
+    //  32767 >> 5 = 1023
+    //       ...
+    //   4095 >> 2 = 1023
+    //   2047 >> 1 = 1023
+    //   1023 >> 0 = 1023
+    // the shift needed is the number of bits in raw_sum - 10
+    // the number of bits in raw_sum is 32 - clz(raw_sum)
+
+    // clz is undefined for 0, but raw_sum==0 → shift=0 anyway,
+    // so we OR with 1 to make clz safe; it doesn't affect the result when raw_sum>0.
+    const int shift_raw = 32 - 10 - clz((uint32_t)(raw_sum | 1));
+    const int shift = shift_raw & ~(shift_raw >> 31);  // max(shift_raw, 0) without branch
+
+    const size_t sum_small = raw_sum >> shift;  // [0..1023]
+    n1 = (n1 >> shift) + 1;
+
+    const int p1 = (int)(((n1 << 12) * (uint64_t)dt[sum_small]) >> 30); //4096 * (n1+1) / (n0+n1+2)
+
     m.add((stretch(p1) * scale) >> 8);
     m.add(((p1 - 2048) * scale) >> 9);
   }
@@ -93,7 +117,7 @@ void ResidualMap::update() {
       continue;
 
     INJECT_SHARED_c1
-      const int bin = (192 + c1 - predictions[currentContextIndex]) & 255; // moving the center to bin #192 gives better cache locality on read and on updates
+    const int bin = (192 + c1 - predictions[currentContextIndex]) & 255; // moving the center to bin #192 gives better cache locality on read and on updates
 
     // Increment all prefix entries after bin: sums[bin .. BINS-1] += 1.
     uint16_t* s = &sums[base];

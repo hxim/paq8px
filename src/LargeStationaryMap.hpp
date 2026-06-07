@@ -1,7 +1,8 @@
-#pragma once
+﻿#pragma once
 
 #include "IPredictor.hpp"
 #include "Bucket16.hpp"
+#include "DivisionTable.hpp"
 #include "Hash.hpp"
 #include "Mixer.hpp"
 #include "Stretch.hpp"
@@ -9,24 +10,27 @@
 
 /**
  * Map for modelling contexts of (nearly-)stationary data.
- * The context is a hash. For each bit modelled, the exact counts of 0s and 1s are stored.
+ * The context is a hash. For each bit modelled, a 22-bit probability
+ * estimate and a 10-bit counter are stored packed into uint32_t.
  *
  */
 
-class LargeStationaryMap : IPredictor {
+class LargeStationaryMap : IPredictor
+{
 public:
   static constexpr int MIXERINPUTS = 3;
 
 private:
-  const Shared * const shared;
+  const Shared* const shared;
   Random rnd;
+  const int* dt;
   Array<Bucket16<HashElementForStationaryMap, 7>> data;
   const uint32_t hashBits;
   int scale;
 
   const uint32_t numContexts; /**< Maximum supported contexts */
   uint32_t currentContextIndex; /**< Number of context indexes present in cxt array (0..numContexts-1) */
-  Array<uint64_t> contextHashes; /**< context index of last prediction per context */
+  Array<uint32_t*> contextPointers; /**< context index of last prediction per context */
 
 public:
   /**
@@ -45,7 +49,7 @@ public:
     *       19      |  2^19 * 42 = 44.0 MB  |       7.3 M  (~21 bits)
     *       20      |  2^20 * 42 = 88.0 MB  |      14.6 M  (~22 bits)
     *      ...              ...                         ...
-    * 
+    *
     * @param scale
     */
   LargeStationaryMap(const Shared* const sh, const int contexts, const int hashBits, const int scale = 64);
@@ -58,8 +62,8 @@ public:
   void setscale(const int scale);
   void reset();
   void update() override;
-  void update(uint32_t *cp);
-  void mix(Mixer &m);
+  void update(uint32_t* cp);
+  void mix(Mixer& m);
   void subscribe();
   void skip();
 
