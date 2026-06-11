@@ -31,9 +31,9 @@ Start with a small file – compression can take a long time.
 Example output (on Windows):
 ```
 c:\>paq8px.exe -8 file.txt
-paq8px v215 (c) 2026, Matt Mahoney et al.
+paq8px v216 (c) 2026, Matt Mahoney et al.
 
-Creating archive file.txt.paq8px215 in single file mode...
+Creating archive file.txt.paq8px216 in single file mode...
 
 Filename: file.txt (111261 bytes)
 Block segmentation:
@@ -46,7 +46,7 @@ Time 16.62 sec, used 2164 MB (2269587029 bytes) of memory
 ```
 
 > [!NOTE]
-> The output archive extension is versioned (e.g., .paq8px215).
+> The output archive extension is versioned (e.g., .paq8px216).
 
 > [!NOTE]
 > You can place the binary anywhere and reference inputs/outputs by path.
@@ -74,14 +74,14 @@ To view available options + detailed help pages, run `paq8px -help`.
 <summary>Click to expand: full <code>paq8px</code> help</summary>
 
 ```
-paq8px v215 (c) 2026, Matt Mahoney et al.
+paq8px v216 (c) 2026, Matt Mahoney et al.
 Free under GPL, http://www.gnu.org/licenses/gpl.txt
 
 Usage:
   to compress       ->   paq8px -LEVEL[FLAGS] [OPTIONS] INPUT [OUTPUT]
-  to decompress     ->   paq8px -d INPUT.paq8px215 [OUTPUT]
-  to test           ->   paq8px -t INPUT.paq8px215 [OUTPUT]
-  to list contents  ->   paq8px -l INPUT.paq8px215
+  to decompress     ->   paq8px -d INPUT.paq8px216 [OUTPUT]
+  to test           ->   paq8px -t INPUT.paq8px216 [OUTPUT]
+  to list contents  ->   paq8px -l INPUT.paq8px216
 
 LEVEL:
   -1 -2 -3 -4          | Compress using less memory (558, 572, 602, 660 MB)
@@ -117,7 +117,7 @@ Misc options:
 Notes:
   INPUT may be FILE, PATH/FILE, or @FILELIST
   OUTPUT is optional: FILE, PATH, PATH/FILE
-  The archive is created in the current folder with .paq8px215 extension if OUTPUT omitted
+  The archive is created in the current folder with .paq8px216 extension if OUTPUT omitted
   FLAGS are case-insensitive and only needed for compression; they may appear in any order
   INPUT must precede OUTPUT; all other OPTIONS may appear anywhere
 
@@ -239,26 +239,26 @@ Detailed Help
 
   -d  Decompress an archive.
       In single-file mode the content is decompressed, the name of the output is the name of the archive without
-      the .paq8px215 extension.
+      the .paq8px216 extension.
       In multi-file mode first the @LISTFILE is extracted then the rest of the files. Any required folders will
       be created recursively, all files will be extracted with their original names.
       If the output file or files already exist they will be overwritten.
 
       Example: to decompress file.txt to the current folder:
-      paq8px -d file.txt.paq8px215
+      paq8px -d file.txt.paq8px216
 
   -t  Test archive contents by decompressing to memory and comparing with the original data on-the-fly.
       If a file fails the test, the first mismatched position will be printed to screen.
 
       Example: to test archive contents:
-      paq8px -t file.txt.paq8px215
+      paq8px -t file.txt.paq8px216
 
   -l  List archive contents.
       Extracts and prints the embedded @FILELIST (if present).
       Applicable only to multi-file archives.
 
       Example: to list the file list (when the archive was created using @files):
-      paq8px -l files.paq8px215
+      paq8px -l files.paq8px216
 
 ----------------------------------
  7. INPUT and OUTPUT Specification
@@ -279,7 +279,7 @@ Detailed Help
     For compression:
 
     * If omitted, the archive is created in the current directory.
-      The name of the archive: INPUT + paq8px215 extension appended.
+      The name of the archive: INPUT + paq8px216 extension appended.
     * If a filename is given, it is used as the archive name.
     * If a directory is given, the archive is created inside it.
     * If the archive file already exists, it will be overwritten.
@@ -287,20 +287,20 @@ Detailed Help
     For decompression:
 
     * If an output filename is not provided, the output will be named the same as the archive without
-      the paq8px215 extension.
+      the paq8px216 extension.
     * If a filename is given, it is used as the output name.
     * If a directory is given, the restored file will be created inside it (the directory must exist).
     * If the output file(s) already exist, they will be overwritten.
 
   Examples:
 
-  To create data.txt.paq8px215 in current directory:
+  To create data.txt.paq8px216 in current directory:
   paq8px -8 data.txt
 
-  To create archive.paq8px215 in current directory:
-  paq8px -8 data.txt archive.paq8px215
+  To create archive.paq8px216 in current directory:
+  paq8px -8 data.txt archive.paq8px216
 
-  To create data.txt.paq8px215 in results/ directory:
+  To create data.txt.paq8px216 in results/ directory:
   paq8px -8 data.txt results/
 
 ---------------------------------
@@ -397,7 +397,7 @@ A `paq8px` archive stores one or more files in a highly compressed format.
 
 ### How to recognize it
 
-The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px215`).  
+The file extension reflects the exact `paq8px` version that created it (e.g., `.paq8px216`).  
 You can also check the header: if the first bytes read "paq8px", it is likely a `paq8px` archive.  
 Exact version information cannot be inferred from the archive content: the archive header does not encode the specific `paq8px` version used. Only the file extension reflects the version.
 
@@ -471,9 +471,9 @@ The following compiler/OS combinations have been tested successfully:
 
 | Version | OS                             | Compiler/IDE                                                  |
 |---------|--------------------------------|---------------------------------------------------------------|
-| v215    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
-| v215    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
-| v215    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
+| v216    | Windows                        | Visual Studio 2022 Community Edition 17.14.14                 |
+| v216    | Windows                        | Microsoft (R) C/C++ Optimizing Compiler Version 19.44.35216   |
+| v216    | Windows                        | MinGW-w64 13.0.0 (gcc-15.2.0)                                 |
 | v215    | Lubuntu 25.04 Plucky Puffin    | gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0                          |
 | v215    | Lubuntu 25.04 Plucky Puffin    | Ubuntu clang version 20.1.2 (0ubuntu1), Target: x86_64-pc-linux-gnu |
 | v215    | Lubuntu 25.04 Plucky Puffin    | aarch64-linux-gnu-gcc (Ubuntu 14.2.0-19ubuntu2) 14.2.0        |
@@ -554,16 +554,16 @@ Summary:
 
 | Corpus / Benchmark                               | Version | Rank |
 |:-------------------------------------------------|:--------|-----:|
-| Calgary                                          | v215    |  #1  |
-| Canterbury                                       | v215    |  #1  |
-| Silesia                                          | v215    |  #1  |
+| Calgary                                          | v216    |  #1  |
+| Canterbury                                       | v216    |  #1  |
+| Silesia                                          | v216    |  #1  |
 | RareWares test samples (16-bit stereo audio)     | v215    |  --  |
-| Kodak Lossless True Color Image Suite            | v215    |  #1  |
-| ImgInfo RGB test set                             | v215    |  #1  |
+| Kodak Lossless True Color Image Suite            | v216    |  #1  |
+| ImgInfo RGB test set                             | v216    |  #1  |
 | Lossless Photo Compression Benchmark (LPCB)      | v206    |  #1  |
-| Large Text Compression Benchmark (LTCB)          | v206    | #10  |
-| Darek's corpus (DBA)                             | v214    |  #1  |
-| Maximumcompression benchmark                     | v207fix1|  #1  |
+| Large Text Compression Benchmark (LTCB)          | v206    | #11  |
+| Darek's corpus (DBA)                             | v216    |  #1  |
+| Maximumcompression benchmark                     | v216    |  #1  |
 | fenwik9 benchmark by Sportman                    | v210    |  #1  |
 | World English Bible benchmark by Sportman        | v208fix1|  #1  |
 
@@ -576,29 +576,29 @@ The Calgary corpus does not have an official maintained ranking, and most publis
 Below are compressed sizes under various options, compared to `cmix v21` as reference.
 
 
-| File                             |  (v215) -8 | (v215) -12L |(v215) -12LT |(v209) -12RT | cmix v21 (pure) | cmix v21 (with dict) |
+| File                             |  (v216) -8 | (v216) -12L |(v216) -12LT |(v209) -12RT | cmix v21 (pure) | cmix v21 (with dict) |
 |:---------------------------------|-----------:|------------:|------------:|------------:|----------------:|---------------------:|
-| bib                              |      19597 |       19530 |       17500 |       17376 |           19746 |                17180 |
-| book1                            |     183307 |      181513 |      175743 |      163431 |          182429 |               173709 |
-| book2                            |     113968 |      113152 |      108845 |      106668 |          113286 |               105918 |
-| geo                              |      42053 |       41840 |       41857 |       42367 |           42651 |                42760 |
-| news                             |      83024 |       82689 |       78498 |       77166 |           82869 |                76389 |
-| obj1                             |       6988 |        6916 |        6775 |        6892 |            7154 |                 7053 |
-| obj2                             |      40492 |       39630 |       39317 |       39950 |           40380 |                40139 |
-| paper1                           |      12365 |       12324 |       11050 |       10749 |           12449 |                10831 |
-| paper2                           |      19541 |       19473 |       17487 |       16589 |           19636 |                17169 |
-| pic                              |      19621 |       19637 |       19639 |       19677 |           21487 |                21883 |
-| progc                            |       8872 |        8808 |        8207 |        8189 |            8900 |                 8193 |
-| progl                            |       9507 |        9450 |        8873 |        8864 |            9524 |                 8788 |
-| progp                            |       6373 |        6296 |        6060 |        6097 |            6395 |                 6126 |
-| trans                            |      10995 |       10950 |       10072 |       10045 |           10822 |                 9990 |
-|**Total compressed size**         |**576'703** | **572'208** | **549'923** | **534'060** |     **577'728** |          **546'128** |
-|**Compression time (approx. sec)**|    **295** |     **876** |    **1229** |    **1567** |        **3746** |              **n/a** |
+| bib                              |      19598 |       19530 |       17501 |       17376 |           19746 |                17180 |
+| book1                            |     183306 |      181509 |      175741 |      163431 |          182429 |               173709 |
+| book2                            |     113966 |      113153 |      108842 |      106668 |          113286 |               105918 |
+| geo                              |      42053 |       41842 |       41857 |       42367 |           42651 |                42760 |
+| news                             |      83027 |       82688 |       78499 |       77166 |           82869 |                76389 |
+| obj1                             |       6990 |        6915 |        6774 |        6892 |            7154 |                 7053 |
+| obj2                             |      40491 |       39624 |       39318 |       39950 |           40380 |                40139 |
+| paper1                           |      12365 |       12322 |       11050 |       10749 |           12449 |                10831 |
+| paper2                           |      19540 |       19474 |       17487 |       16589 |           19636 |                17169 |
+| pic                              |      19633 |       19642 |       19646 |       19677 |           21487 |                21883 |
+| progc                            |       8871 |        8806 |        8206 |        8189 |            8900 |                 8193 |
+| progl                            |       9506 |        9449 |        8872 |        8864 |            9524 |                 8788 |
+| progp                            |       6374 |        6296 |        6059 |        6097 |            6395 |                 6126 |
+| trans                            |      10990 |       10945 |       10069 |       10045 |           10822 |                 9990 |
+|**Total compressed size**         |**576'710** | **572'195** | **549'921** | **534'060** |     **577'728** |          **546'128** |
+|**Compression time (approx. sec)**|    **301** |     **876** |    **1206** |    **1567** |        **3746** |              **n/a** |
 
-With fair options (`-12L`), `paq8px v215` surpasses `cmix v21` (pure, with no dictionary pre-processing).  
+With fair options (`-12L`), `paq8px v216` surpasses `cmix v21` (pure, with no dictionary pre-processing).  
 With unfair options (v209 `-12RT` vs `cmix v21` with dictionary preprocessing), results surpass cmix even more, but these should be excluded for fairness (see [Benchmarking Notes](#benchmarking-notes)).
 
-At the time of writing, `paq8px v215` likely ranks #1 on the Calgary corpus.
+At the time of writing, `paq8px v216` likely ranks #1 on the Calgary corpus.
 
 ### Canterbury corpus
 
@@ -606,46 +606,46 @@ The same general notes apply to the Canterbury corpus as to the Calgary corpus.
 
 Below are compressed sizes under various options, compared to `cmix v21`.
 
-| File                             | (v215) -8 |(v215) -12L |(v215) -12LT | (v209) -12RT | cmix v21 (pure) | cmix v21 (with dict) |
+| File                             | (v216) -8 |(v216) -12L |(v217) -12LT | (v209) -12RT | cmix v21 (pure) | cmix v21 (with dict) |
 |:---------------------------------|----------:|-----------:|------------:|-------------:|----------------:|---------------------:|
-| alice29.txt                      |     33071 |      32863 |       31151 |        28317 |           33360 |                31076 |
-| asyoulik.txt                     |     31514 |      31431 |       29613 |        28062 |           31665 |                29434 |
-| cp.html                          |      5408 |       5393 |        4745 |         4720 |            5478 |                 4746 |
-| fields.c                         |      2028 |       2018 |        1857 |         1848 |            2087 |                 1909 |
-| grammar.lsp                      |       861 |        862 |         751 |          732 |             874 |                  771 |
-| kennedy.xls                      |      8137 |       7804 |        7799 |         7972 |            7926 |                 7955 |
-| lcet10.txt                       |     79113 |      78813 |       74656 |        72594 |           79550 |                73365 |
-| plrabn12.txt                     |    117447 |     116705 |      112558 |       108648 |          116984 |               112263 |
-| ptt5                             |     19621 |      19637 |       19639 |        19677 |           21487 |                21883 |
-| sum                              |      6657 |       6635 |        6492 |         6679 |            6968 |                 6870 |
-| xargs.1                          |      1296 |       1294 |        1099 |         1061 |            1326 |                 1123 |
-|**Total compressed size**         |**305'153**| **303'455**| **290'360** |  **280'310** |     **307'705** |          **291'395** |
-|**Compression time (approx. sec)**|    **247**|    **785** |    **1033** |     **1352** |        **3354** |              **n/a** |
+| alice29.txt                      |     33070 |      32861 |       31148 |        28317 |           33360 |                31076 |
+| asyoulik.txt                     |     31515 |      31428 |       29611 |        28062 |           31665 |                29434 |
+| cp.html                          |      5408 |       5393 |        4744 |         4720 |            5478 |                 4746 |
+| fields.c                         |      2027 |       2018 |        1856 |         1848 |            2087 |                 1909 |
+| grammar.lsp                      |       861 |        862 |         750 |          732 |             874 |                  771 |
+| kennedy.xls                      |      8140 |       7805 |        7799 |         7972 |            7926 |                 7955 |
+| lcet10.txt                       |     79110 |      78813 |       74655 |        72594 |           79550 |                73365 |
+| plrabn12.txt                     |    117450 |     116704 |      112559 |       108648 |          116984 |               112263 |
+| ptt5                             |     19633 |      19642 |       19646 |        19677 |           21487 |                21883 |
+| sum                              |      6662 |       6638 |        6496 |         6679 |            6968 |                 6870 |
+| xargs.1                          |      1295 |       1293 |        1099 |         1061 |            1326 |                 1123 |
+|**Total compressed size**         |**305'171**| **303'457**| **290'363** |  **280'310** |     **307'705** |          **291'395** |
+|**Compression time (approx. sec)**|    **261**|    **738** |    **1024** |     **1352** |        **3354** |              **n/a** |
 
-At the time of writing, `paq8px v215` likely ranks #1 on the Canterbury corpus.
+At the time of writing, `paq8px v216` likely ranks #1 on the Canterbury corpus.
 
 ### Silesia corpus
 
-`paq8px v210` **ranked #1** in [The Silesia Open Source Compression Benchmark](https://mattmahoney.net/dc/silesia.html) at the time of writing.
+`paq8px v215` **ranked #1** in [The Silesia Open Source Compression Benchmark](https://mattmahoney.net/dc/silesia.html) at the time of writing.
 
-Results for `paq8px v213` together with `cmix v21` as reference:
+Results for `paq8px v216` together with `cmix v21` as reference:
 
-| File                             | (v215) -12L    | precomp v0.4.7 -cn + cmix v21 (with dict) |
+| File                             | (v216) -12L    | precomp v0.4.7 -cn + cmix v21 (with dict) |
 |:---------------------------------|---------------:|------------------------------------------:|
-| dickens                          |      1'860'120 |                                 1'802'071 |
-| mozilla                          |      6'094'594 |                                 6'634'210 |
-| mr                               |      1'750'622 |                                 1'828'423 |
-| nci                              |        776'633 |                                   781'325 |
-| ooffice                          |      1'212'212 |                                 1'221'977 |
-| osdb                             |      1'969'061 |                                 1'963'597 |
-| reymont                          |        699'463 |                                   704'817 |
-| samba                            |      1'587'902 |                                 1'588'875 |
-| sao                              |      3'723'927 |                                 3'726'502 |
-| webster                          |      4'401'642 |                                 4'271'915 |
-| xml                              |        245'787 |                                   233'696 |
-| x-ray                            |      3'503'548 |                                 3'503'686 |
-|**Total compressed size**         | **27'825'511** |                            **28'261'094** |
-|**Compression time (approx. sec)**|     **68'786** |                                    **n/a**|
+| dickens                          |      1'860'101 |                                 1'802'071 |
+| mozilla                          |      6'094'557 |                                 6'634'210 |
+| mr                               |      1'750'655 |                                 1'828'423 |
+| nci                              |        776'695 |                                   781'325 |
+| ooffice                          |      1'212'236 |                                 1'221'977 |
+| osdb                             |      1'968'991 |                                 1'963'597 |
+| reymont                          |        699'475 |                                   704'817 |
+| samba                            |      1'587'741 |                                 1'588'875 |
+| sao                              |      3'723'900 |                                 3'726'502 |
+| webster                          |      4'401'762 |                                 4'271'915 |
+| xml                              |        245'766 |                                   233'696 |
+| x-ray                            |      3'503'592 |                                 3'503'686 |
+|**Total compressed size**         | **27'825'471** |                            **28'261'094** |
+|**Compression time (approx. sec)**|     **63'449** |                                    **n/a**|
 
 Here `paq8px` outperformed `cmix v21` overall - even when cmix used unfair options: preprocessed files by precomp + its own dictionary preprocessing.
 
@@ -709,7 +709,7 @@ Results for `paq8px v212` and `paq8px v215` together with `OptimFrog` as referen
 
 *OmtimFrog: ofr --encode --preset max %1
 
-At the time of writing, `paq8px v213` is unranked.
+At the time of writing, `paq8px v215` is unranked.
 
 ### Kodak Lossless True Color Image Suite
 
@@ -718,36 +718,36 @@ The images were converted from PNG to PPM before compression.
 
 Results for `paq8px v213` and `paq8px v215`:
 
-| File        | (v213) -8 | (v213) -8L | (v215) -8 | (v215) -8L |
+| File        | (v215) -8 | (v215) -8L | (v216) -8 | (v216) -8L |
 |:------------|----------:|-----------:|----------:|-----------:|
-| kodim01.ppm |   315'510 |    312'246 |   311'386 |    308'621 |
-| kodim02.ppm |   257'732 |    255'672 |   254'005 |    252'320 |
-| kodim03.ppm |   201'093 |    199'991 |   198'223 |    197'404 |
-| kodim04.ppm |   267'012 |    264'499 |   262'669 |    260'569 |
-| kodim05.ppm |   339'543 |    335'871 |   332'641 |    329'738 |
-| kodim06.ppm |   290'075 |    287'476 |   286'119 |    283'942 |
-| kodim07.ppm |   222'406 |    220'656 |   218'511 |    217'107 |
-| kodim08.ppm |   353'115 |    348'643 |   346'164 |    342'504 |
-| kodim09.ppm |   245'384 |    243'749 |   241'422 |    240'025 |
-| kodim10.ppm |   252'837 |    251'080 |   248'722 |    247'300 |
-| kodim11.ppm |   279'161 |    276'482 |   274'932 |    272'722 |
-| kodim12.ppm |   231'887 |    230'026 |   228'755 |    227'222 |
-| kodim13.ppm |   398'692 |    392'799 |   391'737 |    386'548 |
-| kodim14.ppm |   313'938 |    311'208 |   308'775 |    306'562 |
-| kodim15.ppm |   253'281 |    251'250 |   249'470 |    247'873 |
-| kodim16.ppm |   238'022 |    236'228 |   234'886 |    233'322 |
-| kodim17.ppm |   252'459 |    250'915 |   248'414 |    247'115 |
-| kodim18.ppm |   362'678 |    357'394 |   354'562 |    349'938 |
-| kodim19.ppm |   293'100 |    290'411 |   287'755 |    285'541 |
-| kodim20.ppm |   239'030 |    237'359 |   235'864 |    234'483 |
-| kodim21.ppm |   297'485 |    294'970 |   292'545 |    290'341 |
-| kodim22.ppm |   329'634 |    325'054 |   322'563 |    318'509 |
-| kodim23.ppm |   249'698 |    247'729 |   245'520 |    243'895 |
-| kodim24.ppm |   298'519 |    294'247 |   293'309 |    289'773 |
-|**Total compressed size**         | **6'782'291** | **6'715'955** | **6'668'949** | **6'613'374** |
-|**Compression time (approx. sec)**|   **1'750**   | **6'012**     |   **2'007**   | **6'330**     |
+| kodim01.ppm |   311'386 |    308'621 |   311'041 |    308'368 |
+| kodim02.ppm |   254'005 |    252'320 |   253'450 |    251'836 |
+| kodim03.ppm |   198'223 |    197'404 |   197'721 |    196'937 |
+| kodim04.ppm |   262'669 |    260'569 |   261'957 |    260'000 |
+| kodim05.ppm |   332'641 |    329'738 |   331'739 |    329'007 |
+| kodim06.ppm |   286'119 |    283'942 |   285'557 |    283'514 |
+| kodim07.ppm |   218'511 |    217'107 |   217'911 |    216'600 |
+| kodim08.ppm |   346'164 |    342'504 |   345'388 |    341'889 |
+| kodim09.ppm |   241'422 |    240'025 |   241'020 |    239'690 |
+| kodim10.ppm |   248'722 |    247'300 |   248'231 |    246'909 |
+| kodim11.ppm |   274'932 |    272'722 |   274'410 |    272'358 |
+| kodim12.ppm |   228'755 |    227'222 |   228'194 |    226'771 |
+| kodim13.ppm |   391'737 |    386'548 |   391'199 |    386'219 |
+| kodim14.ppm |   308'775 |    306'562 |   308'099 |    305'980 |
+| kodim15.ppm |   249'470 |    247'873 |   248'917 |    247'415 |
+| kodim16.ppm |   234'886 |    233'322 |   234'509 |    233'018 |
+| kodim17.ppm |   248'414 |    247'115 |   248'004 |    246'795 |
+| kodim18.ppm |   354'562 |    349'938 |   354'058 |    349'594 |
+| kodim19.ppm |   287'755 |    285'541 |   287'245 |    285'196 |
+| kodim20.ppm |   235'864 |    234'483 |   235'456 |    234'142 |
+| kodim21.ppm |   292'545 |    290'341 |   292'118 |    290'043 |
+| kodim22.ppm |   322'563 |    318'509 |   322'014 |    318'229 |
+| kodim23.ppm |   245'520 |    243'895 |   244'400 |    243'012 |
+| kodim24.ppm |   293'309 |    289'773 |   292'609 |    289'249 |
+|**Total compressed size**         | **6'668'949** | **6'613'374** | **6'665'247** | **6'602'771** |
+|**Compression time (approx. sec)**|   **2'007**   | **6'330**     |   **1'978**   | **5'941**     |
 
-At the time of writing, `paq8px v215` likely ranks #1 on the Kodak test set among lossless compressors with no pre-trained models.
+At the time of writing, `paq8px v216` likely ranks #1 on the Kodak test set among lossless compressors with no pre-trained models.
 
 Other compressors for reference:
 [GitHub - WangXuan95/Image-Compression-Benchmark: A comparison of many lossless image compression formats.](https://github.com/WangXuan95/Image-Compression-Benchmark?tab=readme-ov-file#kodak-rgb-24-images-28-mb)
@@ -757,29 +757,29 @@ Other compressors for reference:
 
 The [ImgInfo RGB test set](https://imagecompression.info/test_images/) has no official benchmarking for lossless image compression.
 
-Results for `paq8px v213` and `paq8px v215`:
+Results for `paq8px v215` and `paq8px v216`:
 
-| File                             |      (v213) -8L |      (v215) -8L |
+| File                             |      (v215) -8L |      (v216) -8L |
 |:---------------------------------|----------------:|----------------:|
-| artificial.ppm                   |         396'742 |         394'150 |
-| big_building.ppm                 |      43'524'971 |      42'805'256 |
-| big_tree.ppm                     |      37'369'579 |      36'668'068 |
-| bridge.ppm                       |      16'824'955 |      16'805'572 |
-| cathedral.ppm                    |       6'576'508 |       6'468'273 |
-| deer.ppm                         |      18'168'804 |      18'110'156 |
-| fireworks.ppm                    |       3'169'176 |       3'129'441 |
-| flower_foveon.ppm                |       1'621'443 |       1'613'759 |
-| hdr.ppm                          |       4'621'868 |       4'602'334 |
-| leaves_iso_1600.ppm              |       8'194'684 |       8'034'152 |
-| leaves_iso_200.ppm               |       6'327'733 |       6'212'126 |
-| nightshot_iso_100.ppm            |       4'558'484 |       4'477'648 |
-| nightshot_iso_1600.ppm           |       9'268'001 |       9'139'073 |
-| spider_web.ppm                   |       5'492'330 |       5'413'843 |
-|**Total compressed size**         | **166'115'278** | **163'873'851** | 
-|**Compression time (approx. sec)**|        **n.a.** |     **111'420** |
+| artificial.ppm                   |         394'150 |       389'754   |
+| big_building.ppm                 |      42'805'256 |    42'787'125   |
+| big_tree.ppm                     |      36'668'068 |    36'655'792   |
+| bridge.ppm                       |      16'805'572 |    16'804'029   |
+| cathedral.ppm                    |       6'468'273 |     6'465'335   |
+| deer.ppm                         |      18'110'156 |    18'111'914   |
+| fireworks.ppm                    |       3'129'441 |     3'128'678   |
+| flower_foveon.ppm                |       1'613'759 |     1'612'822   |
+| hdr.ppm                          |       4'602'334 |     4'598'424   |
+| leaves_iso_1600.ppm              |       8'034'152 |     8'030'175   |
+| leaves_iso_200.ppm               |       6'212'126 |     6'207'390   |
+| nightshot_iso_100.ppm            |       4'477'648 |     4'472'285   |
+| nightshot_iso_1600.ppm           |       9'139'073 |     9'135'006   |
+| spider_web.ppm                   |       5'413'843 |     5'412'180   |
+|**Total compressed size**         | **163'873'851** | **163'810'909** | 
+|**Compression time (approx. sec)**|     **111'420** |     **128'371** |
 
 
-At the time of writing, `paq8px v215` likely ranks #1 on the ImgInfo RGB test set among lossless compressors with no pre-trained models.
+At the time of writing, `paq8px v216` likely ranks #1 on the ImgInfo RGB test set among lossless compressors with no pre-trained models.
 
 Other compressors for reference:
 [GitHub - WangXuan95/Image-Compression-Benchmark: A comparison of many lossless image compression formats.](https://github.com/WangXuan95/Image-Compression-Benchmark?tab=readme-ov-file#imginforgb-rgb-14-images-470-mb)
@@ -792,7 +792,7 @@ The benchmark has not been rerun for later versions.
 
 ### Large Text Compression Benchmark (LTCB)
 
-`paq8px v206` **ranked #10** at [Large Text Compression Benchmark](https://www.mattmahoney.net/dc/text.html) at the time of writing.  
+`paq8px v206` **ranked #11** at [Large Text Compression Benchmark](https://www.mattmahoney.net/dc/text.html) at the time of writing.  
 Note, that unlike paq8px, most higher-ranked compressors are tuned specifically for enwik8/enwik9, and often apply enwik-specific preprocessing (e.g., word replacement, article reordering).  
 
 The benchmark has not been rerun for later versions.
@@ -801,35 +801,35 @@ The benchmark has not been rerun for later versions.
 
 Darek's benchmark is not an exhaustive benchmark – it targets only high-end compressors.
 
-See the last results in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=87676&viewfull=1#post87676) from 2026 including results for v214.
+See the last results in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=87989&viewfull=1#post87989) from 2026 including results for v215.
 
-`paq8px v214` **ranked #1** at that time.
+`paq8px v215` **ranked #1** at that time.
 
 ### MaximumCompression benchmark
 
 The MaximumCompression benchmark is no longer actively maintained and has no up-to-date official listing.  
 The official site was last updated in 2011. At that time `paq8px` **ranked #1**.
 
-See `paq8px` evolution on the MaximumCompression benchmark up until `paq8px` v207fix1 in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=75636&viewfull=1#post75636) from 2022.
+See `paq8px` evolution on the MaximumCompression benchmark up until `paq8px` v215 in [Darek's post to the encode.su forum](https://encode.su/threads/342-paq8px?p=88256&viewfull=1#post88256) from 2026.
 
-Compressed sizes for v213 and v215 with compression option `-12L`.
+Compressed sizes for v215 and v215 with compression option `-12L`.
 
-| File                     |  (v213) -12L  |  (v215) -12L  | size diff  |
-|:-------------------------|--------------:|--------------:|-----------:|
-|A10.jpg                   |        624043 |        624043 |          0 |
-|acrord32.exe              |        786547 |        779263 |      -7284 |
-|english_mc.dic            |        333052 |        333052 |          0 |
-|FlashMX.pdf               |       1267622 |       1251970 |     -15652 |
-|fp.log                    |        199754 |        199754 |          0 |
-|mso97.dll                 |       1121280 |       1116973 |      -4307 |
-|ohs.doc                   |        452642 |        451949 |       -693 |
-|rafale.bmp                |        455272 |        440614 |     -14658 |
-|vcfiu.hlp                 |        244682 |        244060 |       -622 |
-|world95.txt               |        309216 |        309216 |          0 |
-|**Total compressed size** | **5'824'680** | **5'750'894** |**-43'216** |
-|**Compression time (sec)**|    **19'384** |   **19'751'** |   **+367** |
+| File                     |  (v215) -12L  |  (v216) -12L  |
+|:-------------------------|--------------:|--------------:|
+|A10.jpg                   |        624043 |        624068 |
+|acrord32.exe              |        779263 |        779254 |
+|english_mc.dic            |        333052 |        333055 |
+|FlashMX.pdf               |       1251970 |       1250955 |
+|fp.log                    |        199754 |        199846 |
+|mso97.dll                 |       1116973 |       1116964 |
+|ohs.doc                   |        451949 |        451873 |
+|rafale.bmp                |        440614 |        440173 |
+|vcfiu.hlp                 |        244060 |        244024 |
+|world95.txt               |        309216 |        309208 |
+|**Total compressed size** | **5'750'894** | **5'749'420** |
+|**Compression time (sec)**|   **19'751'** |    **21'592** |
 
-To the best of our knowledge, `paq8px`'s latest version, `v215`, would still **rank #1** at the time of writing.
+To the best of our knowledge, `paq8px`'s latest version, `v216`, would still **rank #1** at the time of writing.
 
 ### fenwik9 benchmark
 
@@ -849,9 +849,10 @@ This is a non-standard but exhaustive single-file benchmark maintained by Sportm
 >   - **pre-trained models** (e.g. paq8px: pre-trained weight repositories `-R`)
 >   - **word lists** for model pre-training (e.g. paq8px: text pre-training `-T`)
 >   - **dictionaries** for word replacement transformation or sorted dictionaries containing pre-computed semantic information (e.g. cmix: dictionary preprocessing)
+>   - pre-calculated **content sorting** (e.g. cmix: new_article_order for sorting articles in enwik9)
 >   
-> ...the comparison is **unfair** when this information is not accounted for, i.e. their size is not included as part of the compressed size.
-> Unless explicitly stated otherwise, we benchmark `paq8px` in a fully self-contained configuration, learning data from scratch without external resources.
+> ...the comparison is **unfair** when this information is not accounted for, i.e. their size and/or runtime is not included as part of the compressed size/time.
+> Unless explicitly stated otherwise, we benchmark `paq8px` in a fully self-contained configuration, learning data from scratch without such external resources.
 > We apply the same requirement to all compressors compared against `paq8px`.
 
 > [!NOTE]
@@ -884,7 +885,7 @@ The table below highlights milestones, contributors, and notable changes over th
 | **2022**     | v207       | **Zoltán Gotthardt**: PNG filtering moved to transform layer; DEC-Alpha detection via object signature; TAR detection/transform; base85 filter (from paq8pxd); structured-text WordModel (linemodel) enhancements; separate LSTM per main context. |
 | **2023**     | v208       | **Zoltán Gotthardt**: TAR detection fixes; new -forcetext option; enhanced 1-bit image model; shifted contexts (fewer in IndirectModel, added to WordModel for TEXT); refactors; Pavel Rosický: AVX512 detection. |
 | **2025**     | v209       | **Zoltán Gotthardt**: Model tweaks (initialized mixer weights; corrected matchmodel context); TEXT detection fixes; build/toolchain updates. |
-| **2026**     | v210-v215  | **Zoltán Gotthardt**: LSTM model enhancements, speed improvements, tuned Audio16BitModel, enhanced 24/32-bit image model and LinearPredictionModel; introduced SimilarityModel. |
+| **2026**     | v210-v216  | **Zoltán Gotthardt**: LSTM model enhancements, speed improvements, tuned Audio16BitModel, enhanced 8/24/32-bit image model2 and LinearPredictionModel; introduced SimilarityModel; fixed TIFF detection. |
 
 This timeline is not exhaustive, for details, see [CHANGELOG](CHANGELOG).
 
@@ -920,13 +921,19 @@ Link: https://pmc.ncbi.nlm.nih.gov/articles/PMC12987361/
 
 - **2026** *Micro-Diffusion Compression: Binary Tree Tweedie Denoising for Online Probability Estimation*  
 Link: https://arxiv.org/html/2603.08771v3  
+Link: https://arxiv.org/pdf/2603.08771v3
 
 - **2026** *StateSMix: Online Lossless Compression via Mamba State Space Models and Sparse N-gram Context Mixing*  
 Link: https://arxiv.org/html/2605.02904v1  
+Link: https://arxiv.org/pdf/2605.02904v1
 
 - **2026** *Nacrith: Neural Lossless Compression via Ensemble Context Modeling and High-Precision CDF Coding*  
 Link: https://arxiv.org/html/2602.19626v1  
 Link: https://arxiv.org/pdf/2602.19626  
+
+- **2026** *Frequency-Ordered Tokenization for Better Text Compression*  
+Link: https://arxiv.org/html/2602.22958  
+Link: https://arxiv.org/pdf/2602.22958
 
 - **2025** *A study of the cutting-edge general-purpose compressors’ performance on the normalized genome sequence*  
 Link: https://www.sciencedirect.com/science/article/abs/pii/S2452014425002316  

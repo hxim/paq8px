@@ -2115,3 +2115,24 @@ paq8px_v215 by Zoltán Gotthardt
 - Cosmetics:
   - Moved source files to ./src
 
+
+paq8px_v216 by Zoltán Gotthardt
+2026.06.24
+- Model improvements:
+  - TIFF detection fixes:
+    - Detect if TIFF is grayscale
+    - Detect and transform propely some TIFF with strips
+    - Fixed flush buffer in LZW decoder
+  - Image8BitModel (grayscale):
+    - Use ResidualMap for OLS in Image8BitModel (grayscale)
+    - Use predErr for OLS in Image8BitModel (grayscale)
+    - Use loss (reliability metric) for OLS in Image8BitModel (grayscale)
+    - Use ResidualMap instead of StationaryMap for main contexts in Image8BitModel (grayscale)
+    - Improved Image8BitModel by merging contexts from Image24BitModel. 
+  - Image8BitModel (palette):
+    - Disabled useless contexts that are covered by NormalModel.
+  - Image24BitModel:
+    - Improved Image24BitModel by merging useful contexts from Image8BitModel
+- Performance:
+  - Enhanced DivisionTable (used in StateMap)
+  - Division-free ResidualMap and LargeStationaryMap
