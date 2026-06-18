@@ -69,7 +69,7 @@ public:
   int prevFrameWidth = 0;
   int columns[2] = { 1, 1 }, column[2]{};
 
-  uint32_t predictions[nRM + nOLS] = { 0 };
+  uint32_t predictions[nRM + nOLS]{};
 
   // Per-predictor prediction error for each decoded pixel.
   // Stores uint8 rabs(prediction - actual) for all nRM and nOLS predictors at every pixel position.
@@ -80,7 +80,7 @@ public:
   // low value = predictor was accurate nearby.
   // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nRM).
   static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
-  RingBuffer<uint8_t> predErrBuf{ 0 };
+  RingBuffer<uint8_t> predErrBuf;
 
   // Per-pixel accumulated decoding cost (loss), one byte per pixel.
   // Stores (loss >> 3) after each decoded byte, reflecting how hard the last pixel was
@@ -90,7 +90,7 @@ public:
   // allowing statistical maps to adapt to smooth vs. noisy/high-frequency regions.
   // Sized in init() to cover LOSS_BUF_ROWS rows: nextPowerOf2(LOSS_BUF_ROWS * w).
   static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of NN
-  RingBuffer<uint8_t> lossBuf{ 0 };
+  RingBuffer<uint8_t> lossBuf;
 
   uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..1023 over 8 bits)
   uint32_t lossQ = 0; // sum of lossBuf[] over 6 causal neighbors (W, N, WW, NN, NW, NE), capped at 639;
@@ -113,14 +113,14 @@ public:
   const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0] };
 
   Image8BitModel(Shared* const sh, uint64_t size);
-  ALWAYS_INLINE uint8_t Ls(int relX, int relY) const;
-  ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
-  ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
-  ALWAYS_INLINE void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
-  ALWAYS_INLINE void MakePredictionC(int i, int prediction);
-  ALWAYS_INLINE void MakePredictionAvg(int i, int base1, int base2);
-  ALWAYS_INLINE void MakePredictionTrend(int i, int base1, int other1, int base2);
-  ALWAYS_INLINE void MakePredictionSmooth(int i, int base1, int other1, int base2);
+  uint8_t Ls(int relX, int relY) const;
+  uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
+  uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
+  void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
+  void MakePredictionC(int i, int prediction);
+  void MakePredictionAvg(int i, int base1, int base2);
+  void MakePredictionTrend(int i, int base1, int other1, int base2);
+  void MakePredictionSmooth(int i, int base1, int other1, int base2);
   void init(int pos);
   void setParam(int info0, uint32_t gray0);
   void mix(Mixer& m);

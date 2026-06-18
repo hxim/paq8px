@@ -45,7 +45,7 @@ public:
   // low value = predictor was accurate nearby.
   // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nRM).
   static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
-  RingBuffer<uint8_t> predErrBuf{ 0 };
+  RingBuffer<uint8_t> predErrBuf;
 
   // Per-pixel accumulated decoding cost (loss), one byte per pixel per color plane.
   // Stores (loss >> 3) after each decoded byte, reflecting how hard the last pixel was
@@ -55,10 +55,10 @@ public:
   // allowing statistical maps to adapt to smooth vs. noisy/high-frequency regions.
   // Sized in init() to cover LOSS_BUF_ROWS rows: nextPowerOf2(LOSS_BUF_ROWS * w).
   static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of NN
-  RingBuffer<uint8_t> lossBuf{ 0 };
+  RingBuffer<uint8_t> lossBuf;
 
   static constexpr size_t BEST_PRED_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N and W+1, N+1
-  RingBuffer<uint8_t> bestPredictorIndexes { 0 };
+  RingBuffer<uint8_t> bestPredictorIndexes;
 
   uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..1023 over 8 bits)
   uint32_t lossQ = 0; // sum of lossBuf[] over 6 causal neighbors (W, N, WW, NN, NW, NE), capped at 639;
@@ -82,7 +82,7 @@ public:
   int stride = 3;
   uint32_t ctx[2]{}, padding = 0, x = 0, w = 0, line = 0;
   uint32_t lastPos = 0;
-  uint32_t predictions[nRM + nOLS] = { 0 };
+  uint32_t predictions[nRM + nOLS]{};
 
   uint8_t ctx_best_direction{};
   uint8_t ctx_best_residual{};
@@ -96,27 +96,27 @@ public:
   static constexpr float nu = 0.001f;
   std::unique_ptr<OLS_float> ols[nOLS][4]; // 4: for RGBA color components
 
-  const uint8_t *olsCtx1[32] = {&WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
-                                &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
-                                &NNNNNN};
-  const uint8_t *olsCtx2[12] = {&WWW, &WW, &W, &NWW, &NW, &N, &NE, &NEE, &NNW, &NN, &NNE, &NNN};
-  const uint8_t *olsCtx3[15] = {&N, &NE, &NEE, &NEEE, &NEEEE, &NN, &NNE, &NNEE, &NNEEE, &NNN, &NNNE, &NNNEE, &NNNN, &NNNNE, &NNNNN};
-  const uint8_t *olsCtx4[10] = {&N, &NE, &NEE, &NEEE, &NN, &NNE, &NNEE, &NNN, &NNNE, &NNNN};
-  const uint8_t *olsCtx5[14] = {&WWWW, &WWW, &WW, &W, &NWWW, &NWW, &NW, &N, &NNWW, &NNW, &NN, &NNNW, &NNN, &NNNN};
-  const uint8_t *olsCtx6[8] = {&WWW, &WW, &W, &NNN, &NN, &N, &p1, &p2};
-  const uint8_t **olsCtxs[nOLS] = {&olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0], &olsCtx6[0]};
+  const uint8_t* olsCtx1[32] = { &WWWWWW, &WWWWW, &WWWW, &WWW, &WW, &W, &NWWWW, &NWWW, &NWW, &NW, &N, &NE, &NEE, &NEEE, &NEEEE, &NNWWW,
+                              &NNWW, &NNW, &NN, &NNE, &NNEE, &NNEEE, &NNNWW, &NNNW, &NNN, &NNNE, &NNNEE, &NNNNW, &NNNN, &NNNNE, &NNNNN,
+                              &NNNNNN };
+  const uint8_t* olsCtx2[12] = { &WWW, &WW, &W, &NWW, &NW, &N, &NE, &NEE, &NNW, &NN, &NNE, &NNN };
+  const uint8_t* olsCtx3[15] = { &N, &NE, &NEE, &NEEE, &NEEEE, &NN, &NNE, &NNEE, &NNEEE, &NNN, &NNNE, &NNNEE, &NNNN, &NNNNE, &NNNNN };
+  const uint8_t* olsCtx4[10] = { &N, &NE, &NEE, &NEEE, &NN, &NNE, &NNEE, &NNN, &NNNE, &NNNN };
+  const uint8_t* olsCtx5[14] = { &WWWW, &WWW, &WW, &W, &NWWW, &NWW, &NW, &N, &NNWW, &NNW, &NN, &NNNW, &NNN, &NNNN };
+  const uint8_t* olsCtx6[8] = { &WWW, &WW, &W, &NNN, &NN, &N, &p1, &p2 };
+  const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0], &olsCtx6[0] };
 
   Image24BitModel(Shared* const sh, uint64_t size);
 
-  ALWAYS_INLINE uint8_t Px(int relX, int relY, int colorShift) const;
-  ALWAYS_INLINE uint8_t Ls(int relX, int relY) const;
-  ALWAYS_INLINE uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
-  ALWAYS_INLINE uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
-  ALWAYS_INLINE void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
-  ALWAYS_INLINE void MakePredictionC(int i, int prediction);
-  ALWAYS_INLINE void MakePredictionAvg(int i, int base1, int base2);
-  ALWAYS_INLINE void MakePredictionTrend(int i, int base1, int other1, int base2);
-  ALWAYS_INLINE void MakePredictionSmooth(int i, int base1, int other1, int base2);
+  uint8_t Px(int relX, int relY, int colorShift) const;
+  uint8_t Ls(int relX, int relY) const;
+  uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
+  uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
+  void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
+  void MakePredictionC(int i, int prediction);
+  void MakePredictionAvg(int i, int base1, int base2);
+  void MakePredictionTrend(int i, int base1, int other1, int base2);
+  void MakePredictionSmooth(int i, int base1, int other1, int base2);
 
   /**
    * New image.
