@@ -7,6 +7,7 @@
 #include "../OLS_factory.hpp"
 #include "../SmallStationaryContextMap.hpp"
 #include "../StationaryMap.hpp"
+#include "../ResidualMap.hpp"
 #include "ImageModelsCommon.hpp"
 #include <cstdint>
 
@@ -16,26 +17,28 @@
 class Image8BitModel
 {
 private:
-  static constexpr int nSM0 = 2;
-  static constexpr int nSM1 = 55;
+  static constexpr int nSM = 2;
+  static constexpr int nRM = 74;
   static constexpr int nOLS = 5;
-  static constexpr int nSM = nSM0 + nSM1 + nOLS;
   static constexpr int nPltMaps = 4;
-  static constexpr int nCM = 48 + nPltMaps;
+  static constexpr int nCM = 46 + nPltMaps;
   static constexpr int nIM = 5;
 
 public:
   static constexpr int MIXERINPUTS =
     nSM * StationaryMap::MIXERINPUTS +
+    (nRM * 3) * ResidualMap::MIXERINPUTS +
+    (nOLS * 2) * ResidualMap::MIXERINPUTS +
     nCM * (ContextMap2::MIXERINPUTS + ContextMap2::MIXERINPUTS_RUN_STATS) +
     nPltMaps * SmallStationaryContextMap::MIXERINPUTS +
-    nIM * IndirectMap::MIXERINPUTS; //464
-  static constexpr int MIXERCONTEXTS = 512 + 16 + 32 + 255 + 1024 + 64 + 128 + 256; /**< 2286 */
+    nIM * IndirectMap::MIXERINPUTS; // 738
+  static constexpr int MIXERCONTEXTS = 512 + 16 + 32 + 255 + 1024 + 64 + 128 + 256; /**< 2287 */
   static constexpr int MIXERCONTEXTSETS = 8;
 
   Shared* const shared;
   ContextMap2 cm;
   StationaryMap map[nSM];
+  ResidualMap mapR1, mapR2, mapR3, mapOLS1, mapOLS2;
   SmallStationaryContextMap pltMap[nPltMaps];  /**< palette maps, not used for grayscale images */
   IndirectMap sceneMap[nIM];
   IndirectContext<uint8_t> iCtx[nPltMaps]; /**< palette contexts, not used for grayscale images */
@@ -48,6 +51,7 @@ public:
   uint8_t NNNNW = 0, NNNN = 0, NNNNE = 0;
   uint8_t NNNNN = 0;
   uint8_t NNNNNN = 0;
+
   uint8_t res = 0; /**< expected residual */
   uint8_t prvFrmPx = 0; /**< corresponding pixel in previous frame */
   uint8_t prvFrmPrediction = 0; /**< prediction for corresponding pixel in previous frame */
@@ -63,10 +67,35 @@ public:
   int prevFramePos = 0;
   int frameWidth = 0;
   int prevFrameWidth = 0;
-  bool filterOn = false;
   int columns[2] = { 1, 1 }, column[2]{};
-  uint8_t mapContexts[nSM1] = { 0 };
-  uint8_t pOLS[nOLS] = { 0 };
+
+  uint32_t predictions[nRM + nOLS]{};
+
+  // Per-predictor prediction error for each decoded pixel.
+  // Stores uint8 rabs(prediction - actual) for all nRM and nOLS predictors at every pixel position.
+  // Read back via PredErr(ctxIndex, relX, relY) to estimate how well each predictor
+  // performed on causal neighbors (W, N, NW, NE, WW, NN of the current pixel).
+  // The averaged absolute error across those neighbors feeds mapR1's histogram selection,
+  // giving it a spatially-local, per-predictor confidence signal:
+  // low value = predictor was accurate nearby.
+  // Sized in init() to cover PRED_ERR_ROWS rows: nextPowerOf2(PRED_ERR_ROWS * w * nRM).
+  static constexpr size_t PRED_ERR_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of W, N, NW, NE, WW, NN
+  RingBuffer<uint8_t> predErrBuf;
+
+  // Per-pixel accumulated decoding cost (loss), one byte per pixel.
+  // Stores (loss >> 3) after each decoded byte, reflecting how hard the last pixel was
+  // to compress. Read back via Ls(relX, relY); six causal neighbors (W, N, WW, NN, NW, NE)
+  // are summed into lossQ, capturing local image complexity.
+  // lossQ feeds mapR2's histogram selection,
+  // allowing statistical maps to adapt to smooth vs. noisy/high-frequency regions.
+  // Sized in init() to cover LOSS_BUF_ROWS rows: nextPowerOf2(LOSS_BUF_ROWS * w).
+  static constexpr size_t LOSS_BUF_ROWS = 3; // three rows (including the current row) - we need to reach the prediction error of NN
+  RingBuffer<uint8_t> lossBuf;
+
+  uint32_t loss = 0;  // decoding cost for the current byte, accumulated bit by bit (0..1023 over 8 bits)
+  uint32_t lossQ = 0; // sum of lossBuf[] over 6 causal neighbors (W, N, WW, NN, NW, NE), capped at 639;
+  // measures local image complexity: low = smooth region, high = noisy/detailed region
+  uint8_t lossQ4 = 0; // lossQ quantized to 3 bits
 
   static constexpr float lambda[nOLS] = { 0.996f, 0.87f, 0.93f, 0.8f, 0.9f };
   static constexpr int num[nOLS] = { 32, 12, 15, 10, 14 };
@@ -84,6 +113,15 @@ public:
   const uint8_t** olsCtxs[nOLS] = { &olsCtx1[0], &olsCtx2[0], &olsCtx3[0], &olsCtx4[0], &olsCtx5[0] };
 
   Image8BitModel(Shared* const sh, uint64_t size);
+  uint8_t Ls(int relX, int relY) const;
+  uint8_t GetPredErr(uint32_t ctxIndex, int relX, int relY) const;
+  uint32_t GetPredErrAvg(const uint32_t predictorIndex) const;
+  void MakePrediction(int i, uint8_t base1, uint8_t base2, int prediction);
+  void MakePredictionC(int i, int prediction);
+  void MakePredictionAvg(int i, int base1, int base2);
+  void MakePredictionTrend(int i, int base1, int other1, int base2);
+  void MakePredictionSmooth(int i, int base1, int other1, int base2);
+  void init(int pos);
   void setParam(int info0, uint32_t gray0);
   void mix(Mixer& m);
 };

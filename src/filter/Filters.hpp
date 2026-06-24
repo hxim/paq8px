@@ -112,6 +112,33 @@ static bool isGrayscalePalette(File *in, int n = 256, int isRGBA = 0) {
   return (res >> 8) > 0;
 }
 
+// Checks whether a TIFF ColorMap (tag 320) represents a grayscale palette.
+// Assumes little-endian TIFF ("II")
+// TIFF ColorMap layout: all R entries (uint16 LE), then all G, then all B.
+// nEntries is the number of entries per channel (e.g. 256 for an 8-bit image).
+// fileOffset is the absolute file offset to the start of the ColorMap data.
+// Returns true if R==G==B for all entries (i.e. the palette is grayscale).
+static bool isTiffGrayscaleColorMap(File* in, uint64_t fileOffset, int nEntries) {
+  in->setpos(fileOffset);
+  Array<uint8_t> rHi(nEntries);
+  for (int e = 0; e < nEntries; ++e) {
+    int lo = in->getchar(); int hi = in->getchar();
+    if (lo == EOF || hi == EOF) return false;
+    rHi[e] = static_cast<uint8_t>(hi);
+  }
+  for (int e = 0; e < nEntries; ++e) {
+    int lo = in->getchar(); int hi = in->getchar();
+    if (lo == EOF || hi == EOF) return false;
+    if (static_cast<uint8_t>(hi) != rHi[e]) return false;
+  }
+  for (int e = 0; e < nEntries; ++e) {
+    int lo = in->getchar(); int hi = in->getchar();
+    if (lo == EOF || hi == EOF) return false;
+    if (static_cast<uint8_t>(hi) != rHi[e]) return false;
+  }
+  return true;
+}
+
 //for MRB detection:
 //read compressed word,dword
 uint16_t GetCWord(File* f) {
@@ -466,6 +493,30 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
   int pnggray = 0;
   int lastChunk = 0;
   uint64_t nextChunk = 0;
+
+  // Static state for multi-strip TIFF LZW detection.
+  // Persists across detect() calls to emit one strip per call, similar to GIF's dett mechanism.
+  static const int MAX_TIFF_STRIPS = 256;
+  static struct
+  {
+    uint64_t offsets[MAX_TIFF_STRIPS];
+    int      sizes[MAX_TIFF_STRIPS];
+    int      info;
+    int      count;
+    int      next;
+  } tiffStrips = {};
+
+  // Continue emitting pending TIFF LZW strips from a previous detect() call
+  if (tiffStrips.next > 0 && tiffStrips.next < tiffStrips.count) {
+    const int s = tiffStrips.next++;
+    detectionInfo.Type = BlockType::LZW;
+    detectionInfo.DataInfo = tiffStrips.info;
+    detectionInfo.DataStart = tiffStrips.offsets[s];
+    detectionInfo.DataLength = tiffStrips.sizes[s];
+    if (tiffStrips.next >= tiffStrips.count)
+      tiffStrips.next = 0; // all strips emitted, reset
+    return detectionInfo;
+  }
 
   for (uint64_t i = 0; i < n; ++i) {
     int c = in->getchar();
@@ -1369,92 +1420,237 @@ static DetectionInfo detect(File *in, uint64_t blockSize, const TransformOptions
       }
     }
 
-    // Detect .tiff file header (2/8/24 bit color, not compressed).
-    if (buf1 == 0x49492a00 && n > i + static_cast<int>(bswap(buf0))) {
+    // Detect .tiff file header (little-endian (II), uncompressed or LZW-compressed,
+    // 1/4/8/24-bit color, single or multi-strip).
+    // Note: big-endian (Motorola) is not supported
+    if (buf1 == 0x49492a00 && n > i + static_cast<int>(bswap(buf0))) { // "II*\0"
       const uint64_t savedPos = in->curPos();
+      // Seek to the Image File Directory (IFD); buf0 holds the IFD offset (4 bytes, LE).
+      // We subtract 7 because 'i' points to the last byte of the 8-byte TIFF header,
       in->setpos(start + i + static_cast<uint64_t>(bswap(buf0)) - 7);
 
-      // read directory
-      int dirSize = in->getchar();
-      int tifX = 0;
-      int tifY = 0;
-      int tifZ = 0;
-      int tifZb = 0;
-      int tifC = 0;
-      int tifofs = 0;
-      int tifofval = 0;
-      int tifSize = 0;
+      // IFD layout: 2-byte entry count (read as two separate bytes here),
+      // followed by 12-byte entries: tag(2) + type(2) + count(4) + value/offset(4)
+      int dirSize = in->getchar(); // low byte of entry count
+      int tifX = 0; // tag 256: image width in pixels
+      int tifY = 0; // tag 257: image height in pixels
+      int tifZ = 0; // tag 277: samples per pixel (1 = grayscale/palette, 3 = RGB)
+      int tifZb = 0; // tag 258: bits per sample (1, 4, 8)
+      int tifC = 0; // tag 259: compression (1 = none, 5 = LZW)
+      int tifofval = 0; // 1 if strip offsets are already resolved (inline or read from array)
+
+      // Tag 320 (ColorMap): only present for palette-color images (PhotometricInterpretation==3).
+      // Stores 3 * 2^BitsPerSample uint16 values: all R entries, then all G, then all B.
+      int tifColorMapOfs = 0; // absolute file offset to the ColorMap data, 0 = absent
+      int tifColorMapLen = 0; // number of palette entries per channel (e.g. 256 for 8-bit)
+
+      // Tag 273 (StripOffsets) and tag 279 (StripByteCounts): a TIFF image may be split
+      // into multiple horizontal strips, each independently compressed.
+      // We support up to 256 strips.
+      uint64_t tifStripOffsets[MAX_TIFF_STRIPS] = {}; // absolute file offset of each strip
+      int      tifStripSizes[MAX_TIFF_STRIPS] = {}; // compressed byte count of each strip
+      int      tifStripCount = 0;                     // number of strips
+
       int b[12];
-      if (in->getchar() == 0) {
+      if (in->getchar() == 0) { // high byte of entry count must be 0 (max 255 entries)
         for (int i = 0; i < dirSize; i++) {
           for (int j = 0; j < 12; j++) {
             b[j] = in->getchar();
           }
-          if (b[11] == EOF) {
+          if (b[11] == EOF)
             break;
-          }
-          int tag = b[0] + (b[1] << 8);
-          int tagFmt = b[2] + (b[3] << 8);
-          int tagLen = b[4] + (b[5] << 8) + (b[6] << 16) + (b[7] << 24);
-          int tagVal = b[8] + (b[9] << 8) + (b[10] << 16) + (b[11] << 24);
+          int tag = b[0] + (b[1] << 8);           // IFD tag identifier
+          int tagFmt = b[2] + (b[3] << 8);        // data type: 3=SHORT(uint16), 4=LONG(uint32)
+          int tagLen = b[4] + (b[5] << 8) + (b[6] << 16) + (b[7] << 24); // number of values
+          int tagVal = b[8] + (b[9] << 8) + (b[10] << 16) + (b[11] << 24); // value or file offset to value array
           if (tagFmt == 3 || tagFmt == 4) {
             if (tag == 256) {
-              tifX = tagVal;
+              tifX = tagVal; // ImageWidth
             }
             else if (tag == 257) {
-              tifY = tagVal;
+              tifY = tagVal; // ImageLength (height)
             }
             else if (tag == 258) {
+              // BitsPerSample: bits per channel.
+              // For multi-channel images tagLen > 1 (one value per channel),
+              // but all channels have the same depth so we just use 8 as default.
               tifZb = tagLen == 1 ? tagVal : 8; // bits per component
             }
             else if (tag == 259) {
-              tifC = tagVal; // 1 = no compression
+              tifC = tagVal; // Compression: 1 = uncompressed, 5 = LZW
             }
-            else if (tag == 273 && tagFmt == 4) {
-              tifofs = tagVal, tifofval = static_cast<int>(tagLen <= 1);
+            else if (tag == 273 && (tagFmt == 3 || tagFmt == 4)) {
+              // StripOffsets: file offsets to each strip's data.
+              // If tagLen == 1 the single value fits inline in the IFD entry.
+              // If tagLen > 1 the value is a file offset to an array of offsets.
+              const int bytesPerVal = (tagFmt == 3) ? 2 : 4; // SHORT or LONG
+              if (tagLen == 1) {
+                tifStripOffsets[0] = tagVal; // single strip, value is inline
+                tifStripCount = 1;
+                tifofval = 1; // already resolved, no indirection needed
+              }
+              else if (tagLen <= MAX_TIFF_STRIPS) {
+                // tagVal is the file offset to the array of strip offsets
+                const uint64_t savedPos2 = in->curPos();
+                in->setpos(tagVal);
+                tifStripCount = tagLen;
+                for (int s = 0; s < tagLen; s++) {
+                  uint64_t ofs = in->getchar();
+                  ofs += (uint64_t)in->getchar() << 8;
+                  if (bytesPerVal == 4) {
+                    ofs += (uint64_t)in->getchar() << 16;
+                    ofs += (uint64_t)in->getchar() << 24;
+                  }
+                  tifStripOffsets[s] = ofs;
+                }
+                in->setpos(savedPos2);
+                tifofval = 1; // offsets already resolved from array
+              }
             }
             else if (tag == 277) {
-              tifZ = tagVal; // components per pixel
+              tifZ = tagVal; // SamplesPerPixel: components per pixel
             }
-            else if (tag == 279 && tagLen == 1) {
-              tifSize = tagVal;
+            else if (tag == 279) {
+              // StripByteCounts: compressed (or uncompressed) byte count for each strip.
+              // If tagLen == 1 the single value fits inline in the IFD entry.
+              // If tagLen > 1 the value is a file offset to an array of counts.
+              const int bytesPerVal = (tagFmt == 3) ? 2 : 4; // SHORT or LONG
+              if (tagLen == 1) {
+                tifStripSizes[0] = tagVal; // single strip, value is inline
+              }
+              else if (tagLen <= MAX_TIFF_STRIPS) {
+                // tagVal is the file offset to the array of strip byte counts
+                const uint64_t savedPos2 = in->curPos();
+                in->setpos(tagVal);
+                for (int s = 0; s < tagLen; s++) {
+                  int v = in->getchar();
+                  v += in->getchar() << 8;
+                  if (bytesPerVal == 4) {
+                    v += in->getchar() << 16;
+                    v += in->getchar() << 24;
+                  }
+                  tifStripSizes[s] = v;
+                }
+                in->setpos(savedPos2);
+              }
+            }
+            // ColorMap tag (320): only present for palette-color images
+            // (PhotometricInterpretation == 3).
+            // tagFmt == 3 (SHORT), tagLen == 3 * 2^BitsPerSample entries total
+            // (e.g. 768 for 8-bit: 256 R + 256 G + 256 B uint16 values).
+            // Since tagLen > 2 always for a valid palette, tagVal is a file offset
+            // to the palette data (doesn't fit inline in the 4-byte IFD value field).
+            else if (tag == 320 && tagFmt == 3 && tagLen > 2) {
+              tifColorMapOfs = tagVal;  // absolute file offset to the ColorMap data
+              tifColorMapLen = tagLen / 3; // entries per channel (e.g. 256 for 8-bit)
             }
           }
         }
       }
-      if ((tifX != 0) && (tifY != 0) && (tifZb != 0) && (tifZ == 1 || tifZ == 3) && ((tifC == 1) || (tifC == 5 /*LZW*/ && tifSize > 0)) &&
-        ((tifofs != 0) && tifofs + i < n)) {
-        if (tifofval == 0) {
-          in->setpos(start + i + tifofs - 7);
-          for (int j = 0; j < 4; j++) {
-            b[j] = in->getchar();
-          }
-          tifofs = b[0] + (b[1] << 8) + (b[2] << 16) + (b[3] << 24);
-        }
-        if ((tifofs != 0) && tifofs < (1 << 18) && tifofs + i < n) {
-          if (tifC == 1) {
-            if (tifZ == 1 && tifZb == 1) {
-              detectionInfo.IMG_DET(start, BlockType::IMAGE1, i - 7, tifofs, ((tifX - 1) >> 3) + 1, tifY);
-              return detectionInfo;
-            }
-            if (tifZ == 1 && tifZb == 8) {
-              detectionInfo.IMG_DET(start, BlockType::IMAGE8, i - 7, tifofs, tifX, tifY);
-              return detectionInfo;
-            }
-            if (tifZ == 3 && tifZb == 8) {
-              detectionInfo.IMG_DET(start, BlockType::IMAGE24, i - 7, tifofs, tifX * 3, tifY);
-              return detectionInfo;
-            }
-          }
-          else if (tifC == 5 && tifSize > 0) {
-            tifX = ((tifX + 8 - tifZb) / (9 - tifZb)) * tifZ;
-            int info = tifZ * tifZb;
-            info = (((info == 1) ? BlockType::IMAGE1 : ((info == 8) ? BlockType::IMAGE8 : BlockType::IMAGE24)) << 24) | tifX;
-            detectionInfo.DataInfo = info;
-            detectionInfo.Type = BlockType::LZW;
-            detectionInfo.DataStart = start + i - 7 + tifofs;
-            detectionInfo.DataLength = tifSize;
+
+      // Compute total compressed size across all strips
+      int tifTotalSize = 0;
+      for (int s = 0; s < tifStripCount; s++)
+        tifTotalSize += tifStripSizes[s];
+
+      const uint64_t tifofs = tifStripCount > 0 ? tifStripOffsets[0] : 0;
+
+      if ((tifX != 0) && (tifY != 0) && (tifZb != 0) && (tifZ == 1 || tifZ == 3) &&
+        ((tifC == 1) || (tifC == 5 && tifTotalSize > 0)) &&
+        (tifofs != 0) && tifofs < (1 << 18) && tifofs + i < n)
+      {
+        if (tifC == 1) {
+          // Uncompressed (BI_RGB): pixel data starts at tifofs
+          if (tifZ == 1 && tifZb == 1) {
+            detectionInfo.IMG_DET(start, BlockType::IMAGE1, i - 7, tifofs, ((tifX - 1) >> 3) + 1, tifY);
             return detectionInfo;
+          }
+          if (tifZ == 1 && tifZb == 8) {
+            // 8-bit single channel: grayscale unless a ColorMap says otherwise
+            BlockType tifType = BlockType::IMAGE8GRAY; // default: no ColorMap = grayscale
+            if (tifColorMapOfs != 0 && tifColorMapLen > 0) {
+              // ColorMap is present: seek to it and inspect all entries.
+              // TIFF ColorMap layout is planar (all R, then all G, then all B),
+              // unlike interleaved RGB — so we use isTiffGrayscaleColorMap()
+              // rather than the generic isGrayscalePalette().
+              const uint64_t cmapEnd = static_cast<uint64_t>(tifColorMapOfs) + tifColorMapLen * 6u;
+              if (cmapEnd <= start + n) {
+                tifType = isTiffGrayscaleColorMap(in, tifColorMapOfs, tifColorMapLen)
+                  ? BlockType::IMAGE8GRAY
+                  : BlockType::IMAGE8;
+              }
+              else {
+                // ColorMap offset is past end of file: corrupted?
+              }
+            }
+            detectionInfo.IMG_DET(start, tifType, i - 7, tifofs, tifX, tifY);
+            return detectionInfo;
+          }
+          if (tifZ == 3 && tifZb == 8) {
+            detectionInfo.IMG_DET(start, BlockType::IMAGE24, i - 7, tifofs, tifX * 3, tifY);
+            return detectionInfo;
+          }
+        }
+        else if (tifC == 5 && tifTotalSize > 0) {
+          // LZW compressed: determine the image type and uncompressed row stride.
+          // Each strip is an independent LZW stream (with its own RESET and EOI codes),
+          // so multi-strip images are emitted one strip at a time via tiffStrips state.
+          int widthInBytes;
+          BlockType tifType;
+          if (tifZb == 1) {
+            tifType = BlockType::IMAGE1;
+            widthInBytes = ((tifX - 1) / 8 + 1) * tifZ; // ceil(width/8) bytes per row
+          }
+          else if (tifZb == 4) {
+            tifType = BlockType::IMAGE4;
+            widthInBytes = (tifX + 1) / 2 * tifZ; // ceil(width/2) bytes per row, 2 pixels per byte
+          }
+          else { // tifZb == 8
+            tifType = (tifZ == 1) ? BlockType::IMAGE8 : BlockType::IMAGE24;
+            widthInBytes = tifX * tifZ; // one byte per channel per pixel
+          }
+          // Pack image type into high byte and row stride into low 24 bits,
+          // matching the info encoding used by other image block types
+          const int info = (static_cast<int>(tifType) << 24) | widthInBytes;
+
+          if (tifStripCount == 1) {
+            // Single strip: emit directly, no static state needed
+            detectionInfo.Type = BlockType::LZW;
+            detectionInfo.DataInfo = info;
+            detectionInfo.DataStart = tifStripOffsets[0];
+            detectionInfo.DataLength = tifStripSizes[0];
+            return detectionInfo;
+          }
+          else {
+            // Multi-strip: TIFF does not guarantee strips are contiguous in the file.
+            // We only handle the contiguous case (strips laid out sequentially with
+            // no gaps), since the LZW decoder expects a single linear byte range.
+            // Non-contiguous strips fall through to DEFAULT.
+            bool contiguous = true;
+            for (int s = 1; s < tifStripCount; s++) {
+              if (tifStripOffsets[s] != tifStripOffsets[s - 1] + tifStripSizes[s - 1]) {
+                contiguous = false;
+                break;
+              }
+            }
+            if (contiguous) {
+              // Store all strips in static state and emit the first strip now.
+              // Subsequent detect() calls will emit strips 1..count-1 via the
+              // early-return block at the top of detect().
+              tiffStrips.count = tifStripCount;
+              tiffStrips.info = info;
+              tiffStrips.next = 1; // next call will emit strip 1
+              for (int s = 0; s < tifStripCount; s++) {
+                tiffStrips.offsets[s] = tifStripOffsets[s];
+                tiffStrips.sizes[s] = tifStripSizes[s];
+              }
+              detectionInfo.Type = BlockType::LZW;
+              detectionInfo.DataInfo = info;
+              detectionInfo.DataStart = tiffStrips.offsets[0];
+              detectionInfo.DataLength = tiffStrips.sizes[0];
+              return detectionInfo;
+            }
+            // Non-contiguous strips: fall through to savedPos restore
           }
         }
       }

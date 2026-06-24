@@ -59,6 +59,7 @@ void Audio16BitModel::mix(Mixer& m) {
     ch = (stereo) != 0 ? (blockPos & 2) >> 1 : 0;
     lsb = (blockPos & 1) ^ static_cast<uint32_t>(wMode < 4);
     if ((blockPos & 1) == 0) {
+      // Both bytes of the previous sample have been decoded. Update predictors.
       sample = (wMode < 4) ? s2(2) : t2(2);
       const int pCh = ch ^ stereo;
       int i = 0;
@@ -139,7 +140,8 @@ void Audio16BitModel::mix(Mixer& m) {
         }
       }
 
-      k1 = 28, k2 = k1 - 6 * stereo;
+      k1 = 28;
+      k2 = k1 - 6 * stereo;
       for (i = 1; i <= k2; i++) {
         ols[6][ch]->add((double)x1(i));
       }
@@ -147,7 +149,8 @@ void Audio16BitModel::mix(Mixer& m) {
         ols[6][ch]->add((double)x2(i));
       }
 
-      k1 = 32, k2 = k1 - 8 * stereo;
+      k1 = 32;
+      k2 = k1 - 8 * stereo;
       for (i = 1; i <= k2; i++) {
         ols[7][ch]->add((double)x1(i));
       }

@@ -8,18 +8,13 @@ compile_commands.json
 build/*.o
 build/_error?_*.txt
 paq8px.exe
-paq8px
 paq8px.cbp
 CMakeFiles
-test
-experiment
-docs
-paq8pxd
 *.paq8px*
-train_bench
 afl-in
 afl-out
 # Visual Studio Specific ignores
+*.user
 .vs/
 x64/
 release/

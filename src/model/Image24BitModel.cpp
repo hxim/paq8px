@@ -4,9 +4,9 @@ Image24BitModel::Image24BitModel(Shared* const sh, const uint64_t size) :
   shared(sh),
   cm(sh, size, nCM, 64),
   mapL{ sh, nLSM, 23, 74 },     /* LargeStationaryMap : Contexts, HashBits, Scale=64, Rate=16 */
-  mapR1{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  mapR2{ sh, nDM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
-  mapR3{ sh, nDM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR1{ sh, nRM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR2{ sh, nRM, 1 << 5, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
+  mapR3{ sh, nRM, 1 << 7, 74 }, /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS1{ sh, nOLS, 1 << 7, 74 },  /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
   mapOLS2{ sh, nOLS, 1 << 5, 74 }   /* ResidualMap: numContexts, histogramsPerContext, scale=64 */
 {
@@ -66,7 +66,7 @@ ALWAYS_INLINE uint8_t Image24BitModel::GetPredErr(const uint32_t ctxIndex, int r
   if (x - relX >= w)
     return 255;
   int offset = relY * w + relX;
-  const uint32_t valuesPerByte = (nDM + nOLS);
+  const uint32_t valuesPerByte = (nRM + nOLS);
   return predErrBuf((offset - 1) * valuesPerByte + ctxIndex + 1);
 }
 
@@ -82,11 +82,9 @@ ALWAYS_INLINE uint32_t Image24BitModel::GetPredErrAvg(const uint32_t predictorIn
   return predErrAvg;
 }
 
-
 ALWAYS_INLINE static int avg(int x, int y) {
   return (x + y + 1) >> 1;  //note: rounding here works properly only when x+y is non-negative, but we don't really need the function to be aware of negative values as they are rare
 }
-
 
 // Stores a prediction with a spread signal based on the distance between two reference pixels.
 // ref1 and ref2 are spatial reference pixels; their difference measures local variation -
@@ -274,6 +272,10 @@ void Image24BitModel::update() {
       uint8_t NEEEEEE = Px(-6, 1, 0); //buf(-6*stride + 1*w)
       uint8_t NNNWWWW = Px(4, 3, 0); //buf(4*stride + 3*w)
       uint8_t NNNEEEE = Px(-4, 3, 0); //buf(-4*stride + 3*w)
+      uint8_t NEEEEE = Px(-5, 1, 0); //buf(-5*stride + 1*w)
+      uint8_t NEEEEEEE = Px(-7, 1, 0); //buf(-7*stride + 1*w)
+      //uint8_t NNNNEEE = Px(-3, 4, 0); //buf(-3*stride + 4*w)
+      //uint8_t NNNNWWW = Px(3, 4, 0); //buf(3*stride + 4*w)
 
       // mixer context: edge detection
 
@@ -323,15 +325,15 @@ void Image24BitModel::update() {
       lossQ = min(lossQ, 639);
       shared->State.Image.lossQ = lossQ; //0..639
 
-      // Written in reverse order (nDM+nOLS-1 down to 0) so that GetPredErr()'s
-      // read formula  predErr((offset-1) * (nDM+nOLS) + ctxIndex + 1)  resolves correctly:
-      // after writing nDM values, predictor ctxIndex sits at ring offset -(ctxIndex+1).
+      // Written in reverse order (nRM+nOLS-1 down to 0) so that GetPredErr()'s
+      // read formula  predErr((offset-1) * (nRM+nOLS) + ctxIndex + 1)  resolves correctly:
+      // after writing nRM values, predictor ctxIndex sits at ring offset -(ctxIndex+1).
 
 
       uint32_t lowestErr = 255;
       uint8_t bestPredictorIndex = 0;
-      static_assert(nDM + nOLS <= 255); // the index need to fit to a byte
-      for (int i = nDM + nOLS - 1; i >= 0; i--) {
+      static_assert(nRM + nOLS <= 255); // the index need to fit to a byte
+      for (int i = nRM + nOLS - 1; i >= 0; i--) {
         short prediction = predictions[i] & 65535;
         uint8_t err;
         if (prediction == INT16_MAX) // currently never happens, todo
@@ -521,6 +523,20 @@ void Image24BitModel::update() {
       MakePredictionTrend(contextIdx++, NE, NNEE, NE);
       MakePredictionTrend(contextIdx++, NNEEE, NNNNEEEE, NNEEE);
 
+//    MakePredictionTrend(contextIdx++, NN, NNNW, NW);
+      MakePredictionTrend(contextIdx++, W, NEE, NEEE);
+//    MakePredictionTrend(contextIdx++, NEE, NNEEE, NE);
+      MakePredictionTrend(contextIdx++, NWW, NWWWW, WW);
+//    MakePredictionC(contextIdx++, ((W + NW) * 3 - NWW * 6 + NWWW + NNWWW) / 2);
+//    MakePredictionTrend(contextIdx++, (NE * 2 + NNE), (NNEE + NNNEE * 2), NNNNEEE);
+      MakePredictionC(contextIdx++, (W + N + NEEEEE + NEEEEEEE) / 4);
+      MakePredictionTrend(contextIdx++, WW, N, NEE);
+//    MakePredictionAvg(contextIdx++, N, NNN);
+      MakePredictionTrend(contextIdx++, N, NNWW, NWW);
+//    MakePredictionTrend(contextIdx++, (N * 2 + NE), (NN + 2 * NNE), NNNE);
+//    MakePredictionTrend(contextIdx++, (NW * 2 + NNW), (NNWW + NNNWW * 2), NNNNWWW);
+//    MakePredictionTrend(contextIdx++, (N * 2 + NW), (NN + 2 * NNW), NNNW);
+
       MakePredictionAvg(contextIdx++, 2 * N - NN, 2 * W - WW);
       MakePredictionAvg(contextIdx++, 2 * W - WW, 2 * NW - NNWW);
 
@@ -587,11 +603,10 @@ void Image24BitModel::update() {
 
       // 2nd-order NW diagonal
 //    MakePredictionC(contextIdx++, (2 * NW - NNWW));
-
-
+      
       MakePredictionC(contextIdx++, 0);
 
-      assert(contextIdx == nDM);
+      assert(contextIdx == nRM);
 
       //quality metric: quantized past loss in the pixel neighborhood 
       lossQ4 =
@@ -601,7 +616,7 @@ void Image24BitModel::update() {
 
       // map the predictions to histograms
 
-      for (int i = 0; i < nDM; i++) {
+      for (int i = 0; i < nRM; i++) {
         uint32_t spread = predictions[i] >> 16;
         short prediction = predictions[i] & 65535;
         if (prediction == INT16_MAX) { // currently never happens, todo
@@ -632,12 +647,12 @@ void Image24BitModel::update() {
         short prediction = short(roundf(pred));
         MakePredictionC(contextIdx++, prediction);
 
-        uint32_t predErrAvg = GetPredErrAvg(j + nDM);
+        uint32_t predErrAvg = GetPredErrAvg(j + nRM);
         mapOLS1.set(prediction, min(predErrAvg, 31) << 2 | color); // 0..31, 0..3 (5+2 bits)
         mapOLS2.set(prediction, lossQ4 << 2 | color); // 0..7, 0..3 (3+2 bits)
       }
 
-      assert(contextIdx == nDM + nOLS);
+      assert(contextIdx == nRM + nOLS);
 
       // these contexts are best for non-photographic images (logos, icons, screenshots, infographics)
       // todo: review and optimize these contexts
@@ -646,39 +661,48 @@ void Image24BitModel::update() {
       const uint8_t R_ = CM_USE_RUN_STATS;
 
       //for tuning:
-      //int toskip = shared->tuning_param - 1 + i;
-      //if (toskip == i) cm.skip(__), i++; else ...
-      
+      //int z = 0;
+      //int toskip = shared->tuning_param + z;
+      //z++; if (toskip == z) cm.skip(R_), ++i; else ...
+
       cm.set(R_, hash(++i, W, p1));
       cm.set(R_, hash(++i, W, p2));
       cm.set(R_, hash(++i, N, p1));
       cm.set(R_, hash(++i, N, p2));
-      cm.set(R_, hash(++i, p1, p2));
+      cm.set(R_, hash(++i, p1, p2)); // strong
       cm.set(R_, hash(++i, N, NN, p1));
       cm.set(R_, hash(++i, N, NN, p2));
       cm.set(R_, hash(++i, W, WW, p1));
       cm.set(R_, hash(++i, W, WW, p2));
       cm.set(R_, hash(++i, N, W, p1, p2));
 
+      cm.set(R_, hash(++i, W, p1 - Wp1, p2 - Wp2)); // strong
+      cm.set(R_, hash(++i, N, p1 - Np1, p2 - Np2)); // very strong
+      cm.set(R_, hash(++i, NW, p1 - NWp1, p2 - NWp2));
+      cm.set(R_, hash(++i, NE, p1 - NEp1, p2 - NEp2));
+
+//    cm.set(R_, hash(++i, N, NN));    //week
+//    cm.set(R_, hash(++i, NE, NNEE)); //weak
+//    cm.set(R_, hash(++i, NW, NNWW)); //weak
+//    cm.set(R_, hash(++i, W, NEE));   //weak
+//    cm.set(R_, hash(++i, N, NN, NNN)); //weak
+//    cm.set(R_, hash(++i, W, WW, WWW)); //weak
+
       cm.set(R_, hash(++i, W, WW, N, NN));
       cm.set(R_, hash(++i, W, N, NE, NW));
-      
+
       cm.set(R_, hash(++i, (NNN + N + 4) >> 3, (N * 3 - NN * 3 + NNN) >> 1));
-      cm.set(R_, hash(++i, (W + N - NW) >>1, (W + p1 - Wp1) >>1));
+      cm.set(R_, hash(++i, (W + N - NW) >> 1, (W + p1 - Wp1) >> 3, (W + p2 - Wp2) >> 3, (N + p1 - Np1) >> 3, (N + p2 - Np2) >> 3));
       cm.set(R_, hash(++i, W >> 2, DiffQt(W, p1), DiffQt(W, p2)));
       cm.set(R_, hash(++i, N >> 2, DiffQt(N, p1), DiffQt(N, p2)));
       cm.set(R_, hash(++i, (W + N + 4) >> 3, p1 >> 4, p2 >> 4)); // strong
-      cm.set(R_, hash(++i, W, p1 - Wp1)); // strong
-      cm.set(R_, hash(++i, N, p1 - Np1)); // very strong
 
-      cm.set(R_, hash(++i, (N * 2 - NN) >>1, DiffQt(N, (NN * 2 - NNN))));
-      cm.set(R_, hash(++i, (W * 2 - WW) >>1, DiffQt(W, (WW * 2 - WWW))));
+      cm.set(R_, hash(++i, (N * 2 - NN) >> 1, DiffQt(N, (NN * 2 - NNN))));
+      cm.set(R_, hash(++i, (W * 2 - WW) >> 1, DiffQt(W, (WW * 2 - WWW))));
       cm.set(R_, hash(++i, (N * 2 - NN), DiffQt(W, (NW * 2 - NNW))));
       cm.set(R_, hash(++i, (W * 2 - WW), DiffQt(N, (NW * 2 - NWW))));
       cm.set(R_, hash(++i, (W + NEE + 1) >> 1, DiffQt(W, (WW + NE + 1) >> 1)));
       cm.set(R_, hash(++i, (W + NEE - NE), DiffQt(W, (WW + NE - N))));
-      cm.set(R_, hash(++i, N, NN, NNN));
-      cm.set(R_, hash(++i, W, WW, WWW));
 
       int div7 = max((x / stride) >> 10, 7);
       int div17 = max((x / stride) >> 9, 17);
@@ -686,7 +710,9 @@ void Image24BitModel::update() {
 
       cm.set(R_, hash(++i, w, x / stride / div7));
       cm.set(R_, hash(++i, w, x / stride / div17, line / 17));
-      cm.set(R_, hash(++i, w, x / stride / div29, uint8_t(W + N - NW) >> 1));
+      cm.set(R_, hash(++i, w, x / stride / div29, (W + N - NW) >> 1));
+
+      cm.set(R_, hash(++i, w, x / stride / div29, W >> 2, NE >> 2));
 
       assert(i - color * 1024 == nCM);
 
@@ -852,7 +878,7 @@ void Image24BitModel::init() {
   lossBuf.setSize(nextPowerOf2(LOSS_BUF_ROWS * w));
   lossBuf.fill(255);
 
-  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nDM + nOLS)));
+  predErrBuf.setSize(nextPowerOf2(PRED_ERR_BUF_ROWS * w * (nRM + nOLS)));
   predErrBuf.fill(255);
 
   bestPredictorIndexes.setSize(nextPowerOf2(BEST_PRED_ROWS * w));
@@ -916,8 +942,8 @@ void Image24BitModel::mix(Mixer &m) {
       bestPredictorIndexes(1);                    // current pixel, prev channel (co-located i.e. within the same pixel as what we predict)
     auto bestPredictorIndexN = bestPredictorIndexes(w);                    // N, same channel
 
-    m.set(bestPredictorIndexW, (nDM + nOLS));
-    m.set(bestPredictorIndexN, (nDM + nOLS));
+    m.set(bestPredictorIndexW, (nRM + nOLS));
+    m.set(bestPredictorIndexN, (nRM + nOLS));
 
     int bestErrN = GetPredErrAvg(bestPredictorIndexN);
     int bestErrW = GetPredErrAvg(bestPredictorIndexW);

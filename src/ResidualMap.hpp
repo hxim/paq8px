@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "DivisionTable.hpp"
 #include "IPredictor.hpp"
 #include "Mixer.hpp"
 #include "Stretch.hpp"
@@ -37,6 +38,7 @@ public:
 
 private:
   const Shared* const shared;
+  int* dt; /**< Pointer to division table */
   int scale;
 
   const uint32_t numContexts;
