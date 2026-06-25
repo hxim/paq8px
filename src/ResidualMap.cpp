@@ -1,4 +1,4 @@
-﻿#include "clz.hpp"
+﻿#include "Clz.hpp"
 #include "ResidualMap.hpp"
 
 ResidualMap::ResidualMap(const Shared* const sh, const int numContexts, const int histogramsPerContext, const int scale) :
