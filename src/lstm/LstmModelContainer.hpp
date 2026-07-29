@@ -22,14 +22,13 @@ private:
 
   float* probs;
   ByteModelToBitModel byteModelToBitModel;
-  APM apm1, apm2, apm3;
-  IndirectContext<std::uint16_t> iCtx;
+  APM apm1, apm2;
   uint8_t expectedByte;
 
 public:
-  static constexpr int MIXERINPUTS = 5;
-  static constexpr int MIXERCONTEXTS = 8 * 256 + 8 * 100;
-  static constexpr int MIXERCONTEXTSETS = 2;
+  static constexpr int MIXERINPUTS = 4;
+  static constexpr int MIXERCONTEXTS = 8 * 256;
+  static constexpr int MIXERCONTEXTSETS = 1;
   static constexpr size_t alphabetSize = 1llu << 8;
 
   explicit LstmModelContainer(Shared* const sh);

@@ -9,10 +9,8 @@ LstmModelContainer::LstmModelContainer(Shared* const sh)
   , lstm(sh->chosenSimd, shape, sh->tuning_param)
   , probs(nullptr)
   , byteModelToBitModel()
-  , apm1{ sh, 0x10000, 24, 255 }
-  , apm2{ sh, 0x800, 24, 255 }
-  , apm3{ sh, 1024, 24, 255 }
-  , iCtx{ 11, 1, 9 }
+  , apm1{ sh, 1<<16, 24, 255 }
+  , apm2{ sh, 1<<12, 24, 1023 }
   , expectedByte(0)
 {
 }
@@ -41,27 +39,25 @@ void LstmModelContainer::mix(Mixer& m) {
   auto c0 = shared->State.c0;
   INJECT_SHARED_bpos
 
-  iCtx += y;
-  iCtx = (bpos << 8) | expectedByte;
-  uint32_t ctx = iCtx();
-
   const float prob = getp();
   int p = static_cast<int32_t>(roundf(prob * 4096.0f));
   p = std::clamp(p, 1, 4095);
 
-  m.promote(stretch(p) / 2);
-  m.add(stretch(p));
+  int st = stretch(p);
+  m.promote(st);
+  m.add(st);
   m.add((p - 2048) >> 2);
 
-  int const pr1 = apm1.p(p, (c0 << 8) | (shared->State.misses & 0xFF));
-  int const pr2 = apm2.p(p, (bpos << 8) | expectedByte);
-  int const pr3 = apm3.p(pr2, ctx);
+  uint32_t misses = shared->State.misses & 0xFF;
+  uint32_t certain = (p == 1) || (p == 4095);
+
+  int const pr1 = apm1.p(p, c0 << 8 | misses); // 16 bits
+  int const pr2 = apm2.p(p, expectedByte << 4 | certain << 3 | bpos); // 12 bits
 
   m.add(stretch(pr1) >> 1);
   m.add(stretch(pr2) >> 1);
-  m.add(stretch(pr3) >> 1);
-  m.set((bpos << 8) | expectedByte, 8 * 256);
-  m.set(static_cast<uint32_t>(lstm.sequence_position) << 3 | bpos, 100 * 8);
+
+  m.set(bpos << 8 | expectedByte, 8 * 256); // 12 bit
 }
 
 void LstmModelContainer::update() {
