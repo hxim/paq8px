@@ -20,7 +20,7 @@
    9     32.0   MB           1024 MB
   10     64.0   MB           2048 MB
   11    128.0   MB           4096 MB
-  12    256.0   MB           8192 MB
+  12    256.0   MB           4096 MB (capped)
 
 */
 
@@ -119,7 +119,7 @@ void Models::trainExe() {
 }
 
 auto Models::normalModel() -> NormalModel & {
-  static NormalModel instance {shared, shared->mem * 32};
+  static NormalModel instance {shared, min(shared->mem * 32, UINT64_C(1) << 32 )}; //cap at 4 GB 
   return instance;
 }
 
