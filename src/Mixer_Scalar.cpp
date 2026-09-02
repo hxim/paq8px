@@ -27,11 +27,19 @@ int Mixer_Scalar::dotProduct2(const short* const t, const short* const w0, const
   return s0;
 }
 
+ALWAYS_INLINE
+static int addsSaturate16(const int a, const int b) { // _mm_adds_epi16
+  const int sum = a + b;
+  if (sum < -32768) { return -32768; }
+  if (sum > 32767) { return 32767; }
+  return sum;
+}
+
 void Mixer_Scalar::train(const short* const t, short* const w, const size_t n, const int e) {
   for (size_t i = 0; i < n; i++) {
-    int wt = w[i] + ((((t[i] * e * 2) >> 16) + 1) >> 1);
-    if (wt < -32768) { wt = -32768; }
-    else if (wt > 32767) { wt = 32767; }
-    w[i] = static_cast<short>(wt);
+    const int t2 = addsSaturate16(t[i], t[i]);        // _mm_adds_epi16(t, t)
+    const int prod = (t2 * e) >> 16;                  // _mm_mulhi_epi16
+    const int rounded = addsSaturate16(prod, 1) >> 1; // _mm_adds_epi16(.,1), _mm_srai_epi16(.,1)
+    w[i] = static_cast<short>(addsSaturate16(rounded, w[i]));
   }
 }
