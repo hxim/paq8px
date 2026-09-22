@@ -49,7 +49,7 @@ public:
 
     JpegModel& jpegModel = models->jpegModel();
     if (jpegModel.mix(*m) != 0) {
-      m->setScaleFactor(1024, 256); //850 for larger files, 1400 for smaller files - very sensitive
+      m->setScaleFactor(1024, 192, 192); //850 for larger files, 1400 for smaller files - very sensitive
       return m->p();
     }
     else {
@@ -70,7 +70,7 @@ public:
       LinearPredictionModel& linearPredictionModel = models->linearPredictionModel();
       linearPredictionModel.mix(*m);
       
-      m->setScaleFactor(1200, 120); 
+      m->setScaleFactor(1200, 150, 120); 
       return m->p();
     }
   }

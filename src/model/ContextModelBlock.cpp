@@ -1,4 +1,4 @@
-#include "ContextModelBlock.hpp"
+﻿#include "ContextModelBlock.hpp"
 #include "../MixerFactory.hpp"
 #include "BlockModel.hpp"
 
@@ -13,7 +13,7 @@ ContextModelBlock::ContextModelBlock(Shared* const sh, const MixerFactory* const
     ,
     0
   );
-  m->setScaleFactor(10240, 3072);
+  m->setScaleFactor(10240, 4096, 3072);
 }
 
 int ContextModelBlock::p() {

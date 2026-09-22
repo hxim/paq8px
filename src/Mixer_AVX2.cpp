@@ -5,20 +5,17 @@
 static constexpr int SIMD_WIDTH_AVX2 = 32 / sizeof(short); // 16 shorts per 256-bit lane
 
 Mixer_AVX2::Mixer_AVX2(const Shared* const sh, const int n, const int m, const int s, const int promoted)
-  : Mixer(sh, n, m, s, SIMD_WIDTH_AVX2) {
-  if (s > 1) {
-    mp = new Mixer_AVX2(shared, s + promoted, 1, 1, 0);
-  }
+  : Mixer(sh, n, m, s, promoted, SIMD_WIDTH_AVX2) {
 }
 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx2")))
 #endif
-int Mixer_AVX2::dotProduct(const short* const w, const size_t n) {
+int Mixer_AVX2::dotProduct(const short* const t, const short* const w, const size_t n) {
   __m256i sum = _mm256_setzero_si256();
 
   for (size_t i = 0; i < n; i += 16) {
-    __m256i tmp = _mm256_madd_epi16(*(__m256i*) & tx[i], *(__m256i*) & w[i]);
+    __m256i tmp = _mm256_madd_epi16(*(const __m256i*) & t[i], *(const __m256i*) & w[i]);
     tmp = _mm256_srai_epi32(tmp, 8);
     sum = _mm256_add_epi32(sum, tmp);
   }
@@ -35,14 +32,14 @@ int Mixer_AVX2::dotProduct(const short* const w, const size_t n) {
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx2")))
 #endif
-int Mixer_AVX2::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+int Mixer_AVX2::dotProduct2(const short* const t, const short* const w0, const short* const w1, const size_t n, int& sum1) {
   __m256i s0 = _mm256_setzero_si256();
   __m256i s1 = _mm256_setzero_si256();
 
   for (size_t i = 0; i < n; i += 16) {
-    const __m256i t = *(__m256i*) & tx[i];
-    __m256i tmp0 = _mm256_madd_epi16(t, *(__m256i*) & w0[i]);
-    __m256i tmp1 = _mm256_madd_epi16(t, *(__m256i*) & w1[i]);
+    const __m256i tv = *(const __m256i*) & t[i];
+    __m256i tmp0 = _mm256_madd_epi16(tv, *(const __m256i*) & w0[i]);
+    __m256i tmp1 = _mm256_madd_epi16(tv, *(const __m256i*) & w1[i]);
     s0 = _mm256_add_epi32(s0, _mm256_srai_epi32(tmp0, 8));
     s1 = _mm256_add_epi32(s1, _mm256_srai_epi32(tmp1, 8));
   }
@@ -66,12 +63,12 @@ int Mixer_AVX2::dotProduct2(const short* const w0, const short* const w1, const 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx2")))
 #endif
-void Mixer_AVX2::train(short* const w, const size_t n, const int e) {
+void Mixer_AVX2::train(const short* const t, short* const w, const size_t n, const int e) {
   const __m256i one = _mm256_set1_epi16(1);
   const __m256i err = _mm256_set1_epi16(short(e));
 
   for (size_t i = 0; i < n; i += 16) {
-    __m256i tmp = _mm256_adds_epi16(*(__m256i*) & tx[i], *(__m256i*) & tx[i]);
+    __m256i tmp = _mm256_adds_epi16(*(const __m256i*) & t[i], *(const __m256i*) & t[i]);
     tmp = _mm256_mulhi_epi16(tmp, err);
     tmp = _mm256_adds_epi16(tmp, one);
     tmp = _mm256_srai_epi16(tmp, 1);

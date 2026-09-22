@@ -3,184 +3,253 @@
 #include "BitCount.hpp"
 #include "Squash.hpp"
 
+#include <climits>
+#include <initializer_list>
+
+// Maximum stretched probability accepted from a model.
+static constexpr int STRETCH_LIMIT = 2047;
+
+// Maximum stretched value stored as a layer output. squash() saturates above
+// 2047, but later layers can still use the full value through their linear
+// dot product.
+static constexpr int CLAMP_LIMIT = 4095;
+
+// A skip input is the difference of two layer outputs, so its range is twice
+// the normal layer-output range.
+static constexpr int SKIP_LIMIT = 2 * CLAMP_LIMIT;
+static_assert(SKIP_LIMIT <= 16383, "skip difference would saturate train()");
+
+// Largest error between the target (0 or 4096) and a 12-bit prediction.
+static constexpr int MAX_ERROR = 4095;
+
 ALWAYS_INLINE
 static int scaleDotProduct(const int dp, const int scaleFactor) {
-  return (dp * scaleFactor) >> 16;
+  // Use 64 bits for the multiplication, then scale and clamp the result.
+  const int64_t scaled = (int64_t(dp) * scaleFactor) >> 16;
+  if (scaled < -CLAMP_LIMIT) { return -CLAMP_LIMIT; }
+  if (scaled > CLAMP_LIMIT) { return CLAMP_LIMIT; }
+  return int(scaled);
 }
 
-ALWAYS_INLINE
-static int clipDotProduct(int dp) {
-  if (dp < -2047) {
-    dp = -2047;
-  }
-  else if (dp > 2047) {
-    dp = 2047;
-  }
-  return dp;
+// Rounds @p v up to the next multiple of @p simdWidth.
+static size_t padToWidth(const int v, const int simdWidth) {
+  return size_t((v + (simdWidth - 1)) & -(simdWidth));
 }
 
-ALWAYS_INLINE
-static void addDotProductToNextMixer(Mixer* const mp, const int dp) {
-  mp->add(dp);
-}
-
-ALWAYS_INLINE
-static int processDotProduct(Mixer* const mp, int dp, const int scaleFactor) {
-  dp = scaleDotProduct(dp, scaleFactor);
-  dp = clipDotProduct(dp);
-  addDotProductToNextMixer(mp, dp);
-  return squash(dp);
-}
-
-[[gnu::cold]] [[gnu::noinline]]
-static int updateLearningRateAdaptive(ErrorInfo& info, int rate, const int err) {
-  const uint32_t logErr = min(0xF, ilog2(abs(err)));
-  info.sum -= square(info.data[1] >> 28);
-  info.data[1] <<= 4;
-  info.data[1] |= info.data[0] >> 28;
-  info.data[0] <<= 4;
-  info.data[0] |= logErr;
-  info.sum += square(logErr);
-  info.collected += info.collected < 4096;
-  info.mask <<= 1;
-  info.mask |= (logErr <= ((info.data[0] >> 4) & 0xF));
-  const uint32_t count = bitCount(info.mask);
-  if (info.collected >= 64 && (info.sum > 1500 + uint32_t(rate >> 10) || count < 9 || (info.mask & 0xFF) == 0)) {
-    rate = 7 * 65536;
-    info.reset();
-  }
-  else if (info.collected == 4096 && info.sum >= 56 && info.sum <= 144 && count > 28 - uint32_t(rate >> 16) &&
-    ((info.mask & 0xFF) == 0xFF)) {
-    rate = max(rate - 65536, 2 * 65536);
-    info.reset();
-  }
-  return rate;
-}
-
-ALWAYS_INLINE
-static int updateLearningRate(const bool isAdaptiveLearningRate, ErrorInfo& info, int rate, const int err, const int lowerLimitOfLearningRate) {
-  if (isAdaptiveLearningRate) {
-    rate = updateLearningRateAdaptive(info, rate, err);
-  }
-  //linear learning rate decay
-  if (rate > lowerLimitOfLearningRate) {
-    rate--;
-  }
-  return rate;
-}
-
-Mixer::Mixer(const Shared* const sh, const int n, const int m, const int s, const int simdWidth) :
+Mixer::Mixer(const Shared* const sh, const int n, const int m, const int s, const int promoted, const int simdWidth) :
   shared(sh),
-  n((n + (simdWidth - 1)) & -(simdWidth)),
-  m(m), s(s),
-  lowerLimitOfLearningRate(s == 1 ? MIN_LEARNING_RATE_S1 : MIN_LEARNING_RATE_SN),
-  isAdaptiveLearningRate(sh->GetOptionAdaptiveLearningRate()),
-  scaleFactor(0),
-  tx((n + (simdWidth - 1)) & -(simdWidth)),
-  wx(((n + (simdWidth - 1)) & -(simdWidth))* m),
-  cxt(s), info(s), rates(s), pr(s),
-  mp(nullptr),
-  simdWidth(simdWidth) {
-  assert((this->n & (simdWidth - 1)) == 0);
-  assert(this->m > 0);
-  assert(this->s > 0);
-  for (size_t i = 0; i < s; ++i) {
-    pr[i] = 2048; //initial p=0.5
-    rates[i] = MAX_LEARNING_RATE;
-  }
-  const short initialWeight = s == 1 ? 8192 : 128;
-  for (size_t i = 0; i < this->n * m; ++i) {
-    wx[i] = initialWeight;
-  }
+  numInputs(size_t(n)),
+  numPromotedInputs(size_t(promoted)),
+  numPromoted(0),
+  numAdded(0),
+  bitContexts(uint32_t(m), uint32_t(s)),
+  singleContext(1, 1),
+  inputLayer(bitContexts, padToWidth(n, simdWidth),
+    /*maxInput*/ STRETCH_LIMIT, /*errorLimit*/ 56, /*initialWeight*/ 128,
+    /*lowerLimit*/ learningRate(DEFAULT_END_RATE_INPUT)),
+  middleLayer(bitContexts, padToWidth(s + promoted, simdWidth),
+    /*maxInput*/ CLAMP_LIMIT, /*errorLimit*/ 56, /*initialWeight*/ 4096,
+    /*lowerLimit*/ learningRate(DEFAULT_END_RATE_MIDDLE)),
+  // The combining layer has s middle outputs, s skip inputs, and promoted inputs.
+  combiningLayer(singleContext, padToWidth(2 * s + promoted, simdWidth),
+    /*maxInput*/ SKIP_LIMIT, /*errorLimit*/ 6, /*initialWeight*/ 8192,
+    /*lowerLimit*/ learningRate(DEFAULT_END_RATE_COMBINING)) {
+  assert(n > 0);
+  assert(m > 0);
+  assert(s > 0);
+  assert(promoted >= 0);
+
+  assert(isWellFormed(inputLayer, simdWidth));
+  assert(isWellFormed(middleLayer, simdWidth));
+  assert(isWellFormed(combiningLayer, simdWidth));
+
+  // Set the input layout of the middle and combining layers.
+  middleLayer.routed = { 0, size_t(s) };
+  middleLayer.promoted = { size_t(s), numPromotedInputs };
+  combiningLayer.routed = { 0, size_t(s) };
+  combiningLayer.skip = { size_t(s), size_t(s) };
+  combiningLayer.promoted = { size_t(2 * s), numPromotedInputs };
+  assert(middleLayer.promoted.end() <= middleLayer.n);
+  assert(combiningLayer.promoted.end() <= combiningLayer.n);
+
+  // Skip weights are deliberately initialized to zero (see the class comment).
+  setWeightBlock(combiningLayer, combiningLayer.skip, 0);
+
   reset();
 }
 
-Mixer::~Mixer() {
-  delete mp;
+Mixer::~Mixer() = default;
+
+bool Mixer::isWellFormed(const Layer& layer, const int simdWidth) {
+  // Inputs must be SIMD-aligned, and the layer must be small enough that its
+  // dot products stay within the integer range supported by the SIMD kernels.
+  return (layer.n & size_t(simdWidth - 1)) == 0
+    && int64_t(layer.n) * layer.maxInput * 128 <= INT_MAX;
 }
 
-void Mixer::setScaleFactor(const int sf0, const int sf1) {
-  scaleFactor = sf0;
-  if (mp != nullptr) {
-    mp->setScaleFactor(sf1, 0);
+void Mixer::setWeightBlock(Layer& layer, const Block& block, const short value) {
+  assert(block.end() <= layer.n);
+  for (uint32_t r = 0; r < layer.contexts.m; ++r) {
+    short* const w = &layer.wx[size_t(r) * layer.n];
+    for (size_t i = 0; i < block.count; ++i) {
+      w[block.offset + i] = value;
+    }
   }
 }
 
-void Mixer::setLowerLimitOfLearningRate(const int lr0, const int lr1) {
-  lowerLimitOfLearningRate = lr0 * 65536;
-  if (mp != nullptr) {
-    mp->setLowerLimitOfLearningRate(lr1, 0);
+void Mixer::forward(Layer& layer) {
+  assert(layer.scaleFactor > 0);
+
+  const short* const t = &layer.tx[0];
+  const ContextSet& ctx = layer.contexts;
+  const size_t count = ctx.count;
+  const size_t end = count & ~size_t(1);
+  size_t i = 0;
+  for (; i < end; i += 2) {
+    int dp1 = 0;
+    int dp0 = dotProduct2(t,
+      &layer.wx[ctx.cxt[i + 0] * layer.n],
+      &layer.wx[ctx.cxt[i + 1] * layer.n], layer.n, dp1);
+    dp0 = scaleDotProduct(dp0, layer.scaleFactor);
+    dp1 = scaleDotProduct(dp1, layer.scaleFactor);
+    layer.out[i + 0] = static_cast<short>(dp0);
+    layer.out[i + 1] = static_cast<short>(dp1);
+    layer.pr[i + 0] = static_cast<short>(squash(dp0));
+    layer.pr[i + 1] = static_cast<short>(squash(dp1));
   }
+  if (i < count) {
+    int dp = dotProduct(t, &layer.wx[ctx.cxt[i] * layer.n], layer.n);
+    dp = scaleDotProduct(dp, layer.scaleFactor);
+    layer.out[i] = static_cast<short>(dp);
+    layer.pr[i] = static_cast<short>(squash(dp));
+  }
+}
+
+void Mixer::routeOutputs(const Layer& from, Layer& to, const Block& block) {
+  assert(block.count == from.contexts.count);
+  assert(block.end() <= to.n);
+  short* const dst = &to.tx[block.offset];
+  for (size_t i = 0; i < block.count; ++i) {
+    dst[i] = from.out[i];
+  }
+}
+
+void Mixer::routeSkipConnection() {
+  const Block& block = combiningLayer.skip;
+
+  // Input output i and middle output i use the same mixer context
+  assert(&inputLayer.contexts == &middleLayer.contexts);
+  assert(block.count == inputLayer.contexts.count);
+
+  short* const dst = &combiningLayer.tx[block.offset];
+  for (size_t i = 0; i < block.count; ++i) {
+    // The difference measures how the middle layer changed that signal.
+    const int diff = int(inputLayer.out[i]) - int(middleLayer.out[i]);
+    dst[i] = static_cast<short>(diff);
+  }
+}
+
+void Mixer::setScaleFactor(const int sf0, const int sf1, const int sf2) {
+  inputLayer.scaleFactor = sf0;
+  middleLayer.scaleFactor = sf1;
+  combiningLayer.scaleFactor = sf2;
+}
+
+void Mixer::setLowerLimitOfLearningRate(const int lr0, const int lr1, const int lr2) {
+  assert(lr0 >= MIN_LEARNING_RATE_UNITS && lr0 <= MAX_LEARNING_RATE_UNITS);
+  assert(lr1 >= MIN_LEARNING_RATE_UNITS && lr1 <= MAX_LEARNING_RATE_UNITS);
+  assert(lr2 >= MIN_LEARNING_RATE_UNITS && lr2 <= MAX_LEARNING_RATE_UNITS);
+  inputLayer.lowerLimitOfLearningRate = learningRate(lr0);
+  middleLayer.lowerLimitOfLearningRate = learningRate(lr1);
+  combiningLayer.lowerLimitOfLearningRate = learningRate(lr2);
 }
 
 void Mixer::promote(const int x) {
-  if (mp != nullptr) {
-    mp->add(x);
-  }
+  assert(x >= -STRETCH_LIMIT && x <= STRETCH_LIMIT);
+  assert(numPromoted < numPromotedInputs);
+
+  const short v = static_cast<short>(x);
+  middleLayer.tx[middleLayer.promoted.offset + numPromoted] = v;
+  combiningLayer.tx[combiningLayer.promoted.offset + numPromoted] = v;
+  ++numPromoted;
 }
 
 void Mixer::update() {
+  // Keep the fixed-point intermediate values within the integer and short
+  // ranges used by train().
+  static_assert(int64_t(MAX_ERROR) * (MAX_LEARNING_RATE >> 2) <= INT_MAX,
+    "error * rate overflows int");
+  static_assert((int64_t(MAX_ERROR) * (MAX_LEARNING_RATE >> 2)) >> 16 <= SHRT_MAX,
+    "scaled error does not fit a short");
+
   INJECT_SHARED_y
     const int target = y << 12;
-  for (size_t i = 0; i < numContexts; ++i) {
-    const int err = target - pr[i];
-    int lim = mp == nullptr ? 6 : 17;
-    if (err < -lim || err > lim) { // skip training when error is low
-      rates[i] = updateLearningRate(isAdaptiveLearningRate, info[i], rates[i], err, lowerLimitOfLearningRate);
-      train(&wx[cxt[i] * n], nx, (err * rates[i]) >> 16);
+
+  // Each layer trains its weight vectors selected for the last prediction.
+  // The input and middle layers use the same context selections; the combining
+  // layer uses its single weight vector.
+  for (Layer* const layerPtr : { &inputLayer, & middleLayer, & combiningLayer }) {
+    Layer& layer = *layerPtr;
+    const ContextSet& ctx = layer.contexts;
+    const int rate = layer.rate >> 2;
+
+    for (size_t i = 0; i < ctx.count; ++i) {
+      const int err = target - layer.pr[i];
+      if (err < -layer.errorLimit || err > layer.errorLimit) {
+        train(&layer.tx[0], &layer.wx[ctx.cxt[i] * layer.n], layer.n, (err * rate) >> 16);
+      }
+    }
+
+    // Decay the learning rate one step per bit until it reaches its floor.
+    if (layer.rate > layer.lowerLimitOfLearningRate) {
+      layer.rate--;
     }
   }
+
   reset();
 }
 
 int Mixer::p() {
   shared->GetUpdateBroadcaster()->subscribe(this);
-  assert(scaleFactor > 0);
-  //pad input to a multiple of simdWidth
-  while (nx & (simdWidth - 1)) {
-    tx[nx++] = 0;
-  }
-  if (mp != nullptr) { // first mixer layer: feed results to second layer
-    const size_t end = numContexts & ~1ULL;
-    size_t i = 0;
-    for (; i < end; i += 2) {
-      int dp1 = 0;
-      const int dp0 = dotProduct2(
-        &wx[cxt[i + 0] * n],
-        &wx[cxt[i + 1] * n], nx, dp1);
-      pr[i + 0] = processDotProduct(mp, dp0, scaleFactor);
-      pr[i + 1] = processDotProduct(mp, dp1, scaleFactor);
-    }
-    if (i < numContexts) {
-      const int dp = dotProduct(&wx[cxt[i] * n], nx);
-      pr[i] = processDotProduct(mp, dp, scaleFactor);
-    }
 
-    mp->set(0, 1);
-    return mp->p();
-  }
-  else { // second (last) mixer layer: return prediction directly
-    const int dp = scaleDotProduct(dotProduct(&wx[cxt[0] * n], nx), scaleFactor);
-    return pr[0] = squash(dp);
-  }
+  // All per-bit context selections and promoted inputs must be present before
+  // computing the final prediction.
+  //assert(numAdded == numInputs);
+  assert(bitContexts.count == bitContexts.s);
+  assert(numPromoted == numPromotedInputs);
+
+  // Input layer -> middle layer -> combining layer, with the input layer's
+  // outputs also reaching the combining layer through the skip connection.
+  // Promoted inputs were written directly into both later layers.
+  forward(inputLayer);
+  routeOutputs(inputLayer, middleLayer, middleLayer.routed);
+
+  forward(middleLayer);
+  routeOutputs(middleLayer, combiningLayer, combiningLayer.routed);
+  routeSkipConnection();
+
+  // The combining layer has one weight vector, selected by its single context.
+  singleContext.select(0, 1);
+  forward(combiningLayer);
+
+  return combiningLayer.pr[0];
 }
 
 void Mixer::add(const int x) {
-  assert(nx < n);
-  assert(x == short(x));
-  tx[nx++] = static_cast<short>(x);
+  assert(x >= -STRETCH_LIMIT && x <= STRETCH_LIMIT);
+  assert(numAdded < numInputs);
+  inputLayer.tx[numAdded++] = static_cast<short>(x);
 }
 
 void Mixer::set(const uint32_t cx, const uint32_t range) {
-  assert(numContexts < s);
-  assert(cx < range);
-  assert(base + range <= m);
-  cxt[numContexts++] = base + cx;
-  base += range;
+  // Select one weight vector from the next range belonging to this context.
+  bitContexts.select(cx, range);
 }
 
 void Mixer::reset() {
-  nx = 0;
-  base = 0;
-  numContexts = 0;
+  // Start the next bit with fresh input, promotion, and context-selection state.
+  numAdded = 0;
+  numPromoted = 0;
+  bitContexts.reset();
+  singleContext.reset();
 }

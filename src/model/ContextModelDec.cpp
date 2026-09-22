@@ -36,7 +36,7 @@ public:
       ,
       (useLSTM ? 1 : 0)
     );
-    m->setScaleFactor(1800, 60);
+    m->setScaleFactor(1800, 90, 60);
   }
 
 

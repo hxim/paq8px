@@ -44,7 +44,8 @@ void Models::trainText(const char* const dictionary, int iterations) {
   DummyMixer mDummy(shared,
     NormalModel::MIXERINPUTS + WordModel::MIXERINPUTS_TEXT,
     NormalModel::MIXERCONTEXTS_PRE + WordModel::MIXERCONTEXTS,
-    NormalModel::MIXERCONTEXTSETS_PRE + WordModel::MIXERCONTEXTSETS);
+    NormalModel::MIXERCONTEXTSETS_PRE + WordModel::MIXERCONTEXTSETS,
+    0);
   shared->State.blockType = BlockType::TEXT;
   INJECT_SHARED_pos
   INJECT_SHARED_blockPos
@@ -94,7 +95,7 @@ void Models::trainText(const char* const dictionary, int iterations) {
 
 void Models::trainExe() {
   ExeModel& exeModel = this->exeModel();
-  DummyMixer mDummy(shared, ExeModel::MIXERINPUTS, ExeModel::MIXERCONTEXTS, ExeModel::MIXERCONTEXTSETS);
+  DummyMixer mDummy(shared, ExeModel::MIXERINPUTS, ExeModel::MIXERCONTEXTS, ExeModel::MIXERCONTEXTSETS, 0);
   INJECT_SHARED_pos
   INJECT_SHARED_blockPos
   assert(pos == 0 && blockPos == 0);

@@ -27,7 +27,7 @@ public:
       ,
       (useLSTM ? 1 : 0)
     );
-    m->setScaleFactor(1200, 130);
+    m->setScaleFactor(1200, 460, 130);
   }
 
   void setParam(int width) {

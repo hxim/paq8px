@@ -30,7 +30,6 @@ private:
   static constexpr uint8_t OPTION_MULTIPLE_FILE_MODE = 1;
   static constexpr uint8_t OPTION_TRAINEXE  = 2;
   static constexpr uint8_t OPTION_TRAINTXT  = 4;
-  static constexpr uint8_t OPTION_ADAPTIVE  = 8;
   static constexpr uint8_t OPTION_SKIPRGB   = 16;
   static constexpr uint8_t OPTION_USELSTM   = 32;
 
@@ -56,7 +55,6 @@ public:
   bool GetOptionMultipleFileMode() const { return (options & OPTION_MULTIPLE_FILE_MODE) != 0; }
   bool GetOptionTrainExe() const { return (options & OPTION_TRAINEXE) != 0; }
   bool GetOptionTrainTxt() const { return (options & OPTION_TRAINTXT) != 0; }
-  bool GetOptionAdaptiveLearningRate() const { return (options & OPTION_ADAPTIVE) != 0; }
   bool GetOptionSkipRGB() const { return (options & OPTION_SKIPRGB) != 0; }
   bool GetOptionUseLSTM() const { return (options & OPTION_USELSTM) != 0; }
 
@@ -68,7 +66,6 @@ public:
   void SetOptionMultipleFileMode() { options |= OPTION_MULTIPLE_FILE_MODE; }
   void SetOptionTrainExe() { options |= OPTION_TRAINEXE; }
   void SetOptionTrainTxt() { options |= OPTION_TRAINTXT; }
-  void SetOptionAdaptiveLearningRate() { options |= OPTION_ADAPTIVE; }
   void SetOptionSkipRGB() { options |= OPTION_SKIPRGB; }
   void SetOptionUseLSTM() { options |= OPTION_USELSTM; }
 

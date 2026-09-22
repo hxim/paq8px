@@ -27,7 +27,7 @@ public:
       ,
       (useLSTM ? 1 : 0)
     );
-    m->setScaleFactor(2048, 256);
+    m->setScaleFactor(2048, 320, 256);
   }
 
   void setParam(int imageWidthInBytes) {

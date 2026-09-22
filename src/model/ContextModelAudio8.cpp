@@ -30,7 +30,7 @@ public:
       ,
       (useLSTM ? 1 : 0)
     );
-    m->setScaleFactor(850, 140); //800-900, 140
+    m->setScaleFactor(850, 160, 140); //800-900, 140
   }
 
   void setParam(int blockInfo) {

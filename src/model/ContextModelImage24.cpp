@@ -33,13 +33,13 @@ public:
     m1 = mf->createMixer(mixerinputs, mixerContexts, mixerContextSets, promotedInputs);
     m2 = mf->createMixer(mixerinputs, mixerContexts, mixerContextSets, promotedInputs);
 
-    m0->setScaleFactor(490, 130);
-    m1->setScaleFactor(620, 135);
-    m2->setScaleFactor(770, 140);
+    m0->setScaleFactor(490, 180, 130);
+    m1->setScaleFactor(620, 170, 135);
+    m2->setScaleFactor(770, 160, 140);
 
-    m0->setLowerLimitOfLearningRate(5, 1);
-    m1->setLowerLimitOfLearningRate(5, 1);
-    m2->setLowerLimitOfLearningRate(5, 1);
+    m0->setLowerLimitOfLearningRate(7, 2, 1);
+    m1->setLowerLimitOfLearningRate(6, 2, 1);
+    m2->setLowerLimitOfLearningRate(8, 2, 2);
   }
 
   void setParam(int width, int isAlpha) {

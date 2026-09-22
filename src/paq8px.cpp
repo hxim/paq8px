@@ -52,13 +52,12 @@ static void printHelp() {
     "\n"
     "FLAGS:\n"
     "  L                    | Enable LSTM model (+24 MB per block type)\n"
-    "  A                    | Use adaptive learning rate\n"
     "  S                    | Skip RGB color transform (images)\n"
     "  B                    | Brute-force DEFLATE detection\n"
     "  E                    | Pre-train x86/x64 model\n"
     "  T                    | Pre-train text models (dictionary-based)\n"
     "\n"
-    "  Example: " PROGNAME " -8LA file.txt   <- Level 8 + LSTM + adaptive learning rate\n"
+    "  Example: " PROGNAME " -8L file.txt   <- Level 8 + LSTM\n"
     "\n"
     "Block detection control (compression-only):\n"
     "  -forcebinary         | Force generic (binary) mode\n"
@@ -134,9 +133,6 @@ static void printHelpVerbose() {
     "      are mixed with the other models.\n"
     "      When special block types are detected, for each block type an individual LSTM model is created dynamically and\n"
     "      used within that block type. Each such LSTM model adds approximately 24 MB to the total memory use.\n"
-    "\n"
-    "  A   Enable adaptive learning rate in the CM mixer.\n"
-    "      May improve compression for some files.\n"
     "\n"
     "  S   Skip RGB color transform for 24/32-bit images.\n"
     "      Useful when the transform worsens compression.\n"
@@ -338,9 +334,8 @@ static void printHelpVerbose() {
     "    " PROGNAME " -8 file.txt         | Compress using ~2.3 GB RAM\n"
     "    " PROGNAME " -12L enwik8         | Compress 'enwik8' with maximum compression (~29 GB RAM), use the LSTM model as well\n"
     "    " PROGNAME " -4 image.jpg        | Compress the 'image.jpg' file - using less memory, even faster\n"
-    "    " PROGNAME " -8ba b64sample.xml  | Compress 'b64sample.xml' faster and using less memory\n"
+    "    " PROGNAME " -8b b64sample.xml   | Compress 'b64sample.xml' faster and using less memory\n"
     "                                 Put more effort into finding and transforming DEFLATE blocks\n"
-    "                                 Use adaptive learning rate.\n"
     "    " PROGNAME " -8s rafale.bmp      | Compress the 'rafale.bmp' image file\n"
     "                                 Skip color transform - this file compresses better without it\n"
   );
@@ -412,7 +407,6 @@ static void printOptions(Shared *shared, int level) {
     "Off"); //this is a compression-only option, but we put/get it for reproducibility
   printf(" Train exe  (e) = %s\n", shared->GetOptionTrainExe() ? "On  (Pre-train x86/x64 model)" : "Off");
   printf(" Train txt  (t) = %s\n", shared->GetOptionTrainTxt() ? "On  (Pre-train main model with word and expression list)" : "Off");
-  printf(" Adaptive   (a) = %s\n", shared->GetOptionAdaptiveLearningRate() ? "On  (Adaptive learning rate)" : "Off");
   printf(" Skip RGB   (s) = %s\n", shared->GetOptionSkipRGB() ? "On  (Skip the color transform, just reorder the RGB channels)" : "Off");
   printf(" Use LSTM   (l) = %s\n", shared->GetOptionUseLSTM() ? "On  (Use LSTM (Long Short-Term Memory) model)" : "Off");
   printf(" File mode      = %s\n", shared->GetOptionMultipleFileMode() ? "Multiple" : "Single");
@@ -493,9 +487,6 @@ int processCommandLine(int argc, char **argv) {
                 break;
               case 'T':
                 shared.SetOptionTrainTxt();
-                break;
-              case 'A':
-                shared.SetOptionAdaptiveLearningRate();
                 break;
               case 'S':
                 shared.SetOptionSkipRGB();
