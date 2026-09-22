@@ -8,46 +8,62 @@
 /**
  * Filter the context model with APMs
  */
-class SSE {
+class SSE
+{
 private:
-  Shared * const shared;
-  struct {
+  Shared* const shared;
+  struct
+  {
+    APM APMs[4];
+    APM1 APM1s[3];
+    APMPost APMPostA, APMPostB;
+  } Text;
+  struct
+  {
+    struct
+    {
+      APM APMs[4];
+      APM1 APM1s[2];
+      APMPost APMPostA, APMPostB;
+    } Color, Palette;
+    struct
+    {
+      APM APMs[3];
+      APMPost APMPostA, APMPostB;
+    } Gray;
+    struct
+    {
       APM APMs[4];
       APM1 APM1s[3];
-      APMPost APMPostA, APMPostB;
-  } Text;
-  struct {
-      struct {
-          APM APMs[4];
-          APM1 APM1s[2];
-          APMPost APMPostA, APMPostB;
-      } Color, Palette;
-      struct {
-          APM APMs[3];
-          APMPost APMPostA, APMPostB;
-      } Gray;
+      APMPost APMPostFinal;
+    } Bilevel;
   } Image;
-  struct {
+  struct
+  {
     APM APMs[1];
     APMPost APMPostA, APMPostB;
   } Audio;
-  struct {
+  struct
+  {
     APM APMs[1];
     APMPost APMPostA, APMPostB;
   } Jpeg;
-  struct {
+  struct
+  {
     APM APMs[1];
     APMPost APMPostA, APMPostB;
   } DEC;
-  struct {
+  struct
+  {
     APM APMs[3];
     APM1 APM1s[3];
     APMPost APMPostA, APMPostB;
   } x86_64;
-  struct {
-      APM APMs[4];
-      APM1 APM1s[3];
-      APMPost APMPostA, APMPostB;
+  struct
+  {
+    APM APMs[4];
+    APM1 APM1s[3];
+    APMPost APMPostA, APMPostB;
   } Generic;
 
 public:
