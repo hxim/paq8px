@@ -257,6 +257,7 @@
     <ClCompile Include="Clz.hpp" />
     <ClCompile Include="ContextMap.cpp" />
     <ClCompile Include="ContextMap2.cpp" />
+    <ClCompile Include="StationaryMapForJpegModel.cpp" />
     <ClCompile Include="model\SimilarityEmaFunctionsFactory.cpp" />
     <ClCompile Include="model\SimilarityEmaFunctions_AVX2.cpp" />
     <ClCompile Include="model\SimilarityEmaFunctions_Scalar.cpp" />
@@ -397,6 +398,7 @@
     <ClInclude Include="CharacterNames.hpp" />
     <ClInclude Include="ContextMap.hpp" />
     <ClInclude Include="ContextMap2.hpp" />
+    <ClInclude Include="StationaryMapForJpegModel.hpp" />
     <ClInclude Include="model\SimilarityEmaFunctionsFactory.hpp" />
     <ClInclude Include="model\SimilarityEmaFunctions_AVX2.hpp" />
     <ClInclude Include="model\SimilarityEmaFunctions_Scalar.hpp" />

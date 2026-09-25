@@ -139,8 +139,8 @@ public:
     uint8_t Audio{};
 
     //JpegModel
-    struct {
-      std::uint16_t state; // used by SSE stage
+    struct { // used by the SSE stage
+      uint16_t state;  // 0: not predicting this bit; otherwise 1 + a direct 12-bit context
     } JPEG;
 
     //SparseMatchModel

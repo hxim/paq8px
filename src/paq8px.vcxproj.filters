@@ -438,6 +438,9 @@
     <ClCompile Include="model\SimilarityModelPair.cpp">
       <Filter>model</Filter>
     </ClCompile>
+    <ClCompile Include="StationaryMapForJpegModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AdaptiveMap.hpp">
@@ -958,6 +961,9 @@
     </ClInclude>
     <ClInclude Include="model\SimilarityModelPair.hpp">
       <Filter>model</Filter>
+    </ClInclude>
+    <ClInclude Include="StationaryMapForJpegModel.hpp">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
