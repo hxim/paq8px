@@ -23,17 +23,14 @@ static inline int32x4_t neon_madd_epi16(int32x4_t a, int32x4_t b) {
 #endif
 
 Mixer_Neon::Mixer_Neon(const Shared* const sh, const int n, const int m, const int s, const int promoted)
-  : Mixer(sh, n, m, s, SIMD_WIDTH_NEON) {
-  if (s > 1) {
-    mp = new Mixer_Neon(shared, s + promoted, 1, 1, 0);
-  }
+  : Mixer(sh, n, m, s, promoted, SIMD_WIDTH_NEON) {
 }
 
-int Mixer_Neon::dotProduct(const short* const w, const size_t n) {
+int Mixer_Neon::dotProduct(const short* const t, const short* const w, const size_t n) {
   int32x4_t sum = vdupq_n_s32(0);
 
   for (size_t i = 0; i < n; i += 8) {
-    int32x4_t tmp = neon_madd_epi16(*(int32x4_t*)&tx[i], *(int32x4_t*)&w[i]);
+    int32x4_t tmp = neon_madd_epi16(*(int32x4_t*)&t[i], *(int32x4_t*)&w[i]);
     tmp = vshrq_n_s32(tmp, 8);
     sum = vaddq_s32(sum, tmp);
   }
@@ -43,14 +40,14 @@ int Mixer_Neon::dotProduct(const short* const w, const size_t n) {
   return vgetq_lane_s32(sum, 0);
 }
 
-int Mixer_Neon::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+int Mixer_Neon::dotProduct2(const short* const t, const short* const w0, const short* const w1, const size_t n, int& sum1) {
   int32x4_t s0 = vdupq_n_s32(0);
   int32x4_t s1 = vdupq_n_s32(0);
 
   for (size_t i = 0; i < n; i += 8) {
-    const int32x4_t t = *(int32x4_t*)&tx[i];
-    int32x4_t tmp0 = neon_madd_epi16(t, *(int32x4_t*)&w0[i]);
-    int32x4_t tmp1 = neon_madd_epi16(t, *(int32x4_t*)&w1[i]);
+    const int32x4_t tv = *(int32x4_t*)&t[i];
+    int32x4_t tmp0 = neon_madd_epi16(tv, *(int32x4_t*)&w0[i]);
+    int32x4_t tmp1 = neon_madd_epi16(tv, *(int32x4_t*)&w1[i]);
     s0 = vaddq_s32(s0, vshrq_n_s32(tmp0, 8));
     s1 = vaddq_s32(s1, vshrq_n_s32(tmp1, 8));
   }
@@ -64,12 +61,12 @@ int Mixer_Neon::dotProduct2(const short* const w0, const short* const w1, const 
   return vgetq_lane_s32(s0, 0);
 }
 
-void Mixer_Neon::train(short* const w, const size_t n, const int e) {
+void Mixer_Neon::train(const short* const t, short* const w, const size_t n, const int e) {
   const int32x4_t one = vreinterpretq_s32_s16(vdupq_n_s16(1));
   const int32x4_t err = vreinterpretq_s32_s16(vdupq_n_s16(short(e)));
 
   for (size_t i = 0; i < n; i += 8) {
-    int32x4_t tmp = vreinterpretq_s32_s16(vqaddq_s16(vreinterpretq_s16_s32(*(int32x4_t*)&tx[i]), vreinterpretq_s16_s32(*(int32x4_t*)&tx[i])));
+    int32x4_t tmp = vreinterpretq_s32_s16(vqaddq_s16(vreinterpretq_s16_s32(*(int32x4_t*)&t[i]), vreinterpretq_s16_s32(*(int32x4_t*)&t[i])));
     tmp = neon_mulhi_epi16(tmp, err);
     tmp = vreinterpretq_s32_s16(vqaddq_s16(vreinterpretq_s16_s32(tmp), vreinterpretq_s16_s32(one)));
     tmp = vreinterpretq_s32_s16(vshrq_n_s16(vreinterpretq_s16_s32(tmp), 1));

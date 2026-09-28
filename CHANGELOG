@@ -2136,3 +2136,17 @@ paq8px_v216 by Zoltán Gotthardt
 - Performance:
   - Enhanced DivisionTable (used in StateMap)
   - Division-free ResidualMap and LargeStationaryMap
+
+
+paq8px_v217 by Zoltán Gotthardt
+2026.09.28
+- New Mixer:
+  - It has now 3 layers instead of the traditional 2
+  - Optimized mixer parameters
+  - Removed the stale and partially broken adaptive learning rate (-a) option
+- JPEG model enhancements and fixes
+- 1-bit image model enhancements.
+- Fixes in SSE stage
+- Improved/simplified LSTM model contexts
+- Reduced memory size of compression level 10 and above. Now level 12 should not cause swapping with 32 GB of RAM
+

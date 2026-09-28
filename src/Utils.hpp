@@ -4,7 +4,9 @@
 #include <cassert>
 #include "SystemDefines.hpp"
 
-
+#if defined(_MSC_VER)
+#include <intrin.h> //__prefetch
+#endif
 
 ALWAYS_INLINE
 int max(int a, int b) { return std::max<int>(a, b); }
@@ -171,4 +173,26 @@ inline uint8_t clamp4(const int px, const uint8_t n1, const uint8_t n2, const ui
 ALWAYS_INLINE static int rabs(int x1, int x2) {
   int d = int8_t(x1 - x2); // -128..127
   return d >= 0 ? d : -d; // abs(d) → 0..128
+}
+
+
+/**
+ * Bring the cache line containing the given address into the L1 cache.
+ * Purely a hint.
+ */
+ALWAYS_INLINE
+void prefetch(const void* const ptr) {
+#if defined(_MSC_VER)
+#if defined(X64_SIMD_AVAILABLE)
+  _mm_prefetch(static_cast<const char*>(ptr), _MM_HINT_T0);
+#elif defined(_M_ARM64) || defined(_M_ARM)
+  __prefetch(ptr);
+#else
+  (void)ptr;
+#endif
+#elif defined(__GNUC__) || defined(__clang__)
+  __builtin_prefetch(ptr, 0 /*read*/, 3 /*high temporal locality*/);
+#else
+  (void)ptr;
+#endif
 }

@@ -39,7 +39,8 @@ public:
       ,
       (useLSTM ? 1 : 0)
     );
-    m->setScaleFactor(980, 90);
+    m->setScaleFactor(980, 130, 90);
+    m->setLowerLimitOfLearningRate(7, 3, 2);
   }
 
   int p() {

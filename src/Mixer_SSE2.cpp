@@ -5,20 +5,17 @@
 static constexpr int SIMD_WIDTH_SSE2 = 16 / sizeof(short); // 8 shorts per 128-bit lane
 
 Mixer_SSE2::Mixer_SSE2(const Shared* const sh, const int n, const int m, const int s, const int promoted)
-  : Mixer(sh, n, m, s, SIMD_WIDTH_SSE2) {
-  if (s > 1) {
-    mp = new Mixer_SSE2(shared, s + promoted, 1, 1, 0);
-  }
+  : Mixer(sh, n, m, s, promoted, SIMD_WIDTH_SSE2) {
 }
 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("sse2")))
 #endif
-int Mixer_SSE2::dotProduct(const short* const w, const size_t n) {
+int Mixer_SSE2::dotProduct(const short* const t, const short* const w, const size_t n) {
   __m128i sum = _mm_setzero_si128();
 
   for (size_t i = 0; i < n; i += 8) {
-    __m128i tmp = _mm_madd_epi16(*(__m128i*) & tx[i], *(__m128i*) & w[i]);
+    __m128i tmp = _mm_madd_epi16(*(const __m128i*) & t[i], *(const __m128i*) & w[i]);
     tmp = _mm_srai_epi32(tmp, 8);
     sum = _mm_add_epi32(sum, tmp);
   }
@@ -31,13 +28,13 @@ int Mixer_SSE2::dotProduct(const short* const w, const size_t n) {
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("sse2")))
 #endif
-int Mixer_SSE2::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+int Mixer_SSE2::dotProduct2(const short* const t, const short* const w0, const short* const w1, const size_t n, int& sum1) {
   __m128i s0 = _mm_setzero_si128();
   __m128i s1 = _mm_setzero_si128();
   for (size_t i = 0; i < n; i += 8) {
-    const __m128i t = *(__m128i*) & tx[i];
-    __m128i tmp0 = _mm_madd_epi16(t, *(__m128i*) & w0[i]);
-    __m128i tmp1 = _mm_madd_epi16(t, *(__m128i*) & w1[i]);
+    const __m128i tv = *(const __m128i*) & t[i];
+    __m128i tmp0 = _mm_madd_epi16(tv, *(const __m128i*) & w0[i]);
+    __m128i tmp1 = _mm_madd_epi16(tv, *(const __m128i*) & w1[i]);
     s0 = _mm_add_epi32(s0, _mm_srai_epi32(tmp0, 8));
     s1 = _mm_add_epi32(s1, _mm_srai_epi32(tmp1, 8));
   }
@@ -52,12 +49,12 @@ int Mixer_SSE2::dotProduct2(const short* const w0, const short* const w1, const 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("sse2")))
 #endif
-void Mixer_SSE2::train(short* const w, const size_t n, const int e) {
+void Mixer_SSE2::train(const short* const t, short* const w, const size_t n, const int e) {
   const __m128i one = _mm_set1_epi16(1);
   const __m128i err = _mm_set1_epi16(short(e));
 
   for (size_t i = 0; i < n; i += 8) {
-    __m128i tmp = _mm_adds_epi16(*(__m128i*) & tx[i], *(__m128i*) & tx[i]);
+    __m128i tmp = _mm_adds_epi16(*(const __m128i*) & t[i], *(const __m128i*) & t[i]);
     tmp = _mm_mulhi_epi16(tmp, err);
     tmp = _mm_adds_epi16(tmp, one);
     tmp = _mm_srai_epi16(tmp, 1);

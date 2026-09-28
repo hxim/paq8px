@@ -5,20 +5,17 @@
 static constexpr int SIMD_WIDTH_AVX512 = 64 / sizeof(short); // 32 shorts per 512-bit lane
 
 Mixer_AVX512::Mixer_AVX512(const Shared* const sh, const int n, const int m, const int s, const int promoted)
-  : Mixer(sh, n, m, s, SIMD_WIDTH_AVX512) {
-  if (s > 1) {
-    mp = new Mixer_AVX512(shared, s + promoted, 1, 1, 0);
-  }
+  : Mixer(sh, n, m, s, promoted, SIMD_WIDTH_AVX512) {
 }
 
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx512bw")))
 #endif
-int Mixer_AVX512::dotProduct(const short* const w, const size_t n) {
+int Mixer_AVX512::dotProduct(const short* const t, const short* const w, const size_t n) {
   __m512i sum = _mm512_setzero_si512();
 
   for (size_t i = 0; i < n; i += 32) {
-    __m512i tmp = _mm512_madd_epi16(*(__m512i*)&tx[i], *(__m512i*)&w[i]);
+    __m512i tmp = _mm512_madd_epi16(*(const __m512i*)&t[i], *(const __m512i*)&w[i]);
     tmp = _mm512_srai_epi32(tmp, 8);
     sum = _mm512_add_epi32(sum, tmp);
   }
@@ -36,14 +33,14 @@ int Mixer_AVX512::dotProduct(const short* const w, const size_t n) {
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx512bw")))
 #endif
-int Mixer_AVX512::dotProduct2(const short* const w0, const short* const w1, const size_t n, int& sum1) {
+int Mixer_AVX512::dotProduct2(const short* const t, const short* const w0, const short* const w1, const size_t n, int& sum1) {
   __m512i s0 = _mm512_setzero_si512();
   __m512i s1 = _mm512_setzero_si512();
 
   for (size_t i = 0; i < n; i += 32) {
-    const __m512i t = *(__m512i*)&tx[i];
-    __m512i tmp0 = _mm512_madd_epi16(t, *(__m512i*)&w0[i]);
-    __m512i tmp1 = _mm512_madd_epi16(t, *(__m512i*)&w1[i]);
+    const __m512i tv = *(const __m512i*)&t[i];
+    __m512i tmp0 = _mm512_madd_epi16(tv, *(const __m512i*)&w0[i]);
+    __m512i tmp1 = _mm512_madd_epi16(tv, *(const __m512i*)&w1[i]);
     s0 = _mm512_add_epi32(s0, _mm512_srai_epi32(tmp0, 8));
     s1 = _mm512_add_epi32(s1, _mm512_srai_epi32(tmp1, 8));
   }
@@ -69,12 +66,12 @@ int Mixer_AVX512::dotProduct2(const short* const w0, const short* const w1, cons
 #if (defined(__GNUC__) || defined(__clang__))
 __attribute__((target("avx512bw")))
 #endif
-void Mixer_AVX512::train(short* const w, const size_t n, const int e) {
+void Mixer_AVX512::train(const short* const t, short* const w, const size_t n, const int e) {
   const __m512i one = _mm512_set1_epi16(1);
   const __m512i err = _mm512_set1_epi16(short(e));
 
   for (size_t i = 0; i < n; i += 32) {
-    __m512i tmp = _mm512_adds_epi16(*(__m512i*)&tx[i], *(__m512i*)&tx[i]);
+    __m512i tmp = _mm512_adds_epi16(*(const __m512i*)&t[i], *(const __m512i*)&t[i]);
     tmp = _mm512_mulhi_epi16(tmp, err);
     tmp = _mm512_adds_epi16(tmp, one);
     tmp = _mm512_srai_epi16(tmp, 1);

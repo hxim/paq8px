@@ -64,13 +64,19 @@ uint32_t finalize64(const uint64_t hash, const int hashBits) {
 static ALWAYS_INLINE
 uint8_t checksum8(const uint64_t hash, const int hashBits) {
   constexpr int checksumBits = 8;
-  return static_cast<uint8_t>(hash >> (64 - hashBits - checksumBits)) & ((1 << checksumBits) - 1);
+  return static_cast<uint8_t>(hash >> (64 - hashBits - checksumBits)) & ((1u << checksumBits) - 1);
 }
 
 static ALWAYS_INLINE
 uint16_t checksum16(const uint64_t hash, const int hashBits) {
   constexpr int checksumBits = 16;
-  return static_cast<uint16_t>(hash >> (64 - hashBits - checksumBits)) & ((1 << checksumBits) - 1);
+  return static_cast<uint16_t>(hash >> (64 - hashBits - checksumBits)) & ((1u << checksumBits) - 1);
+}
+
+static ALWAYS_INLINE
+uint32_t checksum24(const uint64_t hash, const int hashBits) {
+  constexpr int checksumBits = 24;
+  return static_cast<uint32_t>(hash >> (64 - hashBits - checksumBits)) & ((1u << checksumBits) - 1);
 }
 
 //

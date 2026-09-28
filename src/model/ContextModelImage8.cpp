@@ -33,9 +33,9 @@ public:
     Image8BitModel& image8BitModel = models->image8BitModel();
     image8BitModel.setParam(width, isGray);
     if (isGray)
-      m->setScaleFactor(1300, 100); // 1100-1400, 90-110
+      m->setScaleFactor(1300, 150, 100); // 1100-1400, 90-110
     else
-      m->setScaleFactor(1600, 110); // 1500-1800, 100-128
+      m->setScaleFactor(1600, 160, 110); // 1500-1800, 100-128
   }
 
   int p() {

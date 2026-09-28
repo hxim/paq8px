@@ -26,7 +26,7 @@ public:
       ,
       0
     );
-    m->setScaleFactor(1024, 128);
+    m->setScaleFactor(1024, 160, 128);
   }
 
   void setParam(int blockInfo) {

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include <cstdint>
 #include "BlockType.hpp"
@@ -22,17 +22,17 @@
 /**
  * Shared information by all the models and some other classes.
  */
-struct Shared {
+struct Shared
+{
 private:
   UpdateBroadcaster updateBroadcaster;
 
   // compression/decompression options (these flags are stored in the archive)
   static constexpr uint8_t OPTION_MULTIPLE_FILE_MODE = 1;
-  static constexpr uint8_t OPTION_TRAINEXE  = 2;
-  static constexpr uint8_t OPTION_TRAINTXT  = 4;
-  static constexpr uint8_t OPTION_ADAPTIVE  = 8;
-  static constexpr uint8_t OPTION_SKIPRGB   = 16;
-  static constexpr uint8_t OPTION_USELSTM   = 32;
+  static constexpr uint8_t OPTION_TRAINEXE = 2;
+  static constexpr uint8_t OPTION_TRAINTXT = 4;
+  static constexpr uint8_t OPTION_SKIPRGB = 16;
+  static constexpr uint8_t OPTION_USELSTM = 32;
 
   // block detection related options (these flags are not stored in the archive)
   static constexpr uint8_t OPTION_BRUTEFORCE_DEFLATE_DETECTION = 1U;
@@ -51,12 +51,11 @@ public:
   uint64_t mem = 0; /**< pre-calculated value of 65536 * 2^level */
   float tuning_param = 0.0f; /**< used during development to find optimal model parameters */
   bool toScreen = true;
-  
+
   // Getters
   bool GetOptionMultipleFileMode() const { return (options & OPTION_MULTIPLE_FILE_MODE) != 0; }
   bool GetOptionTrainExe() const { return (options & OPTION_TRAINEXE) != 0; }
   bool GetOptionTrainTxt() const { return (options & OPTION_TRAINTXT) != 0; }
-  bool GetOptionAdaptiveLearningRate() const { return (options & OPTION_ADAPTIVE) != 0; }
   bool GetOptionSkipRGB() const { return (options & OPTION_SKIPRGB) != 0; }
   bool GetOptionUseLSTM() const { return (options & OPTION_USELSTM) != 0; }
 
@@ -68,7 +67,6 @@ public:
   void SetOptionMultipleFileMode() { options |= OPTION_MULTIPLE_FILE_MODE; }
   void SetOptionTrainExe() { options |= OPTION_TRAINEXE; }
   void SetOptionTrainTxt() { options |= OPTION_TRAINTXT; }
-  void SetOptionAdaptiveLearningRate() { options |= OPTION_ADAPTIVE; }
   void SetOptionSkipRGB() { options |= OPTION_SKIPRGB; }
   void SetOptionUseLSTM() { options |= OPTION_USELSTM; }
 
@@ -83,7 +81,8 @@ public:
     uint8_t horizon = 100;
   } LstmSettings;
 
-  struct {
+  struct
+  {
 
     //
     // Global state, used by most models, updated after every bit by update(y)
@@ -115,7 +114,8 @@ public:
     //
 
     //MatchModel
-    struct {
+    struct
+    {
       uint8_t length2;      //used by SSE stage and RecordModel
       uint8_t mode3;        //used by SSE stage 
       uint8_t mode5;        //used by SSE stage 
@@ -123,14 +123,17 @@ public:
     } Match{};
 
     //NormalModel
-    struct {
+    struct
+    {
       uint8_t order; // 0-7
       uint64_t cxt[15]; // context hashes used by NormalModel and MatchModel
     } NormalModel{};
 
     //image models
-    struct {
-      struct {
+    struct
+    {
+      struct
+      {
         uint8_t WW, W, NN, N;
       } pixels; //used by SSE stage
       uint8_t plane; //used by SSE stage
@@ -138,12 +141,26 @@ public:
       uint32_t lossQ; //used by SSE stage
     } Image{};
 
+    //Image1BitModel
+    struct
+    { // used by the SSE stage
+      uint32_t ctx12;    //the 12 nearest pixels
+      uint32_t shape;    //how far the ink runs from the current pixel in seven directions
+      uint32_t column;   //the 16 pixels above the current one
+      uint32_t rowAbove; //15 pixels of the row above, 7 to the left and 7 to the right
+      uint8_t run;       //the current run: its length (0-15, in steps) and, in bit 4, its colour
+      uint8_t ref;       //the distance to the next colour change on the row above (0-31, in steps) and, in bit 5, the colour of the current run
+      uint8_t ink;       //how many of the 40 surrounding pixels are ink (0-40)
+      uint8_t match;     //the match models' verdict (0-32): 0 = no match, else 1 + the length of the best match (bits 3-4), the pixel it expects (bit 2), the matches disagree (bit 1), its source was identical (bit 0)
+    } Image1{};
+
     //AudioModel
     uint8_t Audio{};
 
     //JpegModel
-    struct {
-      std::uint16_t state; // used by SSE stage
+    struct
+    { // used by the SSE stage
+      uint16_t state;  // 0: not predicting this bit; otherwise 1 + a direct 12-bit context
     } JPEG;
 
     //SparseMatchModel
@@ -154,7 +171,8 @@ public:
     //CharGroupModel
 
     //TextModel
-    struct {
+    struct
+    {
       uint8_t characterGroup; //used by RecordModel, TextModel - Quantized partial byte as ASCII group
       uint8_t firstLetter; //used by SSE stage
       uint8_t mask; //used by SSE stage
@@ -162,7 +180,8 @@ public:
     } Text{};
 
     //WordModel
-    struct {
+    struct
+    {
       uint8_t order; //used by SSE stage; 0-31
     } WordModel{};
 
@@ -171,14 +190,16 @@ public:
     //NestModel
     //XMLModel
     //LinearPredictionModel
-      
+
     //ExeModel
-    struct {
+    struct
+    {
       uint8_t state; // used by SSE stage
     } x86_64;
 
     //DECAlphaModel
-    struct {
+    struct
+    {
       uint8_t state; // used by SSE stage
       uint8_t bcount; // used by SSE stage
     } DEC;
@@ -190,19 +211,19 @@ public:
   void init(uint8_t level, uint32_t bufMem = 0);
   void update(int y, uint32_t p, bool isMissed);
   void reset();
-  UpdateBroadcaster *GetUpdateBroadcaster() const;
+  UpdateBroadcaster* GetUpdateBroadcaster() const;
 
 private:
 
   /**
     * Copy constructor is private so that it cannot be called
     */
-  Shared(Shared const & /*unused*/) {}
+  Shared(Shared const& /*unused*/) {}
 
   /**
     * Assignment operator is private so that it cannot be called
     */
-  Shared& operator=(Shared const & /*unused*/) { return *this; }
+  Shared& operator=(Shared const& /*unused*/) { return *this; }
 
   /**
     * Determine if output is redirected

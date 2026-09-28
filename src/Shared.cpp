@@ -29,7 +29,7 @@ void Shared::init(uint8_t level, uint32_t bufMem) {
   this->level = level;
   mem = UINT64_C(65536) << level;
   if (bufMem == 0) //to auto size
-    bufMem = static_cast<uint32_t>(min(mem * 8, UINT64_C(1) << 30)); /**< no reason to go over 1 GB */
+    bufMem = static_cast<uint32_t>(min(mem * 8, UINT64_C(1) << 28)); /**< no reason to go over 256 MB */
   assert(isPowerOf2(bufMem));
   buf.setSize(bufMem);
   toScreen = !isOutputRedirected();
